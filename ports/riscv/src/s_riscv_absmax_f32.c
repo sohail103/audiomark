@@ -16,27 +16,33 @@
 #include "ee_api.h"
 #include "riscv_audiomark.h"
 
-void
-s_riscv_f32_to_int16(const ee_f32_t *p_src, int16_t *p_dst, uint32_t len)
-{
+#include <math.h>
 
-    if (!p_src || !p_dst || len == 0)
+void
+s_riscv_absmax_f32(const ee_f32_t *p_in,
+                   uint32_t        len,
+                   ee_f32_t       *p_max,
+                   uint32_t       *p_index)
+{
+    if (!p_in || !p_max || !p_index || len == 0)
     {
         return;
     }
 
-    for (uint32_t i = 0; i < len; i++)
-    {
-        ee_f32_t x = p_src[i];
+    ee_f32_t max_val = fabsf(p_in[0]);
+    uint32_t max_idx = 0;
 
-        if (x > 32767.0f)
+    for (uint32_t i = 1; i < len; i++)
+    {
+        ee_f32_t val = fabsf(p_in[i]);
+
+        if (val > max_val)
         {
-            x = 32767.0f;
+            max_val = val;
+            max_idx = i;
         }
-        else if (x < -32768.0f)
-        {
-            x = -32768.0f;
-        }
-        p_dst[i] = (int16_t)x;
     }
+
+    *p_max   = max_val;
+    *p_index = max_idx;
 }

@@ -107,4 +107,5 @@ s_riscv_nn_init(void)
 
     // we don't free in audiomark
 }
+
 #endif

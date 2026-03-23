@@ -17,16 +17,16 @@
 #include "riscv_audiomark.h"
 
 void
-s_riscv_offset_f32(ee_f32_t *p_a, ee_f32_t offset, ee_f32_t *p_c, uint32_t len)
+s_riscv_int16_to_f32(const int16_t *p_src, ee_f32_t *p_dst, uint32_t len)
 {
 
-    if (!p_a || !p_c || len == 0)
+    if (!p_src || !p_dst || len == 0)
     {
         return;
     }
 
     for (uint32_t i = 0; i < len; i++)
     {
-        p_c[i] = p_a[i] + offset;
+        p_dst[i] = (ee_f32_t)p_src[i];
     }
 }

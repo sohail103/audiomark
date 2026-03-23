@@ -1,12 +1,13 @@
 include_directories(
     ${PORT_DIR}
-    ${PORT_DIR}/muriscv-nn/Include)
+    ${PORT_DIR}/muriscv-nn/Include
+)
 
 file(GLOB PORT_SOURCES
     ${PORT_DIR}/*.c
-    ${PORT_DIR}/scalar/*.c
-    ${PORT_DIR}/vector/*.c
-    ${PORT_DIR}/packed_simd/*.c
+    ${PORT_DIR}/src/*.c
+    ${PORT_DIR}/src/rvv/*.c
+    ${PORT_DIR}/src/rvp/*.c
 )
 
 file(GLOB MURISCV_NN_SOURCES

@@ -17,7 +17,7 @@
 #include "riscv_audiomark.h"
 
 void
-s_riscv_add_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
+s_riscv_subtract_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
 {
 
     if (!p_a || !p_b || !p_c || len == 0)
@@ -27,6 +27,6 @@ s_riscv_add_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
 
     for (uint32_t i = 0; i < len; i++)
     {
-        p_c[i] = p_a[i] + p_b[i];
+        p_c[i] = p_a[i] - p_b[i];
     }
 }

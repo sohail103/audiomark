@@ -17,24 +17,16 @@
 #include "riscv_audiomark.h"
 
 void
-s_riscv_cmplx_mult_cmplx_f32(const ee_f32_t *p_a,
-                             const ee_f32_t *p_b,
-                             ee_f32_t       *p_c,
-                             uint32_t        len)
+s_riscv_cmplx_conj_f32(const ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
 {
-    if (!p_a || !p_b || !p_c || len == 0)
+    if (!p_a || !p_c || len == 0)
     {
         return;
     }
 
     for (uint32_t i = 0; i < len; i++)
     {
-        ee_f32_t ar = p_a[2 * i];
-        ee_f32_t ai = p_a[2 * i + 1];
-        ee_f32_t br = p_b[2 * i];
-        ee_f32_t bi = p_b[2 * i + 1];
-
-        p_c[2 * i]     = ar * br - ai * bi; // real
-        p_c[2 * i + 1] = ar * bi + ai * br; // imag
+        p_c[2 * i]     = p_a[2 * i];      // real stays same
+        p_c[2 * i + 1] = -p_a[2 * i + 1]; // imag flipped
     }
 }

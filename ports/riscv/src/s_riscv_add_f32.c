@@ -16,30 +16,17 @@
 #include "ee_api.h"
 #include "riscv_audiomark.h"
 
-ee_status_t
-s_riscv_rfft_init_f32(ee_rfft_f32_t *p_instance, int fft_length)
+void
+s_riscv_add_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
 {
-    if (!p_instance || fft_length <= 0)
+
+    if (!p_a || !p_b || !p_c || len == 0)
     {
-        return EE_STATUS_ERROR;
+        return;
     }
 
-    if ((fft_length & (fft_length - 1)) != 0 || fft_length < 2)
+    for (uint32_t i = 0; i < len; i++)
     {
-        return EE_STATUS_ERROR;
+        p_c[i] = p_a[i] + p_b[i];
     }
-
-    p_instance->fft_len = fft_length;
-
-    p_instance->work_real
-        = th_malloc(sizeof(ee_f32_t) * fft_length, COMPONENT_KWS);
-    p_instance->work_imag
-        = th_malloc(sizeof(ee_f32_t) * fft_length, COMPONENT_KWS);
-
-    if (!p_instance->work_real || !p_instance->work_imag)
-    {
-        return EE_STATUS_ERROR;
-    }
-
-    return EE_STATUS_OK;
 }

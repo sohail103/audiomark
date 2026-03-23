@@ -12,6 +12,7 @@
  * effective EEMBC Benchmark License Agreement, you must discontinue use.
  */
 
+#define restrict __restrict__
 #include "ee_audiomark.h"
 #include "ee_api.h"
 #include "riscv_audiomark.h"

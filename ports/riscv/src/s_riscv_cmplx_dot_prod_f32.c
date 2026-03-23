@@ -17,16 +17,31 @@
 #include "riscv_audiomark.h"
 
 void
-s_riscv_subtract_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
+s_riscv_cmplx_dot_prod_f32(const ee_f32_t *p_a,
+                           const ee_f32_t *p_b,
+                           uint32_t        len,
+                           ee_f32_t       *p_r,
+                           ee_f32_t       *p_i)
 {
-
-    if (!p_a || !p_b || !p_c || len == 0)
+    if (!p_a || !p_b || !p_r || !p_i || len == 0)
     {
         return;
     }
 
+    ee_f32_t real_sum = 0.0f;
+    ee_f32_t imag_sum = 0.0f;
+
     for (uint32_t i = 0; i < len; i++)
     {
-        p_c[i] = p_a[i] - p_b[i];
+        ee_f32_t ar = p_a[2 * i];
+        ee_f32_t ai = p_a[2 * i + 1];
+        ee_f32_t br = p_b[2 * i];
+        ee_f32_t bi = p_b[2 * i + 1];
+
+        real_sum += ar * br - ai * bi;
+        imag_sum += ar * bi + ai * br;
     }
+
+    *p_r = real_sum;
+    *p_i = imag_sum;
 }

@@ -16,24 +16,22 @@
 #include "ee_api.h"
 #include "riscv_audiomark.h"
 
-void
-s_riscv_dot_prod_f32(ee_f32_t *p_a,
-                     ee_f32_t *p_b,
-                     uint32_t  len,
-                     ee_f32_t *p_result)
+ee_status_t
+s_riscv_cfft_init_f32(ee_cfft_f32_t *p_instance, int fft_length)
 {
 
-    if (!p_a || !p_b || !p_result || len == 0)
+    if (!p_instance || fft_length <= 0)
     {
-        return;
+        return EE_STATUS_ERROR;
     }
 
-    ee_f32_t sum = 0.0f;
-
-    for (uint32_t i = 0; i < len; i++)
+    /* checking if fft_length is a power of 2 */
+    if ((fft_length & (fft_length - 1)) != 0)
     {
-        sum += p_a[i] * p_b[i];
+        return EE_STATUS_ERROR;
     }
 
-    *p_result = sum;
+    p_instance->fft_len = fft_length;
+
+    return EE_STATUS_OK;
 }

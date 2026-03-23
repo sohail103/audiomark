@@ -16,22 +16,22 @@
 #include "ee_api.h"
 #include "riscv_audiomark.h"
 
-ee_status_t
-s_riscv_cfft_init_f32(ee_cfft_f32_t *p_instance, int fft_length)
+#include <math.h>
+
+void
+s_riscv_cmplx_mag_f32(ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
 {
 
-    if (!p_instance || fft_length <= 0)
+    if (!p_a || !p_c || len == 0)
     {
-        return EE_STATUS_ERROR;
+        return;
     }
 
-    /* checking if fft_length is a power of 2 */
-    if ((fft_length & (fft_length - 1)) != 0)
+    for (uint32_t i = 0; i < len; i++)
     {
-        return EE_STATUS_ERROR;
+        ee_f32_t real = p_a[2 * i];
+        ee_f32_t imag = p_a[2 * i + 1];
+
+        p_c[i] = sqrtf(real * real + imag * imag);
     }
-
-    p_instance->fft_len = fft_length;
-
-    return EE_STATUS_OK;
 }

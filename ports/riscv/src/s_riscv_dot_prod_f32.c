@@ -16,33 +16,24 @@
 #include "ee_api.h"
 #include "riscv_audiomark.h"
 
-#include <math.h>
-
 void
-s_riscv_absmax_f32(const ee_f32_t *p_in,
-                   uint32_t        len,
-                   ee_f32_t       *p_max,
-                   uint32_t       *p_index)
+s_riscv_dot_prod_f32(ee_f32_t *p_a,
+                     ee_f32_t *p_b,
+                     uint32_t  len,
+                     ee_f32_t *p_result)
 {
-    if (!p_in || !p_max || !p_index || len == 0)
+
+    if (!p_a || !p_b || !p_result || len == 0)
     {
         return;
     }
 
-    ee_f32_t max_val = fabsf(p_in[0]);
-    uint32_t max_idx = 0;
+    ee_f32_t sum = 0.0f;
 
-    for (uint32_t i = 1; i < len; i++)
+    for (uint32_t i = 0; i < len; i++)
     {
-        ee_f32_t val = fabsf(p_in[i]);
-
-        if (val > max_val)
-        {
-            max_val = val;
-            max_idx = i;
-        }
+        sum += p_a[i] * p_b[i];
     }
 
-    *p_max   = max_val;
-    *p_index = max_idx;
+    *p_result = sum;
 }
