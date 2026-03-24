@@ -166,25 +166,41 @@ th_f32_to_int16(const ee_f32_t *p_src, int16_t *p_dst, uint32_t len)
 void
 th_add_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
 {
+#if defined(__riscv_vector) && defined(__riscv_zve32f)
+    v_add_f32(p_a, p_b, p_c, len);
+#else
     s_riscv_add_f32(p_a, p_b, p_c, len);
+#endif
 }
 
 void
 th_subtract_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
 {
+#if defined(__riscv_vector) && defined(__riscv_zve32f)
+    v_subtract_f32(p_a, p_b, p_c, len);
+#else
     s_riscv_subtract_f32(p_a, p_b, p_c, len);
+#endif
 }
 
 void
 th_dot_prod_f32(ee_f32_t *p_a, ee_f32_t *p_b, uint32_t len, ee_f32_t *p_result)
 {
+#if defined(__riscv_vector) && defined(__riscv_zve32f)
+    v_dot_prod_f32(p_a, p_b, len, p_result);
+#else
     s_riscv_dot_prod_f32(p_a, p_b, len, p_result);
+#endif
 }
 
 void
 th_multiply_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len)
 {
+#if defined(__riscv_vector) && defined(__riscv_zve32f)
+    v_multiply_f32(p_a, p_b, p_c, len);
+#else
     s_riscv_multiply_f32(p_a, p_b, p_c, len);
+#endif
 }
 
 void

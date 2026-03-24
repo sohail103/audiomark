@@ -88,4 +88,16 @@ void s_riscv_nn_init(void);
 
 ee_status_t s_riscv_nn_classify(const int8_t in_data[490], int8_t out_data[12]);
 
+/* RVV optimized functions (v_ prefix) */
+void v_add_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len);
+
+void v_subtract_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len);
+
+void v_multiply_f32(ee_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c, uint32_t len);
+
+void v_dot_prod_f32(ee_f32_t *p_a,
+                    ee_f32_t *p_b,
+                    uint32_t  len,
+                    ee_f32_t *p_result);
+
 #endif

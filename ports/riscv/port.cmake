@@ -27,6 +27,20 @@ list(FILTER MURISCV_NN_SOURCES EXCLUDE REGEX ".*_1_x_n_s4.*")
 
 add_definitions(-DUSE_SMALLFT)
 
+# RISC-V Vector extension support
+# Set RISCV_ARCH to your target architecture string
+# Examples:
+#   rv64gcv        - RV64 with full V extension (includes Zve64f, Zve32f)
+#   rv64gc_zve32f  - RV64 with minimal float vector (Zve32f only)
+#   rv32gcv        - RV32 with full V extension
+#   rv32gc_zve32f  - RV32 with Zve32f
+#
+# Pass via: -DRISCV_ARCH=rv64gcv_zve32f
+if(DEFINED RISCV_ARCH)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${RISCV_ARCH}")
+    message(STATUS "RISC-V architecture: ${RISCV_ARCH}")
+endif()
+
 set(PORT_SOURCE 
     ${PORT_SOURCES}
     ${MURISCV_NN_SOURCES}
