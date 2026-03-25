@@ -29,13 +29,3 @@ Scalar (portable C):
 ```bash
 -DPORT_DIR=ports/riscv
 ```
-
-Vector (RISC-V V Extension):
-```bash
--DPORT_DIR=ports/riscv/v
-```
-
-Packed SIMD (RISC-V P Extension):
-```bash
--DPORT_DIR=ports/riscv/p
-```
