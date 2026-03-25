@@ -1,5 +1,6 @@
 include_directories(
     ${PORT_DIR}
+    ${PORT_DIR}/inc
 )
 
 file(GLOB PORT_SOURCES
