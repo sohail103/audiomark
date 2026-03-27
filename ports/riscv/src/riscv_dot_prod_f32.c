@@ -16,13 +16,9 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 void
-riscv_dot_prod_f32(ee_f32_t *p_a,
-                   ee_f32_t *p_b,
-                   uint32_t  len,
-                   ee_f32_t *p_result)
+th_dot_prod_f32(ee_f32_t *p_a, ee_f32_t *p_b, uint32_t len, ee_f32_t *p_result)
 {
     if (!p_a || !p_b || !p_result || len == 0)
     {

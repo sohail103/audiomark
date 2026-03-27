@@ -16,12 +16,11 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 #include <math.h>
 
 void
-riscv_cmplx_mag_f32(ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
+th_cmplx_mag_f32(ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
 {
     if (!p_a || !p_c || len == 0)
     {

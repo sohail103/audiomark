@@ -16,10 +16,9 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 void
-riscv_mat_vec_mult_f32(ee_matrix_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c)
+th_mat_vec_mult_f32(ee_matrix_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c)
 {
     if (!p_a || !p_b || !p_c)
     {

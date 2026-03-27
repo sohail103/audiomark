@@ -16,10 +16,9 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 void
-riscv_int16_to_f32(const int16_t *p_src, ee_f32_t *p_dst, uint32_t len)
+th_int16_to_f32(const int16_t *p_src, ee_f32_t *p_dst, uint32_t len)
 {
     if (!p_src || !p_dst || len == 0)
     {

@@ -16,10 +16,9 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 void
-riscv_cmplx_conj_f32(const ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
+th_cmplx_conj_f32(const ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
 {
     if (!p_a || !p_c || len == 0)
     {

@@ -16,10 +16,9 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 ee_status_t
-riscv_rfft_init_f32(ee_rfft_f32_t *p_instance, int fft_length)
+th_rfft_init_f32(ee_rfft_f32_t *p_instance, int fft_length)
 {
     if (!p_instance || fft_length <= 0)
     {

@@ -16,14 +16,13 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 void
-riscv_cmplx_dot_prod_f32(const ee_f32_t *p_a,
-                         const ee_f32_t *p_b,
-                         uint32_t        len,
-                         ee_f32_t       *p_r,
-                         ee_f32_t       *p_i)
+th_cmplx_dot_prod_f32(const ee_f32_t *p_a,
+                      const ee_f32_t *p_b,
+                      uint32_t        len,
+                      ee_f32_t       *p_r,
+                      ee_f32_t       *p_i)
 {
     if (!p_a || !p_b || !p_r || !p_i || len == 0)
     {

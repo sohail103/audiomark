@@ -16,10 +16,9 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 void
-riscv_nn_init(void)
+th_nn_init(void)
 {
-#warning "riscv_nn_init() not implemented"
+#warning "th_nn_init() not implemented"
 }

@@ -16,7 +16,6 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 #include <math.h>
 
@@ -97,10 +96,10 @@ radix2_cfft(ee_f32_t *real, ee_f32_t *imag, int n, uint8_t is_inverse)
 }
 
 void
-riscv_rfft_f32(ee_rfft_f32_t *p_instance,
-               ee_f32_t      *p_in,
-               ee_f32_t      *p_out,
-               uint8_t        ifftFlag)
+th_rfft_f32(ee_rfft_f32_t *p_instance,
+            ee_f32_t      *p_in,
+            ee_f32_t      *p_out,
+            uint8_t        ifftFlag)
 {
     if (!p_instance || !p_in || !p_out || !p_instance->work_real
         || !p_instance->work_imag)

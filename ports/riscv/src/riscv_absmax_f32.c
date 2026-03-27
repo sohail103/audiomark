@@ -16,15 +16,14 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 #include <math.h>
 
 void
-riscv_absmax_f32(const ee_f32_t *p_in,
-                 uint32_t        len,
-                 ee_f32_t       *p_max,
-                 uint32_t       *p_index)
+th_absmax_f32(const ee_f32_t *p_in,
+              uint32_t        len,
+              ee_f32_t       *p_max,
+              uint32_t       *p_index)
 {
     if (!p_in || !p_max || !p_index || len == 0)
     {

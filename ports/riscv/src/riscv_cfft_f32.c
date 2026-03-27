@@ -16,7 +16,6 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 #include <math.h>
 
@@ -25,10 +24,10 @@
 #endif
 
 void
-riscv_cfft_f32(ee_cfft_f32_t *p_instance,
-               ee_f32_t      *p_buf,
-               uint8_t        ifftFlag,
-               uint8_t        bitReverseFlagR)
+th_cfft_f32(ee_cfft_f32_t *p_instance,
+            ee_f32_t      *p_buf,
+            uint8_t        ifftFlag,
+            uint8_t        bitReverseFlagR)
 {
     (void)bitReverseFlagR;
 

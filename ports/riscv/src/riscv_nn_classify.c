@@ -16,11 +16,10 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "riscv_audiomark.h"
 
 ee_status_t
-riscv_nn_classify(void)
+th_nn_classify(const int8_t in_data[490], int8_t out_data[12])
 {
-#warning "riscv_nn_classify() not implemented"
+#warning "th_nn_classify() not implemented"
     return EE_STATUS_ERROR;
 }
