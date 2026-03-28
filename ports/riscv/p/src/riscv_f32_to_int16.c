@@ -1,0 +1,44 @@
+/**
+ * Copyright 2026 Sohail Raj Satapathy
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "ee_api.h"
+
+void th_f32_to_int16(const float *p_src, int16_t *p_dst, uint32_t len)
+{
+    if (!p_src || !p_dst || len == 0)
+    {
+        return;
+    }
+
+    for (uint32_t i = 0; i < len; i++)
+    {
+        /* Scale [-1.0, 1.0) back up to [-32768, 32767] */
+        float x = p_src[i] * 32768.0f;
+
+        x += (x > 0.0f) ? 0.5f : -0.5f;
+
+        if (x > 32767.0f)
+        {
+            x = 32767.0f;
+        }
+        else if (x < -32768.0f)
+        {
+            x = -32768.0f;
+        }
+        
+        p_dst[i] = (int16_t)x;
+    }
+}
