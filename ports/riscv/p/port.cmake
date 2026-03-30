@@ -25,6 +25,7 @@ file(GLOB PORT_SOURCES
   ${PORT_DIR}/../src/riscv_multiply_f32.c
   ${PORT_DIR}/../src/riscv_f32_to_int16.c
   ${PORT_DIR}/../src/riscv_int16_to_f32.c
+  ${PORT_DIR}/../src/riscv_absmax_f32.c
 )
 
 # TODO: Add our FFT functions as an FFT backend in fftwrap.c
