@@ -1,4 +1,5 @@
 /*
+ * Copyright 2026 Robin John
  * Copyright (C) 2010-2021 ARM Limited or its affiliates. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -22,7 +23,7 @@
 #define P_RISCV_RFFT_H
 
 
-#include "riscv_cfft.h"
+#include "riscv_cfft_f32.h"
 
 extern const q31_t rfftFastTwiddleQ31_1024[1024];
 extern const q31_t rfftFastTwiddleQ31_128[128];

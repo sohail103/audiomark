@@ -1,4 +1,5 @@
 /*
+ * Copyright 2026 Robin John
  * Copyright (C) 2010-2021 ARM Limited or its affiliates. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -16,7 +17,7 @@
  * limitations under the License.
  */
 
-#include "riscv_rfft.h"
+#include "riscv_rfft_f32.h"
 #include "ee_api.h"
 
 ee_status_t th_rfft_init_f32(riscv_rfft_fast_instance_q31 * S, int fftLenReal)

@@ -18,7 +18,7 @@
     && (__riscv_p >= 19000)
 #include <riscv_p_asm.h>
 #else
-#error "RISCV VECTOR EXTENSION v1.0 NOT SUPPORTED"
+#error "RISCV P EXTENSION v0.19 NOT SUPPORTED"
 #endif
 
 #define TH_FLOAT32_TYPE float

@@ -1,4 +1,5 @@
 /*
+ * Copyright 2026 Robin John
  * Copyright (C) 2010-2021 ARM Limited or its affiliates. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -18,7 +19,7 @@
 
 
 #include "ee_api.h"
-#include "riscv_cfft.h"
+#include "riscv_cfft_f32.h"
 
 ee_status_t th_cfft_init_f32(riscv_cfft_instance_q31 *p_instance, int fftLength){
     ee_status_t status = EE_STATUS_OK;

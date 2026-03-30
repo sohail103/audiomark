@@ -1,4 +1,5 @@
 /*
+ * Copyright 2026 Robin John
  * Copyright (C) 2010-2021 ARM Limited or its affiliates. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -17,7 +18,7 @@
  */
 
 
-#include "riscv_cfft.h"
+#include "riscv_cfft_f32.h"
 
 /**
   @par
