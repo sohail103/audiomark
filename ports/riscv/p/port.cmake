@@ -4,11 +4,11 @@ include_directories(
 )
 
 file(GLOB PORT_SOURCES
-    ${PORT_DIR}/th_api.c
+    ${PORT_DIR}/../th_api.c
     ${PORT_DIR}/src/*.c
 
 
-  # NOTE: these sources are temporary added from scalar port as rvv port for
+  # NOTE: these sources are temporary added from scalar port as rvp port for
   # them is not yet implemented.
   ${PORT_DIR}/../src/riscv_cmplx_mult_cmplx_f32.c
   ${PORT_DIR}/../src/riscv_cmplx_conj_f32.c
