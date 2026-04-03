@@ -14,10 +14,11 @@ The current implementation is based on the **v0.19 draft specification** of the 
 
 This implementation has been tested with the following toolchain and environment:
 
-* **Clang 23.0**
 
 * LLVM fork with P-extension support:
   [https://github.com/sihuan/llvm-project/tree/p-int-headeronly](https://github.com/sihuan/llvm-project/tree/p-int-headeronly)
+
+* **Clang Commit Hash** [Clang][RISCV] Mask shift amounts in P extension intrinsics to avoid UB. commit d905aeb42106d64d1c4302be1dbd7da2dd3d57a7
 
 * Reference intrinsics definitions:
   [https://github.com/topperc/p-ext-intrinsics/blob/main/source/riscv_p_asm.h](https://github.com/topperc/p-ext-intrinsics/blob/main/source/riscv_p_asm.h)
