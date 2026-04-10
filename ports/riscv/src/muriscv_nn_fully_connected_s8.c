@@ -23,6 +23,8 @@
 #include "muriscv_nn_functions.h"
 #include "muriscv_nn_support_functions.h"
 
+#include <stdint.h>
+
 /*
  * S8 basic fully-connected and matrix multiplication layer function for
  * TensorFlow Lite
@@ -46,20 +48,14 @@ muriscv_nn_fully_connected_s8(
     q7_t                                     *output)
 {
     (void)bias_dims;
-    (void)ctx; // TODO(fabianpedd): Why is this not used? But allocated in the
-               // tests?!?
-    (void)fc_params->filter_offset;
 
     int32_t batch_cnt = input_dims->n;
-
-    const int32_t *kernel_sum = ctx->buf;
 
     while (batch_cnt)
     {
         muriscv_nn_vec_mat_mult_t_s8(
             input,
             kernel,
-            kernel_sum,
             bias,
             output,
             fc_params->input_offset,

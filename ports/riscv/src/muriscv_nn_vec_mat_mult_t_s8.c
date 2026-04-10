@@ -33,21 +33,20 @@
  *
  */
 muriscv_nn_status
-muriscv_nn_vec_mat_mult_t_s8(const q7_t    *lhs,
-                             const q7_t    *rhs,
-                             const int32_t *kernel_sum,
-                             const q31_t   *bias,
-                             q7_t          *dst,
-                             const int32_t  lhs_offset,
-                             const int32_t  dst_offset,
-                             const int32_t  dst_multiplier,
-                             const int32_t  dst_shift,
-                             const int32_t  rhs_cols,
-                             const int32_t  rhs_rows,
-                             const int32_t  activation_min,
-                             const int32_t  activation_max,
-                             const int32_t  address_offset,
-                             const int32_t  rhs_offset) // Currently Unused
+muriscv_nn_vec_mat_mult_t_s8(const q7_t   *lhs,
+                             const q7_t   *rhs,
+                             const q31_t  *bias,
+                             q7_t         *dst,
+                             const int32_t lhs_offset,
+                             const int32_t dst_offset,
+                             const int32_t dst_multiplier,
+                             const int32_t dst_shift,
+                             const int32_t rhs_cols,
+                             const int32_t rhs_rows,
+                             const int32_t activation_min,
+                             const int32_t activation_max,
+                             const int32_t address_offset,
+                             const int32_t rhs_offset) // Currently Unused
 {
     /* Uses 5x loop unrolling in order to expose more ILP */
     const int32_t row_loop_cnt = rhs_rows / 5;

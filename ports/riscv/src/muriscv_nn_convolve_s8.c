@@ -22,6 +22,9 @@
 
 #include "muriscv_nn_functions.h"
 #include "muriscv_nn_support_functions.h"
+#include "ee_api.h"
+
+#include <stdint.h>
 
 /*
  * Basic s8 convolution function.
@@ -30,6 +33,17 @@
  * implementation is when input and output channels are large.
  *
  */
+
+int32_t
+muriscv_nn_convolve_s8_get_buffer_size(const muriscv_nn_dims *input_dims,
+                                       const muriscv_nn_dims *filter_dims)
+{
+    const int32_t rhs_cols  = filter_dims->w * filter_dims->h * input_dims->c;
+    const int32_t remainder = rhs_cols % 4;
+    const int32_t aligned_rhs_cols
+        = remainder != 0 ? rhs_cols + 4 - remainder : rhs_cols;
+    return (2 * aligned_rhs_cols) * (int32_t)sizeof(int16_t);
+}
 
 muriscv_nn_status
 muriscv_nn_convolve_s8(const muriscv_nn_context                  *ctx,
@@ -105,9 +119,9 @@ muriscv_nn_convolve_s8(const muriscv_nn_context                  *ctx,
                             || k_x >= input_x)
                         {
                             /* Filling 0 for out-of-bound paddings */
-                            muriscv_nn_memset((int8_t *)two_column_buf,
-                                              0,
-                                              sizeof(q15_t) * input_ch);
+                            th_memset((int8_t *)two_column_buf,
+                                      0,
+                                      sizeof(q15_t) * input_ch);
                         }
                         else
                         {

@@ -132,17 +132,17 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     bias_dims.c    = CONV_0_OUT_CH;
 
     muriscv_nn_status status
-        = muriscv_nn_convolve_wrapper_s8(&ctx,
-                                         &conv_params,
-                                         &quant_params,
-                                         &in_out_dim_0,
-                                         in_data,
-                                         &conv_filter_dims,
-                                         ds_cnn_s_layer_1_conv2d_weights,
-                                         &bias_dims,
-                                         ds_cnn_s_layer_1_conv2d_bias,
-                                         &in_out_dim_1,
-                                         in_out_buf_0);
+        = muriscv_nn_convolve_s8(&ctx,
+                                 &conv_params,
+                                 &quant_params,
+                                 &in_out_dim_0,
+                                 in_data,
+                                 &conv_filter_dims,
+                                 ds_cnn_s_layer_1_conv2d_weights,
+                                 &bias_dims,
+                                 ds_cnn_s_layer_1_conv2d_bias,
+                                 &in_out_dim_1,
+                                 in_out_buf_0);
 
     /***************************** Depthwise Separable Block 1 ***************
      */
@@ -176,18 +176,17 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     // Same for all layers in DS block
     bias_dims.c = in_out_dim_0.c;
 
-    status |= muriscv_nn_depthwise_conv_wrapper_s8(
-        &ctx,
-        &dw_conv_params,
-        &quant_params,
-        &in_out_dim_1,
-        in_out_buf_0,
-        &dw_conv_filter_dims,
-        ds_cnn_s_layer_2_dw_conv2d_weights,
-        &bias_dims,
-        ds_cnn_s_layer_2_dw_conv2d_bias,
-        &in_out_dim_0,
-        in_out_buf_1);
+    status |= muriscv_nn_depthwise_conv_s8(&ctx,
+                                           &dw_conv_params,
+                                           &quant_params,
+                                           &in_out_dim_1,
+                                           in_out_buf_0,
+                                           &dw_conv_filter_dims,
+                                           ds_cnn_s_layer_2_dw_conv2d_weights,
+                                           &bias_dims,
+                                           ds_cnn_s_layer_2_dw_conv2d_bias,
+                                           &in_out_dim_0,
+                                           in_out_buf_1);
 
     // Layer 2 - Conv
 
@@ -210,17 +209,17 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_3_conv2d_output_mult;
     quant_params.shift      = (int32_t *)ds_cnn_s_layer_3_conv2d_output_shift;
 
-    status |= muriscv_nn_convolve_wrapper_s8(&ctx,
-                                             &conv_params,
-                                             &quant_params,
-                                             &in_out_dim_0,
-                                             in_out_buf_1,
-                                             &conv_filter_dims,
-                                             ds_cnn_s_layer_3_conv2d_weights,
-                                             &bias_dims,
-                                             ds_cnn_s_layer_3_conv2d_bias,
-                                             &in_out_dim_1,
-                                             in_out_buf_0);
+    status |= muriscv_nn_convolve_s8(&ctx,
+                                     &conv_params,
+                                     &quant_params,
+                                     &in_out_dim_0,
+                                     in_out_buf_1,
+                                     &conv_filter_dims,
+                                     ds_cnn_s_layer_3_conv2d_weights,
+                                     &bias_dims,
+                                     ds_cnn_s_layer_3_conv2d_bias,
+                                     &in_out_dim_1,
+                                     in_out_buf_0);
 
     /***************************** Depthwise Separable Block 2 ***************
      */
@@ -231,18 +230,17 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_4_dw_conv2d_output_mult;
     quant_params.shift = (int32_t *)ds_cnn_s_layer_4_dw_conv2d_output_shift;
 
-    status |= muriscv_nn_depthwise_conv_wrapper_s8(
-        &ctx,
-        &dw_conv_params,
-        &quant_params,
-        &in_out_dim_1,
-        in_out_buf_0,
-        &dw_conv_filter_dims,
-        ds_cnn_s_layer_4_dw_conv2d_weights,
-        &bias_dims,
-        ds_cnn_s_layer_4_dw_conv2d_bias,
-        &in_out_dim_0,
-        in_out_buf_1);
+    status |= muriscv_nn_depthwise_conv_s8(&ctx,
+                                           &dw_conv_params,
+                                           &quant_params,
+                                           &in_out_dim_1,
+                                           in_out_buf_0,
+                                           &dw_conv_filter_dims,
+                                           ds_cnn_s_layer_4_dw_conv2d_weights,
+                                           &bias_dims,
+                                           ds_cnn_s_layer_4_dw_conv2d_bias,
+                                           &in_out_dim_0,
+                                           in_out_buf_1);
 
     // Layer specific params
     conv_params.input_offset  = CONV_4_INPUT_OFFSET;
@@ -251,17 +249,17 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_5_conv2d_output_mult;
     quant_params.shift      = (int32_t *)ds_cnn_s_layer_5_conv2d_output_shift;
 
-    status |= muriscv_nn_convolve_wrapper_s8(&ctx,
-                                             &conv_params,
-                                             &quant_params,
-                                             &in_out_dim_0,
-                                             in_out_buf_1,
-                                             &conv_filter_dims,
-                                             ds_cnn_s_layer_5_conv2d_weights,
-                                             &bias_dims,
-                                             ds_cnn_s_layer_5_conv2d_bias,
-                                             &in_out_dim_1,
-                                             in_out_buf_0);
+    status |= muriscv_nn_convolve_s8(&ctx,
+                                     &conv_params,
+                                     &quant_params,
+                                     &in_out_dim_0,
+                                     in_out_buf_1,
+                                     &conv_filter_dims,
+                                     ds_cnn_s_layer_5_conv2d_weights,
+                                     &bias_dims,
+                                     ds_cnn_s_layer_5_conv2d_bias,
+                                     &in_out_dim_1,
+                                     in_out_buf_0);
 
     /***************************** Depthwise Separable Block 3 ***************
      */
@@ -272,18 +270,17 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_6_dw_conv2d_output_mult;
     quant_params.shift = (int32_t *)ds_cnn_s_layer_6_dw_conv2d_output_shift;
 
-    status |= muriscv_nn_depthwise_conv_wrapper_s8(
-        &ctx,
-        &dw_conv_params,
-        &quant_params,
-        &in_out_dim_1,
-        in_out_buf_0,
-        &dw_conv_filter_dims,
-        ds_cnn_s_layer_6_dw_conv2d_weights,
-        &bias_dims,
-        ds_cnn_s_layer_6_dw_conv2d_bias,
-        &in_out_dim_0,
-        in_out_buf_1);
+    status |= muriscv_nn_depthwise_conv_s8(&ctx,
+                                           &dw_conv_params,
+                                           &quant_params,
+                                           &in_out_dim_1,
+                                           in_out_buf_0,
+                                           &dw_conv_filter_dims,
+                                           ds_cnn_s_layer_6_dw_conv2d_weights,
+                                           &bias_dims,
+                                           ds_cnn_s_layer_6_dw_conv2d_bias,
+                                           &in_out_dim_0,
+                                           in_out_buf_1);
 
     // Layer specific params
     conv_params.input_offset  = CONV_6_INPUT_OFFSET;
@@ -291,17 +288,17 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier   = (int32_t *)ds_cnn_s_layer_7_conv2d_output_mult;
     quant_params.shift        = (int32_t *)ds_cnn_s_layer_7_conv2d_output_shift;
 
-    status |= muriscv_nn_convolve_wrapper_s8(&ctx,
-                                             &conv_params,
-                                             &quant_params,
-                                             &in_out_dim_0,
-                                             in_out_buf_1,
-                                             &conv_filter_dims,
-                                             ds_cnn_s_layer_7_conv2d_weights,
-                                             &bias_dims,
-                                             ds_cnn_s_layer_7_conv2d_bias,
-                                             &in_out_dim_1,
-                                             in_out_buf_0);
+    status |= muriscv_nn_convolve_s8(&ctx,
+                                     &conv_params,
+                                     &quant_params,
+                                     &in_out_dim_0,
+                                     in_out_buf_1,
+                                     &conv_filter_dims,
+                                     ds_cnn_s_layer_7_conv2d_weights,
+                                     &bias_dims,
+                                     ds_cnn_s_layer_7_conv2d_bias,
+                                     &in_out_dim_1,
+                                     in_out_buf_0);
 
     /***************************** Depthwise Separable Block 4 ***************
      */
@@ -312,18 +309,17 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_8_dw_conv2d_output_mult;
     quant_params.shift = (int32_t *)ds_cnn_s_layer_8_dw_conv2d_output_shift;
 
-    status |= muriscv_nn_depthwise_conv_wrapper_s8(
-        &ctx,
-        &dw_conv_params,
-        &quant_params,
-        &in_out_dim_1,
-        in_out_buf_0,
-        &dw_conv_filter_dims,
-        ds_cnn_s_layer_8_dw_conv2d_weights,
-        &bias_dims,
-        ds_cnn_s_layer_8_dw_conv2d_bias,
-        &in_out_dim_0,
-        in_out_buf_1);
+    status |= muriscv_nn_depthwise_conv_s8(&ctx,
+                                           &dw_conv_params,
+                                           &quant_params,
+                                           &in_out_dim_1,
+                                           in_out_buf_0,
+                                           &dw_conv_filter_dims,
+                                           ds_cnn_s_layer_8_dw_conv2d_weights,
+                                           &bias_dims,
+                                           ds_cnn_s_layer_8_dw_conv2d_bias,
+                                           &in_out_dim_0,
+                                           in_out_buf_1);
 
     conv_params.input_offset  = CONV_8_INPUT_OFFSET;
     conv_params.output_offset = CONV_8_OUTPUT_OFFSET;
@@ -331,17 +327,17 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_9_conv2d_output_mult;
     quant_params.shift      = (int32_t *)ds_cnn_s_layer_9_conv2d_output_shift;
 
-    status |= muriscv_nn_convolve_wrapper_s8(&ctx,
-                                             &conv_params,
-                                             &quant_params,
-                                             &in_out_dim_0,
-                                             in_out_buf_1,
-                                             &conv_filter_dims,
-                                             ds_cnn_s_layer_9_conv2d_weights,
-                                             &bias_dims,
-                                             ds_cnn_s_layer_9_conv2d_bias,
-                                             &in_out_dim_1,
-                                             in_out_buf_0);
+    status |= muriscv_nn_convolve_s8(&ctx,
+                                     &conv_params,
+                                     &quant_params,
+                                     &in_out_dim_0,
+                                     in_out_buf_1,
+                                     &conv_filter_dims,
+                                     ds_cnn_s_layer_9_conv2d_weights,
+                                     &bias_dims,
+                                     ds_cnn_s_layer_9_conv2d_bias,
+                                     &in_out_dim_1,
+                                     in_out_buf_0);
 
     /***************************** Average Pool *************** */
 
@@ -373,7 +369,6 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     muriscv_nn_fc_params fc_params;
     fc_params.activation.max = FULLY_CONNECTED_11_OUT_ACTIVATION_MAX;
     fc_params.activation.min = FULLY_CONNECTED_11_OUT_ACTIVATION_MIN;
-    fc_params.filter_offset  = 0;
     fc_params.input_offset   = FULLY_CONNECTED_11_INPUT_OFFSET;
     fc_params.output_offset  = FULLY_CONNECTED_11_OUTPUT_OFFSET;
 

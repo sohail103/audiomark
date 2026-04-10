@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Nuclei Limited.
+ * Copyright (C) 2010-2022 Arm Limited or its affiliates.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -20,25 +20,23 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-/* Contains functions that emulate ARM instructions that RISC-V does not have.
- */
-
-#ifndef _MURISCV_NN_COMPATIBLE_H
-#define _MURISCV_NN_COMPATIBLE_H
+#ifndef _MURISCV_NN_MATH_TYPES_H
+#define _MURISCV_NN_MATH_TYPES_H
 
 #include <stdint.h>
 
-static inline uint8_t
-__CLZ(uint32_t data)
-{
-    uint8_t  ret  = 0;
-    uint32_t temp = ~data;
-    while (temp & 0x80000000)
-    {
-        temp <<= 1;
-        ret++;
-    }
-    return ret;
-}
+typedef int8_t  q7_t;
+typedef int16_t q15_t;
+typedef int32_t q31_t;
 
-#endif /* _MURISCV_NN_COMPATIBLE_H */
+#define NN_Q31_MAX ((int32_t)(0x7FFFFFFFL))
+#define NN_Q31_MIN ((int32_t)(0x80000000L))
+
+typedef enum
+{
+    MURISCV_NN_SUCCESS       = 0,  /**< No error */
+    MURISCV_NN_ARG_ERROR     = -1, /**< One or more arguments are incorrect */
+    MURISCV_NN_NO_IMPL_ERROR = -2, /**< No implementation available */
+} muriscv_nn_status;
+
+#endif // _MURISCV_NN_MATH_TYPES_H

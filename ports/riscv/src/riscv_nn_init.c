@@ -51,8 +51,8 @@ ds_cnn_s_s8_get_buffer_size(void)
     output_dims.w = CONV_0_OUTPUT_W;
     output_dims.c = CONV_0_OUT_CH;
 
-    int32_t size = muriscv_nn_convolve_wrapper_s8_get_buffer_size(
-        &conv_params, &input_dims, &filter_dims, &output_dims);
+    int32_t size
+        = muriscv_nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
 
     max_buffer = size > max_buffer ? size : max_buffer;
 
@@ -81,11 +81,6 @@ ds_cnn_s_s8_get_buffer_size(void)
     output_dims.h = DW_CONV_1_OUTPUT_H;
     output_dims.w = DW_CONV_1_OUTPUT_W;
     output_dims.c = DW_CONV_1_OUT_CH;
-
-    size = muriscv_nn_depthwise_conv_wrapper_s8_get_buffer_size(
-        &dw_conv_params, &input_dims, &filter_dims, &output_dims);
-
-    max_buffer = size > max_buffer ? size : max_buffer;
 
     return max_buffer;
 }

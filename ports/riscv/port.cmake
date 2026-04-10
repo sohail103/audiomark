@@ -1,6 +1,6 @@
 include_directories(
     ${PORT_DIR}
-    ${PORT_DIR}/inc
+    ${PORT_DIR}/src
 )
 
 # TODO: Add our FFT functions as an FFT backend in fftwrap.c
@@ -9,19 +9,15 @@ include_directories(
 add_definitions(-DUSE_SMALLFT)
 
 set(PORT_SOURCE 
-
+    # th sources
     ${PORT_DIR}/th_api.c
+
     ${PORT_DIR}/src/muriscv_nn_avgpool_s8.c
-    ${PORT_DIR}/src/muriscv_nn_convolve_get_buffer_sizes_s8.c
     ${PORT_DIR}/src/muriscv_nn_convolve_s8.c
-    ${PORT_DIR}/src/muriscv_nn_convolve_wrapper_s8.c
-    ${PORT_DIR}/src/muriscv_nn_depthwise_conv_get_buffer_sizes_s8.c
     ${PORT_DIR}/src/muriscv_nn_depthwise_conv_s8.c
-    ${PORT_DIR}/src/muriscv_nn_depthwise_conv_wrapper_s8.c
     ${PORT_DIR}/src/muriscv_nn_fully_connected_s8.c
     ${PORT_DIR}/src/muriscv_nn_mat_mult_kernel_s8_s16.c
     ${PORT_DIR}/src/muriscv_nn_q7_to_q15_with_offset.c
-    ${PORT_DIR}/src/muriscv_nn_softmax_common_s8.c
     ${PORT_DIR}/src/muriscv_nn_softmax_s8.c
     ${PORT_DIR}/src/muriscv_nn_vec_mat_mult_t_s8.c
 

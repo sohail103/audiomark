@@ -23,15 +23,7 @@
 #ifndef _MURISCV_NN_TYPES_H
 #define _MURISCV_NN_TYPES_H
 
-#include <stdbool.h>
 #include <stdint.h>
-
-/** Enum for specifying activation function types */
-typedef enum
-{
-    MURISCV_SIGMOID = 0, /**< Sigmoid activation function */
-    MURISCV_TANH    = 1, /**< Tanh activation function */
-} muriscv_nn_activation_type;
 
 /** MURISCV-NN object to contain the width and height of a tile */
 typedef struct
@@ -118,7 +110,6 @@ typedef struct
 typedef struct
 {
     int32_t input_offset;  /**< Zero value for the input tensor */
-    int32_t filter_offset; /**< Zero value for the filter tensor. Not used */
     int32_t output_offset; /**< Zero value for the output tensor */
     muriscv_nn_activation activation;
 } muriscv_nn_fc_params;

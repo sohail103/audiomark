@@ -23,38 +23,55 @@
 #include "muriscv_nn_functions.h"
 #include "muriscv_nn_support_functions.h"
 
-static void
-depthwise_conv_s8_generic(const q7_t    *input,
-                          const uint16_t input_batches,
-                          const uint16_t input_x,
-                          const uint16_t input_y,
-                          const uint16_t input_ch,
-                          const q7_t    *kernel,
-                          const uint16_t output_ch,
-                          const uint16_t ch_mult,
-                          const uint16_t kernel_x,
-                          const uint16_t kernel_y,
-                          const uint16_t pad_x,
-                          const uint16_t pad_y,
-                          const uint16_t stride_x,
-                          const uint16_t stride_y,
-                          const int32_t *bias,
-                          q7_t          *output,
-                          const int32_t *output_shift,
-                          const int32_t *output_mult,
-                          const uint16_t output_x,
-                          const uint16_t output_y,
-                          const int32_t  output_offset,
-                          const int32_t  input_offset,
-                          const int32_t  output_activation_min,
-                          const int32_t  output_activation_max,
-                          const uint16_t dilation_x,
-                          const uint16_t dilation_y)
+#include <stdint.h>
 
+/*
+ *  Basic s8 depthwise convolution function.
+ *
+ *  Refer header file for details.
+ *  Optimization using DSP extension is not available for the generic case where
+ * channel multiplier is > 1.
+ *
+ */
+muriscv_nn_status
+muriscv_nn_depthwise_conv_s8(
+    const muriscv_nn_context                  *ctx,
+    const muriscv_nn_dw_conv_params           *dw_conv_params,
+    const muriscv_nn_per_channel_quant_params *quant_params,
+    const muriscv_nn_dims                     *input_dims,
+    const q7_t                                *input,
+    const muriscv_nn_dims                     *filter_dims,
+    const q7_t                                *kernel,
+    const muriscv_nn_dims                     *bias_dims,
+    const int32_t                             *bias,
+    const muriscv_nn_dims                     *output_dims,
+    q7_t                                      *output)
 {
-    (void)output_ch;
-    int i_out = 0;
-    int i_batch;
+    const uint16_t dilation_x = dw_conv_params->dilation.w;
+    const uint16_t dilation_y = dw_conv_params->dilation.h;
+
+    const uint16_t input_batches         = input_dims->n;
+    const uint16_t input_x               = input_dims->w;
+    const uint16_t input_y               = input_dims->h;
+    const uint16_t input_ch              = input_dims->c;
+    const uint16_t ch_mult               = dw_conv_params->ch_mult;
+    const uint16_t kernel_x              = filter_dims->w;
+    const uint16_t kernel_y              = filter_dims->h;
+    const uint16_t pad_x                 = dw_conv_params->padding.w;
+    const uint16_t pad_y                 = dw_conv_params->padding.h;
+    const uint16_t stride_x              = dw_conv_params->stride.w;
+    const uint16_t stride_y              = dw_conv_params->stride.h;
+    const int32_t *output_shift          = quant_params->shift;
+    const int32_t *output_mult           = quant_params->multiplier;
+    const uint16_t output_x              = output_dims->w;
+    const uint16_t output_y              = output_dims->h;
+    const int32_t  output_offset         = dw_conv_params->output_offset;
+    const int32_t  input_offset          = dw_conv_params->input_offset;
+    const int32_t  output_activation_min = dw_conv_params->activation.min;
+    const int32_t  output_activation_max = dw_conv_params->activation.max;
+
+    int32_t i_out = 0;
+    int32_t i_batch;
 
     for (i_batch = 0; i_batch < input_batches; i_batch++)
     {
@@ -205,63 +222,6 @@ depthwise_conv_s8_generic(const q7_t    *input,
         /* Advance to the next batch */
         input += (input_x * input_y * input_ch);
     }
-}
-
-/*
- *  Basic s8 depthwise convolution function.
- *
- *  Refer header file for details.
- *  Optimization using DSP extension is not available for the generic case where
- * channel multiplier is > 1.
- *
- */
-muriscv_nn_status
-muriscv_nn_depthwise_conv_s8(
-    const muriscv_nn_context                  *ctx,
-    const muriscv_nn_dw_conv_params           *dw_conv_params,
-    const muriscv_nn_per_channel_quant_params *quant_params,
-    const muriscv_nn_dims                     *input_dims,
-    const q7_t                                *input,
-    const muriscv_nn_dims                     *filter_dims,
-    const q7_t                                *kernel,
-    const muriscv_nn_dims                     *bias_dims,
-    const int32_t                             *bias,
-    const muriscv_nn_dims                     *output_dims,
-    q7_t                                      *output)
-{
-    const uint16_t dilation_x = dw_conv_params->dilation.w;
-    const uint16_t dilation_y = dw_conv_params->dilation.h;
-
-    (void)dw_conv_params->dilation;
-    (void)bias_dims;
-    (void)ctx;
-
-    depthwise_conv_s8_generic(input,
-                              input_dims->n,
-                              input_dims->w,
-                              input_dims->h,
-                              input_dims->c,
-                              kernel,
-                              output_dims->c,
-                              dw_conv_params->ch_mult,
-                              filter_dims->w,
-                              filter_dims->h,
-                              dw_conv_params->padding.w,
-                              dw_conv_params->padding.h,
-                              dw_conv_params->stride.w,
-                              dw_conv_params->stride.h,
-                              bias,
-                              output,
-                              quant_params->shift,
-                              quant_params->multiplier,
-                              output_dims->w,
-                              output_dims->h,
-                              dw_conv_params->output_offset,
-                              dw_conv_params->input_offset,
-                              dw_conv_params->activation.min,
-                              dw_conv_params->activation.max,
-                              dilation_x,
-                              dilation_y);
 
     /* Return to application */
     return MURISCV_NN_SUCCESS;
