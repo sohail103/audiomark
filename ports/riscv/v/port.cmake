@@ -27,6 +27,12 @@ file(GLOB RISCV_V_SOURCES
 
 add_definitions(-DUSE_SMALLFT)
 
+# Pass via: -DRISCV_ARCH=rv64gcv_zve32f
+if(DEFINED RISCV_ARCH)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${RISCV_ARCH}")
+  message(STATUS "RISC-V architecture: ${RISCV_ARCH}")
+endif()
+
 set(PORT_SOURCE 
   ${RISCV_V_SOURCES}
 )

@@ -135,6 +135,12 @@ set(TEST_KWS_SOURCE
 )
 add_executable(test_kws ${TEST_KWS_SOURCE})
 
+set(TEST_RVV_DSP_SOURCE
+	${TH_SOURCE}
+	tests/test_rvv_dsp.c
+)
+add_executable(test_rvv_dsp ${TEST_RVV_DSP_SOURCE})
+
 add_executable(audiomark ${EE_SOURCE} ${TH_SOURCE})
 
 if(CMAKE_C_COMPILER_ID MATCHES "MSVC")
@@ -145,6 +151,7 @@ else()
 	target_link_libraries(test_anr_f32 m)
 	target_link_libraries(test_mfcc_f32 m)
 	target_link_libraries(test_kws m)
+	target_link_libraries(test_rvv_dsp m)
 endif()
 
 add_custom_target(test
@@ -154,5 +161,6 @@ add_custom_target(test
 	COMMAND ./test_anr_f32
 	COMMAND ./test_kws
 	COMMAND ./test_mfcc_f32
-	DEPENDS test_mfcc_f32 test_kws test_abf_f32 test_aec_f32 test_anr_f32
+	COMMAND ./test_rvv_dsp
+	DEPENDS test_mfcc_f32 test_kws test_abf_f32 test_aec_f32 test_anr_f32 test_rvv_dsp
 )
