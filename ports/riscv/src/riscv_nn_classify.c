@@ -175,8 +175,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     // Same for all layers in DS block
     bias_dims.c = in_out_dim_0.c;
 
-    status |= nn_depthwise_conv_s8(&ctx,
-                                   &dw_conv_params,
+    status |= nn_depthwise_conv_s8(&dw_conv_params,
                                    &quant_params,
                                    &in_out_dim_1,
                                    in_out_buf_0,
@@ -229,8 +228,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_4_dw_conv2d_output_mult;
     quant_params.shift = (int32_t *)ds_cnn_s_layer_4_dw_conv2d_output_shift;
 
-    status |= nn_depthwise_conv_s8(&ctx,
-                                   &dw_conv_params,
+    status |= nn_depthwise_conv_s8(&dw_conv_params,
                                    &quant_params,
                                    &in_out_dim_1,
                                    in_out_buf_0,
@@ -269,8 +267,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_6_dw_conv2d_output_mult;
     quant_params.shift = (int32_t *)ds_cnn_s_layer_6_dw_conv2d_output_shift;
 
-    status |= nn_depthwise_conv_s8(&ctx,
-                                   &dw_conv_params,
+    status |= nn_depthwise_conv_s8(&dw_conv_params,
                                    &quant_params,
                                    &in_out_dim_1,
                                    in_out_buf_0,
@@ -308,8 +305,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_8_dw_conv2d_output_mult;
     quant_params.shift = (int32_t *)ds_cnn_s_layer_8_dw_conv2d_output_shift;
 
-    status |= nn_depthwise_conv_s8(&ctx,
-                                   &dw_conv_params,
+    status |= nn_depthwise_conv_s8(&dw_conv_params,
                                    &quant_params,
                                    &in_out_dim_1,
                                    in_out_buf_0,
@@ -356,8 +352,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     in_out_dim_0.w = AVERAGE_POOL_9_OUTPUT_W;
     in_out_dim_0.c = in_out_dim_1.c;
 
-    status |= nn_avgpool_s8(&ctx,
-                            &pool_params,
+    status |= nn_avgpool_s8(&pool_params,
                             &in_out_dim_1,
                             in_out_buf_0,
                             &conv_filter_dims,
@@ -391,8 +386,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
 
     bias_dims.c = in_out_dim_1.c;
 
-    status |= nn_fully_connected_s8(&ctx,
-                                    &fc_params,
+    status |= nn_fully_connected_s8(&fc_params,
                                     &per_tensor_quant_params,
                                     &in_out_dim_0,
                                     in_out_buf_1,

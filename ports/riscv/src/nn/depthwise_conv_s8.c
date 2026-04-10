@@ -29,8 +29,7 @@
  * Basic s8 depthwise convolution function.
  */
 int32_t
-nn_depthwise_conv_s8(const nn_context                  *ctx,
-                     const nn_dw_conv_params           *dw_conv_params,
+nn_depthwise_conv_s8(const nn_dw_conv_params           *dw_conv_params,
                      const nn_per_channel_quant_params *quant_params,
                      const nn_dims                     *input_dims,
                      const q7_t                        *input,

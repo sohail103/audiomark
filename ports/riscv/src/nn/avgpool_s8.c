@@ -24,8 +24,7 @@
 #include "support_functions.h"
 
 int32_t
-nn_avgpool_s8(const nn_context     *ctx,
-              const nn_pool_params *pool_params,
+nn_avgpool_s8(const nn_pool_params *pool_params,
               const nn_dims        *input_dims,
               const q7_t           *src,
               const nn_dims        *filter_dims,

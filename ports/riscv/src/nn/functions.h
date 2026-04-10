@@ -46,8 +46,7 @@ int32_t nn_convolve_s8(const nn_context                  *ctx,
 int32_t nn_convolve_s8_get_buffer_size(const nn_dims *input_dims,
                                        const nn_dims *filter_dims);
 
-int32_t nn_depthwise_conv_s8(const nn_context                  *ctx,
-                             const nn_dw_conv_params           *dw_conv_params,
+int32_t nn_depthwise_conv_s8(const nn_dw_conv_params           *dw_conv_params,
                              const nn_per_channel_quant_params *quant_params,
                              const nn_dims                     *input_dims,
                              const int8_t                      *input_data,
@@ -58,8 +57,7 @@ int32_t nn_depthwise_conv_s8(const nn_context                  *ctx,
                              const nn_dims                     *output_dims,
                              int8_t                            *output_data);
 
-int32_t nn_fully_connected_s8(const nn_context                 *ctx,
-                              const nn_fc_params               *fc_params,
+int32_t nn_fully_connected_s8(const nn_fc_params               *fc_params,
                               const nn_per_tensor_quant_params *quant_params,
                               const nn_dims                    *input_dims,
                               const int8_t                     *input_data,
@@ -70,8 +68,7 @@ int32_t nn_fully_connected_s8(const nn_context                 *ctx,
                               const nn_dims                    *output_dims,
                               int8_t                           *output_data);
 
-int32_t nn_avgpool_s8(const nn_context     *ctx,
-                      const nn_pool_params *pool_params,
+int32_t nn_avgpool_s8(const nn_pool_params *pool_params,
                       const nn_dims        *input_dims,
                       const int8_t         *input_data,
                       const nn_dims        *filter_dims,

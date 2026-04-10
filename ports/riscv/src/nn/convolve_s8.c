@@ -75,14 +75,14 @@ nn_convolve_s8(const nn_context                  *ctx,
     const uint16_t stride_x = conv_params->stride.w;
     const uint16_t stride_y = conv_params->stride.h;
 
-    const int32_t input_offset       = conv_params->input_offset;
-    const int32_t out_offset         = conv_params->output_offset;
-    const int32_t out_activation_min = conv_params->activation.min;
-    const int32_t out_activation_max = conv_params->activation.max;
-    int32_t      *output_mult        = quant_params->multiplier;
-    int32_t      *output_shift       = quant_params->shift;
+    const int32_t  input_offset       = conv_params->input_offset;
+    const int32_t  out_offset         = conv_params->output_offset;
+    const int32_t  out_activation_min = conv_params->activation.min;
+    const int32_t  out_activation_max = conv_params->activation.max;
+    const int32_t *output_mult        = quant_params->multiplier;
+    const int32_t *output_shift       = quant_params->shift;
 
-    for (int i_batch = 0; i_batch < input_batches; i_batch++)
+    for (int32_t i_batch = 0; i_batch < input_batches; i_batch++)
     {
         const uint16_t dilation_x = conv_params->dilation.w;
         const uint16_t dilation_y = conv_params->dilation.h;
@@ -156,7 +156,7 @@ nn_convolve_s8(const nn_context                  *ctx,
         if (two_column_buf != buffer_a)
         {
             const q7_t *ker_a = filter_data;
-            int         i;
+            int32_t     i;
 
             for (i = 0; i < output_ch; i++)
             {

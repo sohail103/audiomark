@@ -78,7 +78,6 @@ nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
 
             ch_1_out_0 = *bias;
             ch_1_out_1 = *bias++;
-            // new
 
             ch_2_out_0 = *bias;
             ch_2_out_1 = *bias++;
@@ -97,7 +96,6 @@ nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
             q7_t  a1 = *ip_a1++;
             q15_t b1 = *ip_b1++;
 
-            // new
             q7_t a2 = *ip_a2++;
             q7_t a3 = *ip_a3++;
 
@@ -106,7 +104,6 @@ nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
             ch_1_out_0 += a1 * b0;
             ch_1_out_1 += a1 * b1;
 
-            // new
             ch_2_out_0 += a2 * b0;
             ch_2_out_1 += a2 * b1;
             ch_3_out_0 += a3 * b0;
