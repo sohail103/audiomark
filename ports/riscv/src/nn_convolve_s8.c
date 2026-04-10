@@ -29,8 +29,8 @@
 /*
  * Basic s8 convolution function.
  *
- * Refer header file for details. Optimal use case for the vectorized
- * implementation is when input and output channels are large.
+ * Optimal use case for the vectorized implementation is when input and output
+ * channels are large.
  *
  */
 

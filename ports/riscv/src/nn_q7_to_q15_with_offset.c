@@ -20,19 +20,6 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-/* ----------------------------------------------------------------------
- * Project:      CMSIS NN Library
- * Title:        muriscv_nn_q7_to_q15_with_offset.c
- * Description:  Converts the elements of the Q7 vector to Q15 vector with an
- * added offset
- *
- * $Date:        22 March 2023
- * $Revision:    V.2.2.0
- *
- * Target :  Arm(R) M-Profile Architecture
- *
- * -------------------------------------------------------------------- */
-
 #include "nn_support_functions.h"
 
 void

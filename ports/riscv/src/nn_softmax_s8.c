@@ -29,10 +29,8 @@
 
 /*
  * Softmax function with s8 input and output of s8 or s16.
- *
- * Refer header file for details.
- *
  */
+
 void
 muriscv_nn_softmax_s8(const int8_t *input,
                       const int32_t num_rows,

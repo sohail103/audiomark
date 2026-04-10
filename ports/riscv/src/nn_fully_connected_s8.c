@@ -26,11 +26,7 @@
 #include <stdint.h>
 
 /*
- * S8 basic fully-connected and matrix multiplication layer function for
- * TensorFlow Lite
- *
- * Refer header file for details.
- *
+ * S8 basic fully-connected and matrix multiplication layer function
  */
 
 muriscv_nn_status

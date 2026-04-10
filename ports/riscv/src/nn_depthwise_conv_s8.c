@@ -26,10 +26,9 @@
 #include <stdint.h>
 
 /*
- *  Basic s8 depthwise convolution function.
+ * Basic s8 depthwise convolution function.
  *
- *  Refer header file for details.
- *  Optimization using DSP extension is not available for the generic case where
+ * Optimization using DSP extension is not available for the generic case where
  * channel multiplier is > 1.
  *
  */

@@ -25,12 +25,7 @@
 
 /*
  * Matrix-multiplication function for convolution with per-channel
- * requantization.
- *
- * Refer header file for details.
- *
- * Used by muriscv_nn_convolve_s8()
- *
+ * requantization. Used by nn_convolve_s8().
  */
 q7_t *
 muriscv_nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,

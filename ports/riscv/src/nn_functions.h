@@ -22,7 +22,7 @@
 
 /**
  * A collection of functions to perform basic operations for neural network
- * layers. Functions with a _s8 suffix support TensorFlow Lite framework.
+ * layers.
  */
 
 #ifndef MURISCV_NNFUNCTIONS_H

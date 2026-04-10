@@ -9,7 +9,7 @@ include_directories(
 add_definitions(-DUSE_SMALLFT)
 
 set(PORT_SOURCE 
-    # th sources
+
     ${PORT_DIR}/th_api.c
 
     ${PORT_DIR}/src/nn_avgpool_s8.c
@@ -31,7 +31,6 @@ set(PORT_SOURCE
     ${PORT_DIR}/src/riscv_cmplx_mult_cmplx_f32.c
     ${PORT_DIR}/src/riscv_dot_prod_f32.c
     ${PORT_DIR}/src/riscv_f32_to_int16.c
-    ${PORT_DIR}/src/riscv_int16_to_f32.c
     ${PORT_DIR}/src/riscv_int16_to_f32.c
     ${PORT_DIR}/src/riscv_mat_vec_mult_f32.c
     ${PORT_DIR}/src/riscv_multiply_f32.c
