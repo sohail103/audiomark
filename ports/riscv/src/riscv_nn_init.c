@@ -30,7 +30,7 @@ ds_cnn_s_s8_get_buffer_size(void)
     nn_dims        filter_dims;
     nn_dims        output_dims;
 
-    // Layer 0 - Conv
+    /* Layer 0 - Conv */
     conv_params.padding.h  = CONV_0_PAD_H;
     conv_params.padding.w  = CONV_0_PAD_W;
     conv_params.stride.h   = CONV_0_STRIDE_H;
@@ -55,7 +55,7 @@ ds_cnn_s_s8_get_buffer_size(void)
 
     max_buffer = size > max_buffer ? size : max_buffer;
 
-    // Layer 0 - DW Conv
+    /* Layer 0 - DW Conv */
     nn_dw_conv_params dw_conv_params;
     dw_conv_params.activation.min = DW_CONV_1_OUT_ACTIVATION_MIN;
     dw_conv_params.activation.max = DW_CONV_1_OUT_ACTIVATION_MAX;

@@ -91,7 +91,7 @@ q7_t *nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
 
 #define RIGHT_SHIFT(_shift) (_shift > 0 ? 0 : -_shift)
 
-// Macros for shortening quantization functions' names and avoid long lines
+/* Macros for shortening quantization functions' names and avoid long lines */
 #define MUL_SAT(a, b)  nn_doubling_high_mult((a), (b))
 #define DIV_POW2(a, b) nn_divide_by_power_of_two((a), (b))
 #define EXP_ON_NEG(x)  nn_exp_on_negative_values((x))
@@ -101,18 +101,18 @@ static inline int32_t
 nn_doubling_high_mult(const int32_t m1, const int32_t m2)
 {
     int32_t result = 0;
-    // Rounding offset to add for a right shift of 31
+    /* Rounding offset to add for a right shift of 31 */
     int64_t mult = 1 << 30;
 
     if ((m1 < 0) ^ (m2 < 0))
     {
         mult = 1 - mult;
     }
-    // Gets resolved as a SMLAL instruction
+
+    /* Gets resolved as a SMLAL instruction */
     mult = mult + (int64_t)m1 * m2;
 
-    // Utilize all of the upper 32 bits. This is the doubling step
-    // as well.
+    /* Utilize all of the upper 32 bits. This is the doubling step as well. */
     result = (int32_t)(mult / (1ll << 31));
 
     if ((m1 == m2) && (m1 == (int32_t)NN_Q31_MIN))
@@ -128,15 +128,14 @@ nn_doubling_high_mult_no_sat(const int32_t m1, const int32_t m2)
     int32_t            result = 0;
     union nn_long_long mult;
 
-    // Rounding offset to add for a right shift of 31
+    /* Rounding offset to add for a right shift of 31 */
     mult.word.low  = 1 << 30;
     mult.word.high = 0;
 
-    // Gets resolved as a SMLAL instruction
+    /* Gets resolved as a SMLAL instruction */
     mult.long_long = mult.long_long + (int64_t)m1 * m2;
 
-    // Utilize all of the upper 32 bits. This is the doubling step
-    // as well.
+    /* Utilize all of the upper 32 bits. This is the doubling step as well. */
     result = (int32_t)(mult.long_long >> 31);
 
     return result;
@@ -149,10 +148,10 @@ nn_divide_by_power_of_two(const int32_t dividend, const int32_t exponent)
     const int32_t remainder_mask = (1 << exponent) - 1;
     int32_t       remainder      = remainder_mask & dividend;
 
-    // Basic division
+    /* Basic division */
     result = dividend >> exponent;
 
-    // Adjust 'result' for rounding (mid point away from zero)
+    /* Adjust 'result' for rounding (mid point away from zero) */
     int32_t threshold = remainder_mask >> 1;
     if (result < 0)
     {
@@ -175,8 +174,9 @@ nn_requantize(const int32_t val, const int32_t multiplier, const int32_t shift)
         RIGHT_SHIFT(shift));
 }
 
-// @note The following functions are used only for softmax layer, scaled
-// bits = 5 assumed
+/* The following functions are used only for softmax layer, scaled
+ * bits = 5 assumed
+ */
 
 static inline int32_t
 nn_exp_on_negative_values(int32_t val)

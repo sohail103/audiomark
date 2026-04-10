@@ -194,7 +194,6 @@ nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
 
         uint16_t col_count = num_col_a;
 
-        // possible optimization here
         while (col_count)
         {
             q7_t  a0 = *ip_a0++;

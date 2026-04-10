@@ -70,15 +70,13 @@ extern const int8_t  ds_cnn_s_layer_9_conv2d_weights[4096];
     (MAX_DIM_SIZE_BYTE_0 > MAX_DIM_SIZE_BYTE_1 ? MAX_DIM_SIZE_BYTE_0 \
                                                : MAX_DIM_SIZE_BYTE_1)
 
-// Word aligned start addresses to prevent unalinged access.
+/* Word aligned start addresses to prevent unalinged access. */
 #define MAX_NUM_WORDS_IN_OUT \
     ((MAX_DIM_SIZE_BYTE_0 + MAX_DIM_SIZE_BYTE_1 + 3) / 4)
 #define IN_OUT_BUFER_0_BYTE_OFFSET (0)
 #define IN_OUT_BUFER_1_BYTE_OFFSET (MAX_SIZE_BYTES + MAX_SIZE_BYTES % 4)
 
-// TODO
 static int32_t in_out_buf_main[MAX_NUM_WORDS_IN_OUT];
-// TODO
 
 extern nn_context ctx;
 
@@ -89,10 +87,11 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
         = (int8_t *)&in_out_buf_main[IN_OUT_BUFER_0_BYTE_OFFSET >> 2];
     int8_t *in_out_buf_1
         = (int8_t *)&in_out_buf_main[IN_OUT_BUFER_1_BYTE_OFFSET >> 2];
-    // Layer 0 - Implicit reshape
-    // 1x490 is interpreted as 49x10
 
-    // Layer 1 - Conv
+    /* Layer 0 - Implicit reshape */
+    /* 1x490 is interpreted as 49x10 */
+
+    /* Layer 1 - Conv */
     nn_conv_params              conv_params;
     nn_per_channel_quant_params quant_params;
     nn_dims                     in_out_dim_0;
@@ -109,8 +108,10 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     conv_params.dilation.w    = CONV_0_DILATION_W;
     conv_params.input_offset  = CONV_0_INPUT_OFFSET;
     conv_params.output_offset = CONV_0_OUTPUT_OFFSET;
-    // Not repeated subsequently as it is the same for all in this specific
-    // case.
+
+    /* Not repeated subsequently as it is the same for all in this specific case
+     */
+
     conv_params.activation.min = -128;
     conv_params.activation.max = 127;
 
@@ -143,10 +144,10 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                                     &in_out_dim_1,
                                     in_out_buf_0);
 
-    /***************************** Depthwise Separable Block 1 ***************
+    /*************************** Depthwise Separable Block 1 ****************/
+    /* Layer 1 - DW Conv
+     * Common params for DW conv in subsequent layers
      */
-    // Layer 1 - DW Conv
-    // Common params for DW conv in subsequent layers
     nn_dw_conv_params dw_conv_params;
     dw_conv_params.activation.min = DW_CONV_1_OUT_ACTIVATION_MIN;
     dw_conv_params.activation.max = DW_CONV_1_OUT_ACTIVATION_MAX;
@@ -158,7 +159,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     dw_conv_params.stride.h       = DW_CONV_1_STRIDE_H;
     dw_conv_params.stride.w       = DW_CONV_1_STRIDE_W;
 
-    // Layer specific params
+    /* Layer specific params */
     dw_conv_params.input_offset  = DW_CONV_1_INPUT_OFFSET;
     dw_conv_params.output_offset = DW_CONV_1_OUTPUT_OFFSET;
 
@@ -172,7 +173,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     in_out_dim_0.w = DW_CONV_1_OUTPUT_W;
     in_out_dim_0.c = DW_CONV_1_OUT_CH;
 
-    // Same for all layers in DS block
+    /* Same for all layers in DS block */
     bias_dims.c = in_out_dim_0.c;
 
     status |= nn_depthwise_conv_s8(&dw_conv_params,
@@ -186,9 +187,9 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                                    &in_out_dim_0,
                                    in_out_buf_1);
 
-    // Layer 2 - Conv
+    /* Layer 2 - Conv */
 
-    // Common params for Conv in rest of DS blocks
+    /* Common params for Conv in rest of DS blocks */
     in_out_dim_1.h     = in_out_dim_0.h;
     in_out_dim_1.w     = in_out_dim_0.w;
     in_out_dim_1.c     = in_out_dim_0.c;
@@ -200,7 +201,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     conv_params.stride.h  = CONV_2_STRIDE_H;
     conv_params.stride.w  = CONV_2_STRIDE_W;
 
-    // Layer specific params
+    /* Layer specific params */
     conv_params.input_offset  = CONV_2_INPUT_OFFSET;
     conv_params.output_offset = CONV_2_OUTPUT_OFFSET;
 
@@ -219,9 +220,8 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                              &in_out_dim_1,
                              in_out_buf_0);
 
-    /***************************** Depthwise Separable Block 2 ***************
-     */
-    // Layer specific
+    /*************************** Depthwise Separable Block 2 ****************/
+    /* Layer specific */
     dw_conv_params.input_offset  = DW_CONV_3_INPUT_OFFSET;
     dw_conv_params.output_offset = DW_CONV_3_OUTPUT_OFFSET;
 
@@ -239,7 +239,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                                    &in_out_dim_0,
                                    in_out_buf_1);
 
-    // Layer specific params
+    /* Layer specific params */
     conv_params.input_offset  = CONV_4_INPUT_OFFSET;
     conv_params.output_offset = CONV_4_OUTPUT_OFFSET;
 
@@ -258,9 +258,8 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                              &in_out_dim_1,
                              in_out_buf_0);
 
-    /***************************** Depthwise Separable Block 3 ***************
-     */
-    // Layer specific
+    /*************************** Depthwise Separable Block 3 ****************/
+    /* Layer specific */
     dw_conv_params.input_offset  = DW_CONV_5_INPUT_OFFSET;
     dw_conv_params.output_offset = DW_CONV_5_OUTPUT_OFFSET;
 
@@ -278,7 +277,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                                    &in_out_dim_0,
                                    in_out_buf_1);
 
-    // Layer specific params
+    /* Layer specific params */
     conv_params.input_offset  = CONV_6_INPUT_OFFSET;
     conv_params.output_offset = CONV_6_OUTPUT_OFFSET;
     quant_params.multiplier   = (int32_t *)ds_cnn_s_layer_7_conv2d_output_mult;
@@ -296,9 +295,8 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                              &in_out_dim_1,
                              in_out_buf_0);
 
-    /***************************** Depthwise Separable Block 4 ***************
-     */
-    // Layer specific
+    /*************************** Depthwise Separable Block 4 ****************/
+    /* Layer specific */
     dw_conv_params.input_offset  = DW_CONV_7_INPUT_OFFSET;
     dw_conv_params.output_offset = DW_CONV_7_OUTPUT_OFFSET;
 

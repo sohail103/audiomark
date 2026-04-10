@@ -47,7 +47,7 @@ nn_softmax_s8(const int8_t *input,
 
     for (row_idx = 0; row_idx < num_rows; ++row_idx)
     {
-        // Find the maximum value in order to ensure numerical stability
+        /* Find the maximum value in order to ensure numerical stability */
         int8_t max = *input;
 
         for (col = 1; col < row_size; ++col)

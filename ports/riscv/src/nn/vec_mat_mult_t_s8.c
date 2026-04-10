@@ -88,21 +88,21 @@ nn_vec_mat_mult_t_s8(const q7_t   *lhs,
             ++rhs_ptr_4;
             ++lhs_ptr;
         }
-        // Quantize down
+        /* Quantize down */
         res00 = nn_requantize(res00, dst_multiplier, dst_shift);
         res01 = nn_requantize(res01, dst_multiplier, dst_shift);
         res02 = nn_requantize(res02, dst_multiplier, dst_shift);
         res03 = nn_requantize(res03, dst_multiplier, dst_shift);
         res04 = nn_requantize(res04, dst_multiplier, dst_shift);
 
-        // Add offset
+        /* Add offset */
         res00 += dst_offset;
         res01 += dst_offset;
         res02 += dst_offset;
         res03 += dst_offset;
         res04 += dst_offset;
 
-        // Clamp the result
+        /* Clamp the result */
         res00 = MAX(res00, activation_min);
         res00 = MIN(res00, activation_max);
         res01 = MAX(res01, activation_min);
@@ -149,13 +149,13 @@ nn_vec_mat_mult_t_s8(const q7_t   *lhs,
             ++lhs_ptr;
         }
 
-        // Quantize down
+        /* Quantize down */
         res00 = nn_requantize(res00, dst_multiplier, dst_shift);
 
-        // Add offset
+        /* Add offset */
         res00 += dst_offset;
 
-        // Clamp the result
+        /* Clamp the result */
         res00 = MAX(res00, activation_min);
         res00 = MIN(res00, activation_max);
 
