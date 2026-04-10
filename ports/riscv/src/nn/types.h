@@ -20,8 +20,8 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#ifndef _MURISCV_NN_TYPES_H
-#define _MURISCV_NN_TYPES_H
+#ifndef NN_TYPES_H
+#define NN_TYPES_H
 
 #include <stdint.h>
 
@@ -30,14 +30,14 @@ typedef struct
 {
     int32_t w; /**< Width */
     int32_t h; /**< Height */
-} muriscv_nn_tile;
+} nn_tile;
 
 /** MURISCV-NN object used for the function context. */
 typedef struct
 {
     void   *buf;  /**< Pointer to a buffer needed for the optimization */
     int32_t size; /**< Buffer size */
-} muriscv_nn_context;
+} nn_context;
 
 /** MURISCV-NN object to contain the dimensions of the tensors */
 typedef struct
@@ -48,28 +48,28 @@ typedef struct
     int32_t h; /**< Height */
     int32_t w; /**< Width */
     int32_t c; /**< Input channels */
-} muriscv_nn_dims;
+} nn_dims;
 
 /** MURISCV-NN object for the per-channel quantization parameters */
 typedef struct
 {
     int32_t *multiplier; /**< Multiplier values */
     int32_t *shift;      /**< Shift values */
-} muriscv_nn_per_channel_quant_params;
+} nn_per_channel_quant_params;
 
 /** MURISCV-NN object for the per-tensor quantization parameters */
 typedef struct
 {
     int32_t multiplier; /**< Multiplier value */
     int32_t shift;      /**< Shift value */
-} muriscv_nn_per_tensor_quant_params;
+} nn_per_tensor_quant_params;
 
 /** MURISCV-NN object for the quantized Relu activation */
 typedef struct
 {
     int32_t min; /**< Min value used to clamp the result */
     int32_t max; /**< Max value used to clamp the result */
-} muriscv_nn_activation;
+} nn_activation;
 
 /** MURISCV-NN object for the convolution layer parameters */
 typedef struct
@@ -78,11 +78,11 @@ typedef struct
                               tensor */
     int32_t output_offset; /**< negative of the Zero value for the output
                               tensor */
-    muriscv_nn_tile       stride;
-    muriscv_nn_tile       padding;
-    muriscv_nn_tile       dilation;
-    muriscv_nn_activation activation;
-} muriscv_nn_conv_params;
+    nn_tile       stride;
+    nn_tile       padding;
+    nn_tile       dilation;
+    nn_activation activation;
+} nn_conv_params;
 
 /** MURISCV-NN object for Depthwise convolution layer parameters */
 typedef struct
@@ -91,27 +91,27 @@ typedef struct
                               tensor */
     int32_t output_offset; /**< negative of the Zero value for the output
                               tensor */
-    int32_t ch_mult;       /**< Channel Multiplier. ch_mult * in_ch = out_ch */
-    muriscv_nn_tile       stride;
-    muriscv_nn_tile       padding;
-    muriscv_nn_tile       dilation;
-    muriscv_nn_activation activation;
-} muriscv_nn_dw_conv_params;
+    int32_t       ch_mult; /**< Channel Multiplier. ch_mult * in_ch = out_ch */
+    nn_tile       stride;
+    nn_tile       padding;
+    nn_tile       dilation;
+    nn_activation activation;
+} nn_dw_conv_params;
 
 /** MURISCV-NN object for pooling layer parameters */
 typedef struct
 {
-    muriscv_nn_tile       stride;
-    muriscv_nn_tile       padding;
-    muriscv_nn_activation activation;
-} muriscv_nn_pool_params;
+    nn_tile       stride;
+    nn_tile       padding;
+    nn_activation activation;
+} nn_pool_params;
 
 /** MURISCV-NN object for Fully Connected layer parameters */
 typedef struct
 {
-    int32_t input_offset;  /**< Zero value for the input tensor */
-    int32_t output_offset; /**< Zero value for the output tensor */
-    muriscv_nn_activation activation;
-} muriscv_nn_fc_params;
+    int32_t       input_offset;  /**< Zero value for the input tensor */
+    int32_t       output_offset; /**< Zero value for the output tensor */
+    nn_activation activation;
+} nn_fc_params;
 
-#endif /* _MURISCV_NN_TYPES_H */
+#endif

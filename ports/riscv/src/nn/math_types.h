@@ -20,8 +20,8 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#ifndef _MURISCV_NN_MATH_TYPES_H
-#define _MURISCV_NN_MATH_TYPES_H
+#ifndef NN_MATH_TYPES_H
+#define NN_MATH_TYPES_H
 
 #include <stdint.h>
 
@@ -32,11 +32,4 @@ typedef int32_t q31_t;
 #define NN_Q31_MAX ((int32_t)(0x7FFFFFFFL))
 #define NN_Q31_MIN ((int32_t)(0x80000000L))
 
-typedef enum
-{
-    MURISCV_NN_SUCCESS       = 0,  /**< No error */
-    MURISCV_NN_ARG_ERROR     = -1, /**< One or more arguments are incorrect */
-    MURISCV_NN_NO_IMPL_ERROR = -2, /**< No implementation available */
-} muriscv_nn_status;
-
-#endif // _MURISCV_NN_MATH_TYPES_H
+#endif

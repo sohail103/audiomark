@@ -16,7 +16,7 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "nn_functions.h"
+#include "nn/functions.h"
 
 /* Get size of additional buffers required by library/framework */
 static int
@@ -24,11 +24,11 @@ ds_cnn_s_s8_get_buffer_size(void)
 {
     /* Custom function based on knowledge that only select layers of DS_CNN_S
      * network require additional buffers. */
-    int                    max_buffer = 0;
-    muriscv_nn_conv_params conv_params;
-    muriscv_nn_dims        input_dims;
-    muriscv_nn_dims        filter_dims;
-    muriscv_nn_dims        output_dims;
+    int            max_buffer = 0;
+    nn_conv_params conv_params;
+    nn_dims        input_dims;
+    nn_dims        filter_dims;
+    nn_dims        output_dims;
 
     // Layer 0 - Conv
     conv_params.padding.h  = CONV_0_PAD_H;
@@ -51,13 +51,12 @@ ds_cnn_s_s8_get_buffer_size(void)
     output_dims.w = CONV_0_OUTPUT_W;
     output_dims.c = CONV_0_OUT_CH;
 
-    int32_t size
-        = muriscv_nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
+    int32_t size = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
 
     max_buffer = size > max_buffer ? size : max_buffer;
 
     // Layer 0 - DW Conv
-    muriscv_nn_dw_conv_params dw_conv_params;
+    nn_dw_conv_params dw_conv_params;
     dw_conv_params.activation.min = DW_CONV_1_OUT_ACTIVATION_MIN;
     dw_conv_params.activation.max = DW_CONV_1_OUT_ACTIVATION_MAX;
     dw_conv_params.ch_mult        = 1;
@@ -87,17 +86,15 @@ ds_cnn_s_s8_get_buffer_size(void)
 
 /* Test for a complete int8 DS_CNN_S keyword spotting network from
  * https://github.com/ARM-software/ML-zoo & Tag: 22.02 */
-muriscv_nn_context ctx;
+nn_context ctx;
 
 void
 th_nn_init(void)
 {
-
-    // unused const arm_cmsis_nn_status expected = ARM_CMSIS_NN_SUCCESS;
     ctx.size = ds_cnn_s_s8_get_buffer_size();
 
     /* N.B. The developer owns this file so they can allocate how they like. */
     ctx.buf = th_malloc(ctx.size, COMPONENT_KWS);
 
-    // we don't free in audiomark
+    /* we don't free in audiomark */
 }

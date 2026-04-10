@@ -20,11 +20,11 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#ifndef MURISCV_NNSUPPORT_FUNCTIONS_H
-#define MURISCV_NNSUPPORT_FUNCTIONS_H
+#ifndef NN_SUPPORT_FUNCTIONS_H
+#define NN_SUPPORT_FUNCTIONS_H
 
-#include "nn_math_types.h"
-#include "nn_types.h"
+#include "math_types.h"
+#include "types.h"
 
 #define MAX(A, B) ((A) > (B) ? (A) : (B))
 #define MIN(A, B) ((A) < (B) ? (A) : (B))
@@ -33,10 +33,10 @@
 #define MASK_IF_ZERO(x)               (x) == 0 ? ~0 : 0
 #define MASK_IF_NON_ZERO(x)           (x) != 0 ? ~0 : 0
 #define SELECT_USING_MASK(mask, a, b) ((mask) & (a)) ^ (~(mask) & (b))
-#define MUL_POW2(a, b)                muriscv_nn_mult_by_power_of_two((a), (b))
+#define MUL_POW2(a, b)                nn_mult_by_power_of_two((a), (b))
 #define CLAMP(x, h, l)                MAX(MIN((x), (h)), (l))
 
-union muriscv_nn_word
+union nn_word
 {
     int32_t word;
     /**< q31 type */
@@ -46,60 +46,59 @@ union muriscv_nn_word
     /**< s8 type */
 };
 
-struct muriscv_nn_double
+struct nn_double
 {
     uint32_t low;
     int32_t  high;
 };
 
-union muriscv_nn_long_long
+union nn_long_long
 {
-    int64_t                  long_long;
-    struct muriscv_nn_double word;
+    int64_t          long_long;
+    struct nn_double word;
 };
 
-void muriscv_nn_q7_to_q15_with_offset(const int8_t *src,
-                                      int16_t      *dst,
-                                      int32_t       block_size,
-                                      int16_t       offset);
+void nn_q7_to_q15_with_offset(const int8_t *src,
+                              int16_t      *dst,
+                              int32_t       block_size,
+                              int16_t       offset);
 
-muriscv_nn_status muriscv_nn_vec_mat_mult_t_s8(const int8_t  *lhs,
-                                               const int8_t  *rhs,
-                                               const int32_t *bias,
-                                               int8_t        *dst,
-                                               const int32_t  lhs_offset,
-                                               const int32_t  dst_offset,
-                                               const int32_t  dst_multiplier,
-                                               const int32_t  dst_shift,
-                                               const int32_t  rhs_cols,
-                                               const int32_t  rhs_rows,
-                                               const int32_t  activation_min,
-                                               const int32_t  activation_max,
-                                               const int32_t  address_offset,
-                                               const int32_t  rhs_offset);
+int32_t nn_vec_mat_mult_t_s8(const int8_t  *lhs,
+                             const int8_t  *rhs,
+                             const int32_t *bias,
+                             int8_t        *dst,
+                             const int32_t  lhs_offset,
+                             const int32_t  dst_offset,
+                             const int32_t  dst_multiplier,
+                             const int32_t  dst_shift,
+                             const int32_t  rhs_cols,
+                             const int32_t  rhs_rows,
+                             const int32_t  activation_min,
+                             const int32_t  activation_max,
+                             const int32_t  address_offset);
 
-q7_t *muriscv_nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
-                                        const q15_t         *input_b,
-                                        const uint16_t       output_ch,
-                                        const int32_t       *out_shift,
-                                        const int32_t       *out_mult,
-                                        const int32_t        out_offset,
-                                        const int16_t        activation_min,
-                                        const int16_t        activation_max,
-                                        const uint16_t       num_col_a,
-                                        const int32_t *const output_bias,
-                                        q7_t                *out_0);
+q7_t *nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
+                                const q15_t         *input_b,
+                                const uint16_t       output_ch,
+                                const int32_t       *out_shift,
+                                const int32_t       *out_mult,
+                                const int32_t        out_offset,
+                                const int16_t        activation_min,
+                                const int16_t        activation_max,
+                                const uint16_t       num_col_a,
+                                const int32_t *const output_bias,
+                                q7_t                *out_0);
 
 #define RIGHT_SHIFT(_shift) (_shift > 0 ? 0 : -_shift)
 
 // Macros for shortening quantization functions' names and avoid long lines
-#define MUL_SAT(a, b)  muriscv_nn_doubling_high_mult((a), (b))
-#define DIV_POW2(a, b) muriscv_nn_divide_by_power_of_two((a), (b))
-#define EXP_ON_NEG(x)  muriscv_nn_exp_on_negative_values((x))
-#define ONE_OVER1(x)   muriscv_nn_one_over_one_plus_x_for_x_in_0_1((x))
+#define MUL_SAT(a, b)  nn_doubling_high_mult((a), (b))
+#define DIV_POW2(a, b) nn_divide_by_power_of_two((a), (b))
+#define EXP_ON_NEG(x)  nn_exp_on_negative_values((x))
+#define ONE_OVER1(x)   nn_one_over_one_plus_x_for_x_in_0_1((x))
 
 static inline int32_t
-muriscv_nn_doubling_high_mult(const int32_t m1, const int32_t m2)
+nn_doubling_high_mult(const int32_t m1, const int32_t m2)
 {
     int32_t result = 0;
     // Rounding offset to add for a right shift of 31
@@ -124,10 +123,10 @@ muriscv_nn_doubling_high_mult(const int32_t m1, const int32_t m2)
 }
 
 static inline int32_t
-muriscv_nn_doubling_high_mult_no_sat(const int32_t m1, const int32_t m2)
+nn_doubling_high_mult_no_sat(const int32_t m1, const int32_t m2)
 {
-    int32_t                    result = 0;
-    union muriscv_nn_long_long mult;
+    int32_t            result = 0;
+    union nn_long_long mult;
 
     // Rounding offset to add for a right shift of 31
     mult.word.low  = 1 << 30;
@@ -144,8 +143,7 @@ muriscv_nn_doubling_high_mult_no_sat(const int32_t m1, const int32_t m2)
 }
 
 static inline int32_t
-muriscv_nn_divide_by_power_of_two(const int32_t dividend,
-                                  const int32_t exponent)
+nn_divide_by_power_of_two(const int32_t dividend, const int32_t exponent)
 {
     int32_t       result         = 0;
     const int32_t remainder_mask = (1 << exponent) - 1;
@@ -169,13 +167,11 @@ muriscv_nn_divide_by_power_of_two(const int32_t dividend,
 }
 
 static inline int32_t
-muriscv_nn_requantize(const int32_t val,
-                      const int32_t multiplier,
-                      const int32_t shift)
+nn_requantize(const int32_t val, const int32_t multiplier, const int32_t shift)
 {
-    return muriscv_nn_divide_by_power_of_two(
-        muriscv_nn_doubling_high_mult_no_sat(val * (1 << LEFT_SHIFT(shift)),
-                                             multiplier),
+    return nn_divide_by_power_of_two(
+        nn_doubling_high_mult_no_sat(val * (1 << LEFT_SHIFT(shift)),
+                                     multiplier),
         RIGHT_SHIFT(shift));
 }
 
@@ -183,7 +179,7 @@ muriscv_nn_requantize(const int32_t val,
 // bits = 5 assumed
 
 static inline int32_t
-muriscv_nn_exp_on_negative_values(int32_t val)
+nn_exp_on_negative_values(int32_t val)
 {
     int32_t mask  = 0;
     int32_t shift = 24;
@@ -225,7 +221,7 @@ muriscv_nn_exp_on_negative_values(int32_t val)
 }
 
 static inline int32_t
-muriscv_nn_mult_by_power_of_two(const int32_t val, const int32_t exp)
+nn_mult_by_power_of_two(const int32_t val, const int32_t exp)
 {
     const int32_t thresh = ((1 << (31 - exp)) - 1);
     int32_t       result = val << exp;
@@ -237,7 +233,7 @@ muriscv_nn_mult_by_power_of_two(const int32_t val, const int32_t exp)
 }
 
 static inline int32_t
-muriscv_nn_one_over_one_plus_x_for_x_in_0_1(int32_t val)
+nn_one_over_one_plus_x_for_x_in_0_1(int32_t val)
 {
     const int64_t sum = (int64_t)val + (int64_t)NN_Q31_MAX;
     const int32_t half_denominator
@@ -252,4 +248,4 @@ muriscv_nn_one_over_one_plus_x_for_x_in_0_1(int32_t val)
     return MUL_POW2(x, 1);
 }
 
-#endif /* MURISCV_NNSUPPORT_FUNCTIONS_H */
+#endif

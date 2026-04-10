@@ -20,8 +20,8 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#include "nn_functions.h"
-#include "nn_support_functions.h"
+#include "functions.h"
+#include "support_functions.h"
 #include "ee_api.h"
 
 #include <stdint.h>
@@ -35,8 +35,8 @@
  */
 
 int32_t
-muriscv_nn_convolve_s8_get_buffer_size(const muriscv_nn_dims *input_dims,
-                                       const muriscv_nn_dims *filter_dims)
+nn_convolve_s8_get_buffer_size(const nn_dims *input_dims,
+                               const nn_dims *filter_dims)
 {
     const int32_t rhs_cols  = filter_dims->w * filter_dims->h * input_dims->c;
     const int32_t remainder = rhs_cols % 4;
@@ -45,26 +45,19 @@ muriscv_nn_convolve_s8_get_buffer_size(const muriscv_nn_dims *input_dims,
     return (2 * aligned_rhs_cols) * (int32_t)sizeof(int16_t);
 }
 
-muriscv_nn_status
-muriscv_nn_convolve_s8(const muriscv_nn_context                  *ctx,
-                       const muriscv_nn_conv_params              *conv_params,
-                       const muriscv_nn_per_channel_quant_params *quant_params,
-                       const muriscv_nn_dims                     *input_dims,
-                       const q7_t                                *input_data,
-                       const muriscv_nn_dims                     *filter_dims,
-                       const q7_t                                *filter_data,
-                       const muriscv_nn_dims                     *bias_dims,
-                       const int32_t                             *bias_data,
-                       const muriscv_nn_dims                     *output_dims,
-                       q7_t                                      *output_data)
+int32_t
+nn_convolve_s8(const nn_context                  *ctx,
+               const nn_conv_params              *conv_params,
+               const nn_per_channel_quant_params *quant_params,
+               const nn_dims                     *input_dims,
+               const q7_t                        *input_data,
+               const nn_dims                     *filter_dims,
+               const q7_t                        *filter_data,
+               const nn_dims                     *bias_dims,
+               const int32_t                     *bias_data,
+               const nn_dims                     *output_dims,
+               q7_t                              *output_data)
 {
-    (void)bias_dims;
-
-    if (ctx->buf == NULL
-        && muriscv_nn_convolve_s8_get_buffer_size(input_dims, filter_dims) > 0)
-    {
-        return MURISCV_NN_ARG_ERROR;
-    }
     q15_t *buffer_a = (q15_t *)ctx->buf;
 
     const int32_t  input_batches = input_dims->n;
@@ -126,7 +119,7 @@ muriscv_nn_convolve_s8(const muriscv_nn_context                  *ctx,
                         else
                         {
                             /* Copying the pixel data to column */
-                            muriscv_nn_q7_to_q15_with_offset(
+                            nn_q7_to_q15_with_offset(
                                 input_data + (k_y * input_x + k_x) * input_ch,
                                 two_column_buf,
                                 input_ch,
@@ -140,18 +133,18 @@ muriscv_nn_convolve_s8(const muriscv_nn_context                  *ctx,
                 if (two_column_buf
                     == buffer_a + 2 * input_ch * kernel_y * kernel_x)
                 {
-                    out = muriscv_nn_mat_mult_kernel_s8_s16(filter_data,
-                                                            buffer_a,
-                                                            output_ch,
-                                                            output_shift,
-                                                            output_mult,
-                                                            out_offset,
-                                                            out_activation_min,
-                                                            out_activation_max,
-                                                            input_ch * kernel_y
-                                                                * kernel_x,
-                                                            bias_data,
-                                                            out);
+                    out = nn_mat_mult_kernel_s8_s16(filter_data,
+                                                    buffer_a,
+                                                    output_ch,
+                                                    output_shift,
+                                                    output_mult,
+                                                    out_offset,
+                                                    out_activation_min,
+                                                    out_activation_max,
+                                                    input_ch * kernel_y
+                                                        * kernel_x,
+                                                    bias_data,
+                                                    out);
 
                     /* counter reset */
                     two_column_buf = buffer_a;
@@ -188,8 +181,7 @@ muriscv_nn_convolve_s8(const muriscv_nn_context                  *ctx,
                     col_count--;
                 }
 
-                sum = muriscv_nn_requantize(
-                    sum, output_mult[i], output_shift[i]);
+                sum = nn_requantize(sum, output_mult[i], output_shift[i]);
                 sum += out_offset;
                 sum    = MAX(sum, out_activation_min);
                 sum    = MIN(sum, out_activation_max);
@@ -203,5 +195,5 @@ muriscv_nn_convolve_s8(const muriscv_nn_context                  *ctx,
     }
 
     /* Return to application */
-    return MURISCV_NN_SUCCESS;
+    return 0;
 }

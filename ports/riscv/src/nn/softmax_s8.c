@@ -20,25 +20,25 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#include "nn_functions.h"
-#include "nn_support_functions.h"
+#include "functions.h"
+#include "support_functions.h"
 
 #define ACCUM_BITS 12
 #define Q7_MAX     ((q7_t)(0x7F))
 #define Q7_MIN     ((q7_t)(0x80))
 
 /*
- * Softmax function with s8 input and output of s8 or s16.
+ * Softmax function with s8 input and output of s8.
  */
 
 void
-muriscv_nn_softmax_s8(const int8_t *input,
-                      const int32_t num_rows,
-                      const int32_t row_size,
-                      const int32_t mult,
-                      const int32_t shift,
-                      const int32_t diff_min,
-                      void         *output)
+nn_softmax_s8(const int8_t *input,
+              const int32_t num_rows,
+              const int32_t row_size,
+              const int32_t mult,
+              const int32_t shift,
+              const int32_t diff_min,
+              void         *output)
 {
     const int32_t mask = (1 << shift);
 

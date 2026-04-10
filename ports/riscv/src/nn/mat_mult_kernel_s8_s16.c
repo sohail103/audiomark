@@ -21,24 +21,24 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#include "nn_support_functions.h"
+#include "support_functions.h"
 
 /*
  * Matrix-multiplication function for convolution with per-channel
  * requantization. Used by nn_convolve_s8().
  */
 q7_t *
-muriscv_nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
-                                  const q15_t         *input_b,
-                                  const uint16_t       output_ch,
-                                  const int32_t       *out_shift,
-                                  const int32_t       *out_mult,
-                                  const int32_t        out_offset,
-                                  const int16_t        activation_min,
-                                  const int16_t        activation_max,
-                                  const uint16_t       num_col_a,
-                                  const int32_t *const output_bias,
-                                  q7_t                *out_0)
+nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
+                          const q15_t         *input_b,
+                          const uint16_t       output_ch,
+                          const int32_t       *out_shift,
+                          const int32_t       *out_mult,
+                          const int32_t        out_offset,
+                          const int16_t        activation_min,
+                          const int16_t        activation_max,
+                          const uint16_t       num_col_a,
+                          const int32_t *const output_bias,
+                          q7_t                *out_0)
 {
     /* set up the second output pointers */
     q7_t          *out_1 = out_0 + output_ch;
@@ -116,13 +116,13 @@ muriscv_nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
 
         } /* while over col_count */
 
-        ch_0_out_0 = muriscv_nn_requantize(ch_0_out_0, *out_mult, *out_shift);
+        ch_0_out_0 = nn_requantize(ch_0_out_0, *out_mult, *out_shift);
         ch_0_out_0 += out_offset;
         ch_0_out_0 = MAX(ch_0_out_0, activation_min);
         ch_0_out_0 = MIN(ch_0_out_0, activation_max);
         *out_0++   = (q7_t)ch_0_out_0;
 
-        ch_0_out_1 = muriscv_nn_requantize(ch_0_out_1, *out_mult, *out_shift);
+        ch_0_out_1 = nn_requantize(ch_0_out_1, *out_mult, *out_shift);
         ch_0_out_1 += out_offset;
         ch_0_out_1 = MAX(ch_0_out_1, activation_min);
         ch_0_out_1 = MIN(ch_0_out_1, activation_max);
@@ -130,13 +130,13 @@ muriscv_nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
         out_mult++;
         out_shift++;
 
-        ch_1_out_0 = muriscv_nn_requantize(ch_1_out_0, *out_mult, *out_shift);
+        ch_1_out_0 = nn_requantize(ch_1_out_0, *out_mult, *out_shift);
         ch_1_out_0 += out_offset;
         ch_1_out_0 = MAX(ch_1_out_0, activation_min);
         ch_1_out_0 = MIN(ch_1_out_0, activation_max);
         *out_0++   = (q7_t)ch_1_out_0;
 
-        ch_1_out_1 = muriscv_nn_requantize(ch_1_out_1, *out_mult, *out_shift);
+        ch_1_out_1 = nn_requantize(ch_1_out_1, *out_mult, *out_shift);
         ch_1_out_1 += out_offset;
         ch_1_out_1 = MAX(ch_1_out_1, activation_min);
         ch_1_out_1 = MIN(ch_1_out_1, activation_max);
@@ -144,13 +144,13 @@ muriscv_nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
         out_mult++;
         out_shift++;
 
-        ch_2_out_0 = muriscv_nn_requantize(ch_2_out_0, *out_mult, *out_shift);
+        ch_2_out_0 = nn_requantize(ch_2_out_0, *out_mult, *out_shift);
         ch_2_out_0 += out_offset;
         ch_2_out_0 = MAX(ch_2_out_0, activation_min);
         ch_2_out_0 = MIN(ch_2_out_0, activation_max);
         *out_0++   = (q7_t)ch_2_out_0;
 
-        ch_2_out_1 = muriscv_nn_requantize(ch_2_out_1, *out_mult, *out_shift);
+        ch_2_out_1 = nn_requantize(ch_2_out_1, *out_mult, *out_shift);
         ch_2_out_1 += out_offset;
         ch_2_out_1 = MAX(ch_2_out_1, activation_min);
         ch_2_out_1 = MIN(ch_2_out_1, activation_max);
@@ -158,13 +158,13 @@ muriscv_nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
         out_mult++;
         out_shift++;
 
-        ch_3_out_0 = muriscv_nn_requantize(ch_3_out_0, *out_mult, *out_shift);
+        ch_3_out_0 = nn_requantize(ch_3_out_0, *out_mult, *out_shift);
         ch_3_out_0 += out_offset;
         ch_3_out_0 = MAX(ch_3_out_0, activation_min);
         ch_3_out_0 = MIN(ch_3_out_0, activation_max);
         *out_0++   = (q7_t)ch_3_out_0;
 
-        ch_3_out_1 = muriscv_nn_requantize(ch_3_out_1, *out_mult, *out_shift);
+        ch_3_out_1 = nn_requantize(ch_3_out_1, *out_mult, *out_shift);
         ch_3_out_1 += out_offset;
         ch_3_out_1 = MAX(ch_3_out_1, activation_min);
         ch_3_out_1 = MIN(ch_3_out_1, activation_max);
@@ -208,13 +208,13 @@ muriscv_nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
             ch_0_out_1 += a0 * b1;
             col_count--;
         }
-        ch_0_out_0 = muriscv_nn_requantize(ch_0_out_0, *out_mult, *out_shift);
+        ch_0_out_0 = nn_requantize(ch_0_out_0, *out_mult, *out_shift);
         ch_0_out_0 += out_offset;
         ch_0_out_0 = MAX(ch_0_out_0, activation_min);
         ch_0_out_0 = MIN(ch_0_out_0, activation_max);
         *out_0++   = (q7_t)ch_0_out_0;
 
-        ch_0_out_1 = muriscv_nn_requantize(ch_0_out_1, *out_mult, *out_shift);
+        ch_0_out_1 = nn_requantize(ch_0_out_1, *out_mult, *out_shift);
         ch_0_out_1 += out_offset;
         ch_0_out_1 = MAX(ch_0_out_1, activation_min);
         ch_0_out_1 = MIN(ch_0_out_1, activation_max);

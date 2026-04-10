@@ -20,17 +20,17 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#include "nn_functions.h"
-#include "nn_support_functions.h"
+#include "functions.h"
+#include "support_functions.h"
 
-muriscv_nn_status
-muriscv_nn_avgpool_s8(const muriscv_nn_context     *ctx,
-                      const muriscv_nn_pool_params *pool_params,
-                      const muriscv_nn_dims        *input_dims,
-                      const q7_t                   *src,
-                      const muriscv_nn_dims        *filter_dims,
-                      const muriscv_nn_dims        *output_dims,
-                      q7_t                         *dst)
+int32_t
+nn_avgpool_s8(const nn_context     *ctx,
+              const nn_pool_params *pool_params,
+              const nn_dims        *input_dims,
+              const q7_t           *src,
+              const nn_dims        *filter_dims,
+              const nn_dims        *output_dims,
+              q7_t                 *dst)
 {
     const int32_t input_y  = input_dims->h;
     const int32_t input_x  = input_dims->w;
@@ -71,12 +71,6 @@ muriscv_nn_avgpool_s8(const muriscv_nn_context     *ctx,
                     }
                 }
 
-                // Prevent static code issue DIVIDE_BY_ZERO.
-                if (count == 0)
-                {
-                    return MURISCV_NN_ARG_ERROR;
-                }
-
                 sum = sum > 0 ? (sum + count / 2) / count
                               : (sum - count / 2) / count;
                 sum = MAX(sum, act_min);
@@ -86,5 +80,5 @@ muriscv_nn_avgpool_s8(const muriscv_nn_context     *ctx,
             }
         }
     }
-    return MURISCV_NN_SUCCESS;
+    return 0;
 }

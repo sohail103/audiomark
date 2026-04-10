@@ -1,6 +1,5 @@
 include_directories(
     ${PORT_DIR}
-    ${PORT_DIR}/src
 )
 
 # TODO: Add our FFT functions as an FFT backend in fftwrap.c
@@ -12,14 +11,14 @@ set(PORT_SOURCE
 
     ${PORT_DIR}/th_api.c
 
-    ${PORT_DIR}/src/nn_avgpool_s8.c
-    ${PORT_DIR}/src/nn_convolve_s8.c
-    ${PORT_DIR}/src/nn_depthwise_conv_s8.c
-    ${PORT_DIR}/src/nn_fully_connected_s8.c
-    ${PORT_DIR}/src/nn_mat_mult_kernel_s8_s16.c
-    ${PORT_DIR}/src/nn_q7_to_q15_with_offset.c
-    ${PORT_DIR}/src/nn_softmax_s8.c
-    ${PORT_DIR}/src/nn_vec_mat_mult_t_s8.c
+    ${PORT_DIR}/src/nn/avgpool_s8.c
+    ${PORT_DIR}/src/nn/convolve_s8.c
+    ${PORT_DIR}/src/nn/depthwise_conv_s8.c
+    ${PORT_DIR}/src/nn/fully_connected_s8.c
+    ${PORT_DIR}/src/nn/mat_mult_kernel_s8_s16.c
+    ${PORT_DIR}/src/nn/q7_to_q15_with_offset.c
+    ${PORT_DIR}/src/nn/softmax_s8.c
+    ${PORT_DIR}/src/nn/vec_mat_mult_t_s8.c
 
     ${PORT_DIR}/src/riscv_absmax_f32.c
     ${PORT_DIR}/src/riscv_add_f32.c

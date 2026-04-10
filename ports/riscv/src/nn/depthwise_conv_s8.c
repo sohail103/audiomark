@@ -20,31 +20,26 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#include "nn_functions.h"
-#include "nn_support_functions.h"
+#include "functions.h"
+#include "support_functions.h"
 
 #include <stdint.h>
 
 /*
  * Basic s8 depthwise convolution function.
- *
- * Optimization using DSP extension is not available for the generic case where
- * channel multiplier is > 1.
- *
  */
-muriscv_nn_status
-muriscv_nn_depthwise_conv_s8(
-    const muriscv_nn_context                  *ctx,
-    const muriscv_nn_dw_conv_params           *dw_conv_params,
-    const muriscv_nn_per_channel_quant_params *quant_params,
-    const muriscv_nn_dims                     *input_dims,
-    const q7_t                                *input,
-    const muriscv_nn_dims                     *filter_dims,
-    const q7_t                                *kernel,
-    const muriscv_nn_dims                     *bias_dims,
-    const int32_t                             *bias,
-    const muriscv_nn_dims                     *output_dims,
-    q7_t                                      *output)
+int32_t
+nn_depthwise_conv_s8(const nn_context                  *ctx,
+                     const nn_dw_conv_params           *dw_conv_params,
+                     const nn_per_channel_quant_params *quant_params,
+                     const nn_dims                     *input_dims,
+                     const q7_t                        *input,
+                     const nn_dims                     *filter_dims,
+                     const q7_t                        *kernel,
+                     const nn_dims                     *bias_dims,
+                     const int32_t                     *bias,
+                     const nn_dims                     *output_dims,
+                     q7_t                              *output)
 {
     const uint16_t dilation_x = dw_conv_params->dilation.w;
     const uint16_t dilation_y = dw_conv_params->dilation.h;
@@ -128,50 +123,45 @@ muriscv_nn_depthwise_conv_s8(
                         {
                             acc_0 = bias[idx_out_ch];
                         }
-
-                        // TODO(fabianpedd): We currently can't expose enough
-                        // parallelism to the vector extension using this naive
-                        // convolution approach. Thus, the vector extension can
-                        // only operate on 3-5 values in parallel and is
-                        // actually slower than the scalar implementation (due
-                        // to the vector overhead). Most kernels are in the
-                        // range of 3x3 or 5x5. Thus, we would at least need to
-                        // expose both kernel dimensions to the vector extension
-                        // in order to get any significant speedup. This,
-                        // however, is very hard to achieve here, as we need to
-                        // take into account both strides != 1 and dilation
-                        // != 1.
-
-                        // TODO(fabianpedd): I lifted the index calculations
-                        // from the inner loops to the outer loops. This
-                        // slightly improves performance, as far as I could
-                        // measure. However, in reality this could turn out not
-                        // to be as efficient since (I think?!) more
-                        // multiplications are required. So on HW with
-                        // multipliers that need more than a single cycle this
-                        // might not perform as well as the reference code from
-                        // ARM.
-
-                        // ARMs code
-                        // for (int i_ker_y = ker_y_start; i_ker_y < ker_y_end;
-                        // i_ker_y++)
-                        // {
-                        //     const int32_t idx_y = base_idx_y + dilation_y *
-                        //     i_ker_y; for (int i_ker_x = ker_x_start; i_ker_x
-                        //     < ker_x_end; i_ker_x++)
-                        //     {
-                        //         const int32_t idx_x = base_idx_x + dilation_x
-                        //         * i_ker_x; int32_t idx_0 = (idx_y * input_x +
-                        //         idx_x) * input_ch + i_input_ch; int32_t
-                        //         ker_idx_0 = (i_ker_y * kernel_x + i_ker_x) *
-                        //         (input_ch * ch_mult) + idx_out_ch;
-                        //
-                        //         acc_0 += (input[idx_0] + input_offset) *
-                        //         kernel[ker_idx_0];
-                        //     }
-                        // }
-
-                        // My code
+                        /*
+                         * TODO(fabianpedd): We currently
+                         * can't expose enough parallelism to the vector
+                         * extension using this naive convolution approach.
+                         * Thus, the vector extension can only operate on 3-5
+                         * values in parallel and is actually slower than the
+                         * scalar implementation (due to the vector overhead).
+                         * Most kernels are in the range of 3x3 or 5x5. Thus, we
+                         * would at least need to expose both kernel dimensions
+                         * to the vector extension in order to get any
+                         * significant speedup. This, however, is very hard to
+                         * achieve here, as we need to take into account both
+                         * strides != 1 and dilation != 1
+                         * TODO(fabianpedd): I lifted
+                         * the index calculations from the inner loops to the
+                         * outer loops. This slightly improves performance, as
+                         * far as I could measure. However, in reality this
+                         * could turn out not to be as efficient since (I
+                         * think?!) more multiplications are required. So on HW
+                         * with multipliers that need more than a single cycle
+                         * this might not perform as well as the reference code
+                         * from ARM                        ARMs code for (int
+                         * i_ker_y = ker_y_start; i_ker_y < ker_y_end;
+                         *                      i_ker_y++)
+                         *                      {
+                         *                          const int32_t idx_y =
+                         * base_idx_y + dilation_y * i_ker_y; for (int i_ker_x =
+                         * ker_x_start; i_ker_x < ker_x_end; i_ker_x++)
+                         *                          {
+                         *                              const int32_t idx_x =
+                         * base_idx_x + dilation_x
+                         *                              * i_ker_x; int32_t idx_0
+                         * = (idx_y * input_x + idx_x) * input_ch + i_input_ch;
+                         * int32_t ker_idx_0 = (i_ker_y * kernel_x + i_ker_x) *
+                         *                              (input_ch * ch_mult) +
+                         * idx_out_ch; acc_0 += (input[idx_0] + input_offset) *
+                         *                              kernel[ker_idx_0];
+                         *                          }
+                         */
                         int8_t *input_idx
                             = (int8_t *)(base_idx_y * input_x * input_ch
                                          + base_idx_x * input_ch + i_input_ch
@@ -203,12 +193,10 @@ muriscv_nn_depthwise_conv_s8(
                             kernel_idx += kernel_x * input_ch * ch_mult;
                         }
 
-                        // #endif /* defined(USE_VEXT) */
-
                         /* Requantize and clamp output to provided range */
-                        acc_0 = muriscv_nn_requantize(acc_0,
-                                                      output_mult[idx_out_ch],
-                                                      output_shift[idx_out_ch]);
+                        acc_0 = nn_requantize(acc_0,
+                                              output_mult[idx_out_ch],
+                                              output_shift[idx_out_ch]);
                         acc_0 += output_offset;
                         acc_0 = MAX(acc_0, output_activation_min);
                         acc_0 = MIN(acc_0, output_activation_max);
@@ -223,5 +211,5 @@ muriscv_nn_depthwise_conv_s8(
     }
 
     /* Return to application */
-    return MURISCV_NN_SUCCESS;
+    return 0;
 }

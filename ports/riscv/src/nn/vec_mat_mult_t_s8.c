@@ -20,33 +20,26 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#include "nn_functions.h"
-#include "nn_support_functions.h"
+#include "functions.h"
+#include "support_functions.h"
 
 /*
  * s8 vector(lhs) by matrix (transposed) multiplication
- *
- * Refer header file for details.
- *
- * Used by muriscv_nn_fully_connected_s8() and muriscv_nn_svdf_s8().  Kernel sum
- * has been moved into here, functional changes probably required
- *
  */
-muriscv_nn_status
-muriscv_nn_vec_mat_mult_t_s8(const q7_t   *lhs,
-                             const q7_t   *rhs,
-                             const q31_t  *bias,
-                             q7_t         *dst,
-                             const int32_t lhs_offset,
-                             const int32_t dst_offset,
-                             const int32_t dst_multiplier,
-                             const int32_t dst_shift,
-                             const int32_t rhs_cols,
-                             const int32_t rhs_rows,
-                             const int32_t activation_min,
-                             const int32_t activation_max,
-                             const int32_t address_offset,
-                             const int32_t rhs_offset) // Currently Unused
+int32_t
+nn_vec_mat_mult_t_s8(const q7_t   *lhs,
+                     const q7_t   *rhs,
+                     const q31_t  *bias,
+                     q7_t         *dst,
+                     const int32_t lhs_offset,
+                     const int32_t dst_offset,
+                     const int32_t dst_multiplier,
+                     const int32_t dst_shift,
+                     const int32_t rhs_cols,
+                     const int32_t rhs_rows,
+                     const int32_t activation_min,
+                     const int32_t activation_max,
+                     const int32_t address_offset)
 {
     /* Uses 5x loop unrolling in order to expose more ILP */
     const int32_t row_loop_cnt = rhs_rows / 5;
@@ -96,11 +89,11 @@ muriscv_nn_vec_mat_mult_t_s8(const q7_t   *lhs,
             ++lhs_ptr;
         }
         // Quantize down
-        res00 = muriscv_nn_requantize(res00, dst_multiplier, dst_shift);
-        res01 = muriscv_nn_requantize(res01, dst_multiplier, dst_shift);
-        res02 = muriscv_nn_requantize(res02, dst_multiplier, dst_shift);
-        res03 = muriscv_nn_requantize(res03, dst_multiplier, dst_shift);
-        res04 = muriscv_nn_requantize(res04, dst_multiplier, dst_shift);
+        res00 = nn_requantize(res00, dst_multiplier, dst_shift);
+        res01 = nn_requantize(res01, dst_multiplier, dst_shift);
+        res02 = nn_requantize(res02, dst_multiplier, dst_shift);
+        res03 = nn_requantize(res03, dst_multiplier, dst_shift);
+        res04 = nn_requantize(res04, dst_multiplier, dst_shift);
 
         // Add offset
         res00 += dst_offset;
@@ -157,7 +150,7 @@ muriscv_nn_vec_mat_mult_t_s8(const q7_t   *lhs,
         }
 
         // Quantize down
-        res00 = muriscv_nn_requantize(res00, dst_multiplier, dst_shift);
+        res00 = nn_requantize(res00, dst_multiplier, dst_shift);
 
         // Add offset
         res00 += dst_offset;
@@ -170,5 +163,5 @@ muriscv_nn_vec_mat_mult_t_s8(const q7_t   *lhs,
         dst += address_offset;
         rhs += rhs_cols;
     }
-    return MURISCV_NN_SUCCESS;
+    return 0;
 }
