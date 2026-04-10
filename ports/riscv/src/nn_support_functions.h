@@ -23,8 +23,8 @@
 #ifndef MURISCV_NNSUPPORT_FUNCTIONS_H
 #define MURISCV_NNSUPPORT_FUNCTIONS_H
 
-#include "muriscv_nn_math_types.h"
-#include "muriscv_nn_types.h"
+#include "nn_math_types.h"
+#include "nn_types.h"
 
 #define MAX(A, B) ((A) > (B) ? (A) : (B))
 #define MIN(A, B) ((A) < (B) ? (A) : (B))

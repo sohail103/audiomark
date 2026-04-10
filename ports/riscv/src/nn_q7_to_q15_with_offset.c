@@ -33,7 +33,7 @@
  *
  * -------------------------------------------------------------------- */
 
-#include "muriscv_nn_support_functions.h"
+#include "nn_support_functions.h"
 
 void
 muriscv_nn_q7_to_q15_with_offset(const int8_t *src,

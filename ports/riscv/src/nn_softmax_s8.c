@@ -20,8 +20,8 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#include "muriscv_nn_functions.h"
-#include "muriscv_nn_support_functions.h"
+#include "nn_functions.h"
+#include "nn_support_functions.h"
 
 #define ACCUM_BITS 12
 #define Q7_MAX     ((q7_t)(0x7F))

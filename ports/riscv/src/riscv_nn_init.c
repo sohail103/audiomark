@@ -16,7 +16,7 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "muriscv_nn_functions.h"
+#include "nn_functions.h"
 
 /* Get size of additional buffers required by library/framework */
 static int

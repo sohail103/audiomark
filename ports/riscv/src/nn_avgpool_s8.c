@@ -20,8 +20,8 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#include "muriscv_nn_functions.h"
-#include "muriscv_nn_support_functions.h"
+#include "nn_functions.h"
+#include "nn_support_functions.h"
 
 muriscv_nn_status
 muriscv_nn_avgpool_s8(const muriscv_nn_context     *ctx,

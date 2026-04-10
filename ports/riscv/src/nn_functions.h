@@ -28,8 +28,8 @@
 #ifndef MURISCV_NNFUNCTIONS_H
 #define MURISCV_NNFUNCTIONS_H
 
-#include "muriscv_nn_math_types.h"
-#include "muriscv_nn_types.h"
+#include "nn_math_types.h"
+#include "nn_types.h"
 
 muriscv_nn_status muriscv_nn_convolve_s8(
     const muriscv_nn_context                  *ctx,

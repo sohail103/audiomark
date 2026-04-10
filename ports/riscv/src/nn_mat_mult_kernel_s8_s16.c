@@ -21,7 +21,7 @@
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#include "muriscv_nn_support_functions.h"
+#include "nn_support_functions.h"
 
 /*
  * Matrix-multiplication function for convolution with per-channel
