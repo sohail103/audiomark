@@ -22,11 +22,6 @@
 void
 th_cmplx_mag_f32(ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
 {
-    if (!p_a || !p_c || len == 0)
-    {
-        return;
-    }
-
     for (uint32_t i = 0; i < len; i++)
     {
         ee_f32_t real = p_a[2 * i];

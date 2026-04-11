@@ -29,13 +29,6 @@ th_cfft_f32(ee_cfft_f32_t *p_instance,
             uint8_t        ifftFlag,
             uint8_t        bitReverseFlagR)
 {
-    (void)bitReverseFlagR;
-
-    if (!p_instance || !p_buf)
-    {
-        return;
-    }
-
     const int n = p_instance->fft_len;
 
     /* ---- bit-reversal permutation ---- */

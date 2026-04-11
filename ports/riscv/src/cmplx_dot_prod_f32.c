@@ -24,11 +24,6 @@ th_cmplx_dot_prod_f32(const ee_f32_t *p_a,
                       ee_f32_t       *p_r,
                       ee_f32_t       *p_i)
 {
-    if (!p_a || !p_b || !p_r || !p_i || len == 0)
-    {
-        return;
-    }
-
     ee_f32_t real_sum = 0.0f;
     ee_f32_t imag_sum = 0.0f;
 

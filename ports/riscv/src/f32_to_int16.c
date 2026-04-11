@@ -20,11 +20,6 @@
 void
 th_f32_to_int16(const ee_f32_t *p_src, int16_t *p_dst, uint32_t len)
 {
-    if (!p_src || !p_dst || len == 0)
-    {
-        return;
-    }
-
     for (uint32_t i = 0; i < len; i++)
     {
         ee_f32_t x = p_src[i];
