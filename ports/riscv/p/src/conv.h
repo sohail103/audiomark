@@ -17,19 +17,23 @@
  * limitations under the License.
  */
 
-
 #ifndef P_RISCV_CONV_H
 #define P_RISCV_CONV_H
 
-#include <th_types.h>
-
+#include "th_types.h"
+#include "rvp_support_guard.h"
 
 void riscv_float_to_q31(const float *pSrc, q31_t *pDst, uint32_t blockSize);
 
-float riscv_float_to_q31_normalize(const float *pSrc, q31_t *pDst, uint32_t blockSize);
+float riscv_float_to_q31_normalize(const float *pSrc,
+                                   q31_t       *pDst,
+                                   uint32_t     blockSize);
 
 void riscv_q31_to_float(const q31_t *pSrc, float *pDst, uint32_t blockSize);
 
-void riscv_q31_to_float_unnormalize(const q31_t *pSrc, float *pDst, uint32_t blockSize, float scale_factor );
+void riscv_q31_to_float_unnormalize(const q31_t *pSrc,
+                                    float       *pDst,
+                                    uint32_t     blockSize,
+                                    float        scale_factor);
 
 #endif /* P_RISCV_CONV_H */

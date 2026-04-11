@@ -17,16 +17,14 @@
  * limitations under the License.
  */
 
-#include "riscv_rfft_f32.h"
+#include "rfft_f32.h"
+#include "th_types.h"
 
 /**
-  @par
-  Example code for Floating-point RFFT Twiddle factors Generation:
-  @par
-  <pre>TW = exp(pi/2*i-2*pi*i*[0:L/2-1]/L).' </pre>
-  @par
-  Real and Imag values are in interleaved fashion
-*/
+ * Example code for Floating-point RFFT Twiddle factors Generation:
+ * <pre>TW = exp(pi/2*i-2*pi*i*[0:L/2-1]/L).' </pre>
+ * Real and Imag values are in interleaved fashion
+ */
 const q31_t rfftFastTwiddleQ31_1024[1024] = {
     (q31_t)0x00000000, (q31_t)0x7FFFFFFF, (q31_t)0x00C90F88, (q31_t)0x7FFF6216,
     (q31_t)0x01921D20, (q31_t)0x7FFD885A, (q31_t)0x025B26D7, (q31_t)0x7FFA72D1,
