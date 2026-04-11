@@ -20,18 +20,6 @@
 ee_status_t
 th_cfft_init_f32(ee_cfft_f32_t *p_instance, int fft_length)
 {
-    if (!p_instance || fft_length <= 0)
-    {
-        return EE_STATUS_ERROR;
-    }
-
-    /* checking if fft_length is a power of 2 */
-    if ((fft_length & (fft_length - 1)) != 0)
-    {
-        return EE_STATUS_ERROR;
-    }
-
     p_instance->fft_len = fft_length;
-
     return EE_STATUS_OK;
 }

@@ -20,11 +20,6 @@
 void
 th_mat_vec_mult_f32(ee_matrix_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c)
 {
-    if (!p_a || !p_b || !p_c)
-    {
-        return;
-    }
-
     uint32_t rows = p_a->numRows;
     uint32_t cols = p_a->numCols;
 

@@ -25,11 +25,6 @@ th_absmax_f32(const ee_f32_t *p_in,
               ee_f32_t       *p_max,
               uint32_t       *p_index)
 {
-    if (!p_in || !p_max || !p_index || len == 0)
-    {
-        return;
-    }
-
     ee_f32_t max_val = fabsf(p_in[0]);
     uint32_t max_idx = 0;
 

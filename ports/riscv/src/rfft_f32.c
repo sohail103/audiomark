@@ -101,12 +101,6 @@ th_rfft_f32(ee_rfft_f32_t *p_instance,
             ee_f32_t      *p_out,
             uint8_t        ifftFlag)
 {
-    if (!p_instance || !p_in || !p_out || !p_instance->work_real
-        || !p_instance->work_imag)
-    {
-        return;
-    }
-
     int       n    = p_instance->fft_len;
     ee_f32_t *real = p_instance->work_real;
     ee_f32_t *imag = p_instance->work_imag;

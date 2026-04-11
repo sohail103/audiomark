@@ -20,16 +20,6 @@
 ee_status_t
 th_rfft_init_f32(ee_rfft_f32_t *p_instance, int fft_length)
 {
-    if (!p_instance || fft_length <= 0)
-    {
-        return EE_STATUS_ERROR;
-    }
-
-    if ((fft_length & (fft_length - 1)) != 0 || fft_length < 2)
-    {
-        return EE_STATUS_ERROR;
-    }
-
     p_instance->fft_len = fft_length;
 
     p_instance->work_real

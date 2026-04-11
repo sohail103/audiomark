@@ -23,11 +23,6 @@ th_cmplx_mult_cmplx_f32(const ee_f32_t *p_a,
                         ee_f32_t       *p_c,
                         uint32_t        len)
 {
-    if (!p_a || !p_b || !p_c || len == 0)
-    {
-        return;
-    }
-
     for (uint32_t i = 0; i < len; i++)
     {
         ee_f32_t ar = p_a[2 * i];

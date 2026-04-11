@@ -20,11 +20,6 @@
 void
 th_dot_prod_f32(ee_f32_t *p_a, ee_f32_t *p_b, uint32_t len, ee_f32_t *p_result)
 {
-    if (!p_a || !p_b || !p_result || len == 0)
-    {
-        return;
-    }
-
     ee_f32_t sum = 0.0f;
 
     for (uint32_t i = 0; i < len; i++)

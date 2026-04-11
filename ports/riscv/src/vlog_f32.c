@@ -22,12 +22,6 @@
 void
 th_vlog_f32(ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
 {
-
-    if (!p_a || !p_c || len == 0)
-    {
-        return;
-    }
-
     const ee_f32_t eps = 1e-12f;
 
     for (uint32_t i = 0; i < len; i++)
