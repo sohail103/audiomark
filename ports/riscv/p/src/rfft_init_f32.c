@@ -17,35 +17,38 @@
  * limitations under the License.
  */
 
-#include "riscv_rfft_f32.h"
+#include "rfft_f32.h"
 #include "ee_api.h"
+#include "th_types.h"
+#include "rvp_support_guard.h"
 
-ee_status_t th_rfft_init_f32(riscv_rfft_fast_instance_q31 * S, int fftLenReal)
+ee_status_t
+th_rfft_init_f32(riscv_rfft_fast_instance_q31 *S, int fftLenReal)
 {
     ee_status_t status = EE_STATUS_OK;
 
     /*  Initialize the Real FFT length */
-    S->fftLenRFFT = (uint16_t) fftLenReal;
-
+    S->fftLenRFFT = (uint16_t)fftLenReal;
 
     /*  Initialization of coef modifier depending on the FFT length */
-    if (S->fftLenRFFT == 1024){
+    if (S->fftLenRFFT == 1024)
+    {
 
         S->pTwiddleRFFT = (q31_t *)rfftFastTwiddleQ31_1024;
 
-        status = th_cfft_init_f32(&(S->Sint),512);
-
+        status = th_cfft_init_f32(&(S->Sint), 512);
     }
-    else if(S->fftLenRFFT == 128){
+    else if (S->fftLenRFFT == 128)
+    {
 
         S->pTwiddleRFFT = (q31_t *)rfftFastTwiddleQ31_128;
 
-        status = th_cfft_init_f32(&(S->Sint),64);
-
+        status = th_cfft_init_f32(&(S->Sint), 64);
     }
-    else{
+    else
+    {
         status = EE_STATUS_ERROR;
     }
 
-    return EE_STATUS_ERROR;
+    return status;
 }
