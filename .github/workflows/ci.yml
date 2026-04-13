@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+      - ci/**
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04-riscv
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DPORT_DIR=ports/riscv
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run unit test executables
+        run: |
+          ./build/test_abf_f32
+          ./build/test_aec_f32
+          ./build/test_anr_f32
+          ./build/test_kws
+          ./build/test_mfcc_f32
