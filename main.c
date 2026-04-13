@@ -28,7 +28,10 @@
 #include "perf_counter.h"
 #endif
 #elif defined __riscv
-/* No additional headers required */
+#ifndef CLOCK_FREQ_HZ
+#error \
+    "CLOCK_FREQ_HZ must be defined for RISC-V bare-metal builds (e.g. -DCLOCK_FREQ_HZ=50000000)."
+#endif
 #else
 #error "Operating system not recognized"
 #endif
@@ -52,20 +55,23 @@ th_microseconds(void)
 #elif defined __arm__ && defined __PERF_COUNTER__
     usec = (uint64_t)get_system_us();
 #elif defined __riscv
-#ifndef CLOCK_FREQ_HZ
-#error \
-    "CLOCK_FREQ_HZ must be defined for RISC-V bare-metal builds. (e.g. -DCLOCK_FREQ_HZ=50000000)"
+#if defined RISCV_READ_MCYCLE
+#define RISCV_CYCLE_CSR  "mcycle"
+#define RISCV_CYCLEH_CSR "mcycleh"
+#else
+#define RISCV_CYCLE_CSR  "cycle"
+#define RISCV_CYCLEH_CSR "cycleh"
 #endif
     uint64_t cycles;
 #if __riscv_xlen == 64
-    __asm__ volatile("csrr %0, cycle" : "=r"(cycles));
+    __asm__ volatile("csrr %0, " RISCV_CYCLE_CSR : "=r"(cycles));
 #else
     uint32_t lo, hi, hi2;
     do
     {
-        __asm__ volatile("csrr %0, cycleh" : "=r"(hi));
-        __asm__ volatile("csrr %0, cycle" : "=r"(lo));
-        __asm__ volatile("csrr %0, cycleh" : "=r"(hi2));
+        __asm__ volatile("csrr %0, " RISCV_CYCLEH_CSR : "=r"(hi));
+        __asm__ volatile("csrr %0, " RISCV_CYCLE_CSR : "=r"(lo));
+        __asm__ volatile("csrr %0, " RISCV_CYCLEH_CSR : "=r"(hi2));
     } while (hi != hi2);
     cycles = ((uint64_t)hi << 32) | lo;
 #endif
