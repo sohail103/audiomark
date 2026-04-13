@@ -29,7 +29,7 @@ set(PORT_SOURCE
     ${PORT_DIR}/../src/cmplx_dot_prod_f32.c
     ${PORT_DIR}/../src/cmplx_mag_f32.c
     ${PORT_DIR}/../src/cmplx_mult_cmplx_f32.c
-    ${PORT_DIR}/src/conv.c
+    ${PORT_DIR}/src/convert.c
     ${PORT_DIR}/../src/dot_prod_f32.c
     ${PORT_DIR}/../src/f32_to_int16.c
     ${PORT_DIR}/../src/int16_to_f32.c

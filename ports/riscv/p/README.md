@@ -4,7 +4,7 @@
 
 This directory contains an implementation of selected DSP kernels targeting the **RISC-V P-extension (Packed SIMD)**.
 
-The current implementation is based on the **v0.19 draft specification** of the P-extension and provides a vectorized backend using packed SIMD intrinsics.
+The current implementation is based on the **v0.21 draft specification** of the P-extension and provides a vectorized backend using packed SIMD intrinsics.
 
 * P-extension specification: [https://github.com/riscv/riscv-p-spec](https://github.com/riscv/riscv-p-spec)
 
@@ -31,9 +31,7 @@ This implementation has been tested with the following toolchain and environment
 
 Functional verification was performed using QEMU:
 
-* Base repository: [https://github.com/JRobinNTA/qemu](https://github.com/JRobinNTA/qemu)
-* Adapted from: [https://github.com/mollybuild/qemu](https://github.com/mollybuild/qemu)
-* Updated to support **P-extension v0.19**
+* Repository: [https://github.com/mollybuild/qemu](https://github.com/mollybuild/qemu)
 
 ---
 

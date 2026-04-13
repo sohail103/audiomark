@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include "conv.h"
+#include "convert.h"
 #include "ee_api.h"
 #include "th_types.h"
 #include "rvp_support_guard.h"
@@ -131,7 +131,7 @@ riscv_float_to_q31_normalize(const float *pSrc, q31_t *pDst, uint32_t blockSize)
 
     if (max_val > 0.0f)
     {
-        scale_factor = 0.999999f / max_val;
+        scale_factor = 0.499999f / max_val;
         combined_multiplier *= scale_factor;
     }
 
