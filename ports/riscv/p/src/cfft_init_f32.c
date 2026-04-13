@@ -65,6 +65,24 @@ th_cfft_init_f32(riscv_cfft_instance_q31 *p_instance, int fftLength)
             p_instance->rearranged_twiddle_tab_stride3_arr
                 = rearranged_twiddle_tab_stride3_arr_64_q31;
             break;
+        case 256U:
+            p_instance->pTwiddle     = twiddleCoef_256_q31;
+            p_instance->pBitRevTable = riscvBitRevIndexTable_fixed_256;
+            p_instance->bitRevLength
+                = RISCVBITREVINDEXTABLE_FIXED_256_TABLE_LENGTH;
+            p_instance->rearranged_twiddle_stride1
+                = rearranged_twiddle_stride1_256_q31;
+            p_instance->rearranged_twiddle_stride2
+                = rearranged_twiddle_stride2_256_q31;
+            p_instance->rearranged_twiddle_stride3
+                = rearranged_twiddle_stride3_256_q31;
+            p_instance->rearranged_twiddle_tab_stride1_arr
+                = rearranged_twiddle_tab_stride1_arr_256_q31;
+            p_instance->rearranged_twiddle_tab_stride2_arr
+                = rearranged_twiddle_tab_stride2_arr_256_q31;
+            p_instance->rearranged_twiddle_tab_stride3_arr
+                = rearranged_twiddle_tab_stride3_arr_256_q31;
+            break;
         case 512U:
             p_instance->pTwiddle     = twiddleCoef_512_q31;
             p_instance->pBitRevTable = riscvBitRevIndexTable_fixed_512;

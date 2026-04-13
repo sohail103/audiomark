@@ -18,6 +18,7 @@
  */
 
 #include "ee_api.h"
+#include "convert.h"
 #include "cfft_f32.h"
 #include "th_types.h"
 #include "rvp_support_guard.h"
@@ -35,29 +36,58 @@ th_cfft_f32(riscv_cfft_instance_q31 *p_instance,
     q31_t q31_buf[1024 * 2];
 
     float scale = riscv_float_to_q31_normalize(p_buf, q31_buf, fftLen * 2);
-    /* fftLen is always 128 */
-    if (ifftFlag == 1U)
-    {
 
-        riscv_cfft_radix4by2_inverse_q31(p_instance, q31_buf, fftLen);
-    }
-    else
-    {
+    riscv_cfft_q31(p_instance, q31_buf, ifftFlag, bitReverseFlagR);
 
-        riscv_cfft_radix4by2_q31(p_instance, q31_buf, fftLen);
-    }
-
-    if (bitReverseFlagR)
-    {
-
-        riscv_bitreversal_32_inpl((uint32_t *)q31_buf,
-                                  p_instance->bitRevLength,
-                                  p_instance->pBitRevTable);
-    }
     float algorithmic_mult = (ifftFlag == 0U) ? (float)fftLen : 1.0f;
     float final_mult
         = (1.0f / 2147483648.0f) * (1.0f / scale) * algorithmic_mult;
     riscv_q31_to_float_unnormalize(q31_buf, p_buf, fftLen * 2, final_mult);
+}
+
+void
+riscv_cfft_q31(const riscv_cfft_instance_q31 *p_instance,
+               q31_t                         *q_buf,
+               uint8_t                        ifftFlag,
+               uint8_t                        bitReverseFlagR)
+{
+    uint32_t fftLen = p_instance->fftLen;
+
+    if (ifftFlag == 1U)
+    {
+        switch (fftLen)
+        {
+            case 64:
+            case 256:
+                riscv_radix4_butterfly_inverse_q31(p_instance, q_buf, fftLen);
+                break;
+            case 128:
+            case 512:
+                riscv_cfft_radix4by2_inverse_q31(p_instance, q_buf, fftLen);
+                break;
+        }
+    }
+    else
+    {
+        switch (fftLen)
+        {
+            case 64:
+            case 256:
+                riscv_radix4_butterfly_q31(p_instance, q_buf, fftLen);
+                break;
+            case 128:
+            case 512:
+                riscv_cfft_radix4by2_q31(p_instance, q_buf, fftLen);
+                break;
+        }
+    }
+
+    if (bitReverseFlagR)
+    {
+        riscv_bitreversal_32_inpl((uint32_t *)q_buf,
+                                  p_instance->bitRevLength,
+                                  p_instance->pBitRevTable);
+    }
 }
 
 void

@@ -30,24 +30,24 @@ th_rfft_init_f32(riscv_rfft_fast_instance_q31 *S, int fftLenReal)
     /*  Initialize the Real FFT length */
     S->fftLenRFFT = (uint16_t)fftLenReal;
 
+    /* Unified Twiddle Tables */
+    S->pTwiddleRFFT = (q31_t *)rfftFastTwiddleQ31_1024;
+
     /*  Initialization of coef modifier depending on the FFT length */
-    if (S->fftLenRFFT == 1024)
+    switch (fftLenReal)
     {
-
-        S->pTwiddleRFFT = (q31_t *)rfftFastTwiddleQ31_1024;
-
-        status = th_cfft_init_f32(&(S->Sint), 512);
-    }
-    else if (S->fftLenRFFT == 128)
-    {
-
-        S->pTwiddleRFFT = (q31_t *)rfftFastTwiddleQ31_128;
-
-        status = th_cfft_init_f32(&(S->Sint), 64);
-    }
-    else
-    {
-        status = EE_STATUS_ERROR;
+        case 1024U:
+            status          = th_cfft_init_f32(&(S->Sint), 512);
+            break;
+        case 512U:
+            status          = th_cfft_init_f32(&(S->Sint), 256);
+            break;
+        case 128U:
+            status          = th_cfft_init_f32(&(S->Sint), 64);
+            break;
+        default:
+            status = EE_STATUS_ERROR;
+            break;
     }
 
     return status;

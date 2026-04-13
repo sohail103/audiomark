@@ -20,13 +20,13 @@
 #ifndef P_RISCV_CFFT_H
 #define P_RISCV_CFFT_H
 
-#include "conv.h"
 #include "th_types.h"
 #include "rvp_support_guard.h"
 
 #define RISCVBITREVINDEXTABLE_FIXED_64_TABLE_LENGTH  ((uint16_t)56)
 #define RISCVBITREVINDEXTABLE_FIXED_128_TABLE_LENGTH ((uint16_t)112)
 #define RISCVBITREVINDEXTABLE_FIXED_512_TABLE_LENGTH ((uint16_t)480)
+#define RISCVBITREVINDEXTABLE_FIXED_256_TABLE_LENGTH ((uint16_t)240)
 
 /* vecC = { vecA[low]*vecB[low] - vecA[high]*vecB[high],
            vecA[high]*vecB[low] + vecA[low]*vecB[high]} */
@@ -36,8 +36,8 @@
         q31x2_t _prod1 = __riscv_pmulqr_i32x2(_vecA, _vecB);                \
         q31x2_t _swapB = __riscv_ppairoe_i32x2(_vecB, _vecB);               \
         q31x2_t _prod2 = __riscv_pmulqr_i32x2(_vecA, _swapB);               \
-        _vecC = __riscv_psa_x_i32x2(__riscv_ppaireo_i32x2(_prod1, _prod2),  \
-                                    __riscv_ppairoe_i32x2(_prod1, _prod2)); \
+        _vecC = __riscv_pas_x_i32x2(__riscv_ppaireo_i32x2(_prod1, _prod2),  \
+                                    __riscv_ppaireo_i32x2(_prod2, _prod1)); \
     } while (0)
 
 /* vecC = { vecA[low]*vecB[low] + vecA[high]*vecB[high],
@@ -48,8 +48,8 @@
         q31x2_t _prod1 = __riscv_pmulqr_i32x2(_vecA, _vecB);                \
         q31x2_t _swapB = __riscv_ppairoe_i32x2(_vecB, _vecB);               \
         q31x2_t _prod2 = __riscv_pmulqr_i32x2(_vecA, _swapB);               \
-        _vecC = __riscv_pas_x_i32x2(__riscv_ppaireo_i32x2(_prod1, _prod2),  \
-                                    __riscv_ppairoe_i32x2(_prod1, _prod2)); \
+        _vecC = __riscv_psa_x_i32x2(__riscv_ppaireo_i32x2(_prod1, _prod2),  \
+                                    __riscv_ppaireo_i32x2(_prod2, _prod1)); \
     } while (0)
 
 /* vecC = { vecA[low] - vecB[high],
@@ -118,6 +118,16 @@ extern const q31_t rearranged_twiddle_stride1_256_q31[168];
 extern const q31_t rearranged_twiddle_stride2_256_q31[168];
 
 extern const q31_t rearranged_twiddle_stride3_256_q31[168];
+
+extern const uint16_t riscvBitRevIndexTable_fixed_256
+    [RISCVBITREVINDEXTABLE_FIXED_256_TABLE_LENGTH];
+
+extern const q31_t twiddleCoef_256_q31[384];
+
+void riscv_cfft_q31(const riscv_cfft_instance_q31 *p_instance,
+                    q31_t                         *q_buf,
+                    uint8_t                        ifftFlag,
+                    uint8_t                        bitReverseFlagR);
 
 void riscv_cfft_radix4by2_inverse_q31(const riscv_cfft_instance_q31 *p_instance,
                                       q31_t                         *pSrc,
