@@ -27,12 +27,12 @@
 #if defined __PERF_COUNTER__
 #include "perf_counter.h"
 #endif
+#elif defined __riscv
+/* No additional headers required */
 #else
 #error "Operating system not recognized"
 #endif
 #include <assert.h>
-
-
 
 uint64_t
 th_microseconds(void)
@@ -51,6 +51,25 @@ th_microseconds(void)
     usec = ((uint64_t)t.time) * 1000 * 1000 + ((uint64_t)t.millitm) * 1000;
 #elif defined __arm__ && defined __PERF_COUNTER__
     usec = (uint64_t)get_system_us();
+#elif defined __riscv
+#ifndef CLOCK_FREQ_HZ
+#error \
+    "CLOCK_FREQ_HZ must be defined for RISC-V bare-metal builds. (e.g. -DCLOCK_FREQ_HZ=50000000)"
+#endif
+    uint64_t cycles;
+#if __riscv_xlen == 64
+    __asm__ volatile("csrr %0, cycle" : "=r"(cycles));
+#else
+    uint32_t lo, hi, hi2;
+    do
+    {
+        __asm__ volatile("csrr %0, cycleh" : "=r"(hi));
+        __asm__ volatile("csrr %0, cycle" : "=r"(lo));
+        __asm__ volatile("csrr %0, cycleh" : "=r"(hi2));
+    } while (hi != hi2);
+    cycles = ((uint64_t)hi << 32) | lo;
+#endif
+    usec = cycles * 1000000ULL / CLOCK_FREQ_HZ;
 #else
 #error "Operating system not recognized"
 #endif
