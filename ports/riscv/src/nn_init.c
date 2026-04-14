@@ -17,69 +17,59 @@
 #include "ee_audiomark.h"
 #include "ee_api.h"
 #include "nn/functions.h"
+#include "nn/support_functions.h"
 
-/* Get size of additional buffers required by library/framework */
+/* this function computes the maximum scratch buffer required across all
+ * layers/kernels. if a new kernel uses ctx.buf, its buffer requirement must be
+ * added here.
+ */
 static int
 ds_cnn_s_s8_get_buffer_size(void)
 {
-    /* Custom function based on knowledge that only select layers of DS_CNN_S
-     * network require additional buffers. */
-    int            max_buffer = 0;
-    nn_conv_params conv_params;
-    nn_dims        input_dims;
-    nn_dims        filter_dims;
-    nn_dims        output_dims;
+    int32_t size       = 0;
+    int32_t max_buffer = 0;
+    nn_dims input_dims;
+    nn_dims filter_dims;
 
-    /* Layer 0 - Conv */
-    conv_params.padding.h  = CONV_0_PAD_H;
-    conv_params.padding.w  = CONV_0_PAD_W;
-    conv_params.stride.h   = CONV_0_STRIDE_H;
-    conv_params.stride.w   = CONV_0_STRIDE_W;
-    conv_params.dilation.h = CONV_0_DILATION_H;
-    conv_params.dilation.w = CONV_0_DILATION_W;
+    /* currently, all conv layers use the same generic convolution
+     * implementation. if a different convolution implementation is used for any
+     * specific layer, change the corresponding get_buffer_size function
+     */
 
-    input_dims.n = CONV_0_INPUT_BATCHES;
-    input_dims.h = CONV_0_INPUT_H;
-    input_dims.w = CONV_0_INPUT_W;
-    input_dims.c = CONV_0_IN_CH;
-
-    filter_dims.h = CONV_0_FILTER_H;
+    // Conv0
     filter_dims.w = CONV_0_FILTER_W;
+    filter_dims.h = CONV_0_FILTER_H;
+    input_dims.c  = CONV_0_IN_CH;
+    size          = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
+    max_buffer    = MAX(max_buffer, size);
 
-    output_dims.n = input_dims.n;
-    output_dims.h = CONV_0_OUTPUT_H;
-    output_dims.w = CONV_0_OUTPUT_W;
-    output_dims.c = CONV_0_OUT_CH;
+    // Conv2
+    filter_dims.w = CONV_2_FILTER_W;
+    filter_dims.h = CONV_2_FILTER_H;
+    input_dims.c  = CONV_2_IN_CH;
+    size          = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
+    max_buffer    = MAX(max_buffer, size);
 
-    int32_t size = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
+    // Conv4
+    filter_dims.w = CONV_4_FILTER_W;
+    filter_dims.h = CONV_4_FILTER_H;
+    input_dims.c  = CONV_4_IN_CH;
+    size          = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
+    max_buffer    = MAX(max_buffer, size);
 
-    max_buffer = size > max_buffer ? size : max_buffer;
+    // Conv6
+    filter_dims.w = CONV_6_FILTER_W;
+    filter_dims.h = CONV_6_FILTER_H;
+    input_dims.c  = CONV_6_IN_CH;
+    size          = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
+    max_buffer    = MAX(max_buffer, size);
 
-    /* Layer 0 - DW Conv */
-    nn_dw_conv_params dw_conv_params;
-    dw_conv_params.activation.min = DW_CONV_1_OUT_ACTIVATION_MIN;
-    dw_conv_params.activation.max = DW_CONV_1_OUT_ACTIVATION_MAX;
-    dw_conv_params.ch_mult        = 1;
-    dw_conv_params.dilation.h     = DW_CONV_1_DILATION_H;
-    dw_conv_params.dilation.w     = DW_CONV_1_DILATION_W;
-    dw_conv_params.input_offset   = DW_CONV_1_INPUT_OFFSET;
-    dw_conv_params.output_offset  = DW_CONV_1_OUTPUT_OFFSET;
-    dw_conv_params.padding.h      = DW_CONV_1_PAD_H;
-    dw_conv_params.padding.w      = DW_CONV_1_PAD_W;
-    dw_conv_params.stride.h       = DW_CONV_1_STRIDE_H;
-    dw_conv_params.stride.w       = DW_CONV_1_STRIDE_W;
-
-    filter_dims.h = DW_CONV_1_FILTER_H;
-    filter_dims.w = DW_CONV_1_FILTER_W;
-
-    input_dims.n = 1;
-    input_dims.h = DW_CONV_1_INPUT_H;
-    input_dims.w = DW_CONV_1_INPUT_W;
-    input_dims.c = DW_CONV_1_OUT_CH;
-
-    output_dims.h = DW_CONV_1_OUTPUT_H;
-    output_dims.w = DW_CONV_1_OUTPUT_W;
-    output_dims.c = DW_CONV_1_OUT_CH;
+    // Conv8
+    filter_dims.w = CONV_8_FILTER_W;
+    filter_dims.h = CONV_8_FILTER_H;
+    input_dims.c  = CONV_8_IN_CH;
+    size          = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
+    max_buffer    = MAX(max_buffer, size);
 
     return max_buffer;
 }
