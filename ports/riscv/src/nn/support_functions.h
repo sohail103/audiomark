@@ -26,15 +26,19 @@
 #include "math_types.h"
 #include "types.h"
 
-#define MAX(A, B) ((A) > (B) ? (A) : (B))
-#define MIN(A, B) ((A) < (B) ? (A) : (B))
-
 #define LEFT_SHIFT(_shift)            (_shift > 0 ? _shift : 0)
 #define MASK_IF_ZERO(x)               (x) == 0 ? ~0 : 0
 #define MASK_IF_NON_ZERO(x)           (x) != 0 ? ~0 : 0
 #define SELECT_USING_MASK(mask, a, b) ((mask) & (a)) ^ (~(mask) & (b))
 #define MUL_POW2(a, b)                nn_mult_by_power_of_two((a), (b))
 #define CLAMP(x, h, l)                MAX(MIN((x), (h)), (l))
+
+#define MAX(a, b)           ((a) > (b) ? (a) : (b))
+#define MAX3(a, b, c)       MAX(MAX(a, b), c)
+#define MAX4(a, b, c, d)    MAX(MAX3(a, b, c), d)
+#define MAX5(a, b, c, d, e) MAX(MAX4(a, b, c, d), e)
+
+#define MIN(A, B) ((A) < (B) ? (A) : (B))
 
 union nn_word
 {

@@ -18,73 +18,31 @@
 #include "ee_api.h"
 #include "nn/functions.h"
 #include "nn/support_functions.h"
+#include "nn/buffer_utils.h"
 
-/* this function computes the maximum scratch buffer required across all
- * layers/kernels. if a new kernel uses ctx.buf, its buffer requirement must be
- * added here.
- */
-static int
-ds_cnn_s_s8_get_buffer_size(void)
-{
-    int32_t size       = 0;
-    int32_t max_buffer = 0;
-    nn_dims input_dims;
-    nn_dims filter_dims;
+#define BUF_CONV0 \
+    NN_CONV_S8_BUF_SIZE(CONV_0_IN_CH, CONV_0_FILTER_W, CONV_0_FILTER_H)
+#define BUF_CONV2 \
+    NN_CONV_S8_BUF_SIZE(CONV_2_IN_CH, CONV_2_FILTER_W, CONV_2_FILTER_H)
+#define BUF_CONV4 \
+    NN_CONV_S8_BUF_SIZE(CONV_4_IN_CH, CONV_4_FILTER_W, CONV_4_FILTER_H)
+#define BUF_CONV6 \
+    NN_CONV_S8_BUF_SIZE(CONV_6_IN_CH, CONV_6_FILTER_W, CONV_6_FILTER_H)
+#define BUF_CONV8 \
+    NN_CONV_S8_BUF_SIZE(CONV_8_IN_CH, CONV_8_FILTER_W, CONV_8_FILTER_H)
 
-    /* currently, all conv layers use the same generic convolution
-     * implementation. if a different convolution implementation is used for any
-     * specific layer, change the corresponding get_buffer_size function
-     */
-
-    // Conv0
-    filter_dims.w = CONV_0_FILTER_W;
-    filter_dims.h = CONV_0_FILTER_H;
-    input_dims.c  = CONV_0_IN_CH;
-    size          = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
-    max_buffer    = MAX(max_buffer, size);
-
-    // Conv2
-    filter_dims.w = CONV_2_FILTER_W;
-    filter_dims.h = CONV_2_FILTER_H;
-    input_dims.c  = CONV_2_IN_CH;
-    size          = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
-    max_buffer    = MAX(max_buffer, size);
-
-    // Conv4
-    filter_dims.w = CONV_4_FILTER_W;
-    filter_dims.h = CONV_4_FILTER_H;
-    input_dims.c  = CONV_4_IN_CH;
-    size          = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
-    max_buffer    = MAX(max_buffer, size);
-
-    // Conv6
-    filter_dims.w = CONV_6_FILTER_W;
-    filter_dims.h = CONV_6_FILTER_H;
-    input_dims.c  = CONV_6_IN_CH;
-    size          = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
-    max_buffer    = MAX(max_buffer, size);
-
-    // Conv8
-    filter_dims.w = CONV_8_FILTER_W;
-    filter_dims.h = CONV_8_FILTER_H;
-    input_dims.c  = CONV_8_IN_CH;
-    size          = nn_convolve_s8_get_buffer_size(&input_dims, &filter_dims);
-    max_buffer    = MAX(max_buffer, size);
-
-    return max_buffer;
-}
+#define MAX_BUF_SIZE \
+    (MAX5(BUF_CONV0, BUF_CONV2, BUF_CONV4, BUF_CONV6, BUF_CONV8))
 
 /* Test for a complete int8 DS_CNN_S keyword spotting network from
  * https://github.com/ARM-software/ML-zoo & Tag: 22.02 */
 nn_context ctx;
 
+static uint8_t scratch_buffer[MAX_BUF_SIZE] __attribute__((aligned(8)));
+
 void
 th_nn_init(void)
 {
-    ctx.size = ds_cnn_s_s8_get_buffer_size();
-
-    /* N.B. The developer owns this file so they can allocate how they like. */
-    ctx.buf = th_malloc(ctx.size, COMPONENT_KWS);
-
-    /* we don't free in audiomark */
+    ctx.size = MAX_BUF_SIZE;
+    ctx.buf  = scratch_buffer;
 }
