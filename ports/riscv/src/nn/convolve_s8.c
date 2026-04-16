@@ -35,17 +35,6 @@
  */
 
 int32_t
-nn_convolve_s8_get_buffer_size(const nn_dims *input_dims,
-                               const nn_dims *filter_dims)
-{
-    const int32_t rhs_cols  = filter_dims->w * filter_dims->h * input_dims->c;
-    const int32_t remainder = rhs_cols % 4;
-    const int32_t aligned_rhs_cols
-        = remainder != 0 ? rhs_cols + 4 - remainder : rhs_cols;
-    return (2 * aligned_rhs_cols) * (int32_t)sizeof(int16_t);
-}
-
-int32_t
 nn_convolve_s8(const nn_context                  *ctx,
                const nn_conv_params              *conv_params,
                const nn_per_channel_quant_params *quant_params,
