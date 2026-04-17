@@ -10,9 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-24.04-riscv
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,6 +22,26 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: build/
+          retention-days: 1
+
+  unit-tests:
+    needs: build
+    runs-on: ubuntu-24.04-riscv
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: build/
+
+      - name: Make test binaries executable
+        run: chmod +x build/test_*
+
       - name: Run unit tests
         run: |
           ./build/test_abf_f32
@@ -31,9 +50,20 @@ jobs:
           ./build/test_kws
           ./build/test_mfcc_f32
 
+  benchmark:
+    needs: build
+    runs-on: ubuntu-24.04-riscv
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: build/
+
+      - name: Make benchmark executable
+        run: chmod +x build/audiomark
+
       - name: Run AudioMark benchmark
-        id: benchmark
-        continue-on-error: true
         timeout-minutes: 15
         run: ./build/audiomark 2>&1 | tee audiomark_output.txt
 
