@@ -63,27 +63,21 @@ jobs:
       - name: Make benchmark executable
         run: chmod +x build/audiomark
 
+      - name: Print CPU info
+        run: grep "model name" /proc/cpuinfo
+
       - name: Run AudioMark benchmark
         timeout-minutes: 15
         run: ./build/audiomark 2>&1 | tee audiomark_output.txt
 
       - name: Report AudioMark score
         if: always()
-        run: |
-          if [ -f audiomark_output.txt ] && grep -q 'Score' audiomark_output.txt; then
-            SCORE=$(grep -oP 'Score\s*:\s*\K[\d.]+' audiomark_output.txt || echo "N/A")
-            RUNTIME=$(grep -oP 'Total runtime\s*:\s*\K[\d.]+' audiomark_output.txt || echo "N/A")
-            ITERATIONS=$(grep -oP 'Total iterations\s*:\s*\K\d+' audiomark_output.txt || echo "N/A")
+        run: cat audiomark_output.txt
 
-            echo "## AudioMark Benchmark Results" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-            echo "| **Score** | **${SCORE} AudioMarks** |" >> $GITHUB_STEP_SUMMARY
-            echo "| Runtime | ${RUNTIME} seconds |" >> $GITHUB_STEP_SUMMARY
-            echo "| Iterations | ${ITERATIONS} |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "## AudioMark Benchmark" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Benchmark did not produce a score." >> $GITHUB_STEP_SUMMARY
-          fi
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audiomark-results
+          path: audiomark_output.txt
+          retention-days: 30
