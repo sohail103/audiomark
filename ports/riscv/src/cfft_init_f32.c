@@ -1,5 +1,5 @@
 /**
- * Copyright 2026 Sohail Raj Satapathy
+ * Copyright 2026 Harshit Kumar Shivhare
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,20 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
+#include "dsp/dsp.h"
 
 ee_status_t
 th_cfft_init_f32(ee_cfft_f32_t *p_instance, int fft_length)
 {
-    p_instance->fft_len = fft_length;
+    if (fft_length != 128)
+    {
+        return EE_STATUS_ERROR;
+    }
+
+    riscv_status status = riscv_cfft_init_f32(p_instance, fft_length);
+    if (!status)
+    {
+        return EE_STATUS_ERROR;
+    }
     return EE_STATUS_OK;
 }

@@ -16,21 +16,11 @@
 #include <stddef.h>
 #include <string.h>
 
-#define TH_FLOAT32_TYPE float
+#include "dsp/dsp.h"
 
-typedef struct
-{
-    int fft_len;
-
-} riscv_cfft_instance_f32;
-
-typedef struct
-{
-    int              fft_len;
-    TH_FLOAT32_TYPE *work_real;
-    TH_FLOAT32_TYPE *work_imag;
-
-} riscv_rfft_instance_f32;
+#define TH_FLOAT32_TYPE               float
+#define TH_RFFT_INSTANCE_FLOAT32_TYPE riscv_rfft_fast_instance_f32
+#define TH_CFFT_INSTANCE_FLOAT32_TYPE riscv_cfft_instance_f32
 
 /*
    struct for matrix type is not defined yet because audiomark
@@ -39,8 +29,5 @@ typedef struct
    src/ee_types.h. the ARM port defines custom structs for this
    and manages the conversions manually.
 */
-
-#define TH_RFFT_INSTANCE_FLOAT32_TYPE riscv_rfft_instance_f32
-#define TH_CFFT_INSTANCE_FLOAT32_TYPE riscv_cfft_instance_f32
 
 #endif /* __TH_TYPES_H */
