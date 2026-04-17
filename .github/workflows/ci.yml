@@ -64,7 +64,7 @@ jobs:
         run: chmod +x build/audiomark
 
       - name: Print CPU info
-        run: grep "model name" /proc/cpuinfo
+        run: cat /proc/cpuinfo
 
       - name: Run AudioMark benchmark
         timeout-minutes: 15
@@ -72,7 +72,7 @@ jobs:
 
       - name: Report AudioMark score
         if: always()
-        run: cat audiomark_output.txt
+        run: if [ -f audiomark_output.txt ]; then cat audiomark_output.txt; else echo "Benchmark did not run."; fi
 
       - name: Upload benchmark results
         if: always()
