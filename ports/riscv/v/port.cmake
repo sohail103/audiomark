@@ -1,14 +1,20 @@
 include_directories(
     ${PORT_DIR}/..
+    ${PORT_DIR}/../src
+    ${PORT_DIR}/src
 )
 
-add_definitions(-DUSE_SMALLFT)
+add_definitions(-DUSE_RISCV_DSP)
 
 set(PORT_SOURCE 
 
     ${PORT_DIR}/../th_api.c
 
-    ${PORT_DIR}/../src/nn/avgpool_s8.c
+    ${PORT_DIR}/../src/dsp/tables.c
+    ${PORT_DIR}/../src/dsp/cfft_f32.c
+    ${PORT_DIR}/../src/dsp/rfft_fast_f32.c
+
+    ${PORT_DIR}/src/nn/avgpool_global_s8.c
     ${PORT_DIR}/../src/nn/convolve_s8.c
     ${PORT_DIR}/../src/nn/depthwise_conv_s8.c
     ${PORT_DIR}/../src/nn/fully_connected_s8.c
