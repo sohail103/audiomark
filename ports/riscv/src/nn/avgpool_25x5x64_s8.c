@@ -21,7 +21,7 @@
 
 /*
  * Specialized for the KWS model:
- * input: 25x5x64, global avgpool
+ * input: 25x5x64, output: 1x1x64
  */
 #define INPUT_Y  25
 #define INPUT_X  5
@@ -30,16 +30,16 @@
 #define HALF     (COUNT / 2)
 
 int32_t
-nn_avgpool_global_s8(const q7_t *input_data, q7_t *output_data)
+nn_avgpool_25x5x64_s8(const q7_t *input_data, q7_t *output_data)
 {
-    for (int32_t c = 0; c < CHANNELS; c++)
+    for (uint8_t c = 0; c < CHANNELS; c++)
     {
         int16_t sum = 0;
 
         const q7_t *base = input_data + c;
 
         /* accumulate over spatial */
-        for (int32_t idx = 0; idx < COUNT; idx++)
+        for (uint8_t idx = 0; idx < COUNT; idx++)
         {
             sum += *base;
             base += CHANNELS; /* move to next pixel, same channel */
