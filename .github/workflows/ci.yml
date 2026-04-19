@@ -10,9 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-24.04-riscv
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,10 +22,62 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Run unit test executables
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: build/
+          retention-days: 1
+
+  unit-tests:
+    needs: build
+    runs-on: ubuntu-24.04-riscv
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: build/
+
+      - name: Make test binaries executable
+        run: chmod +x build/test_*
+
+      - name: Run unit tests
         run: |
           ./build/test_abf_f32
           ./build/test_aec_f32
           ./build/test_anr_f32
           ./build/test_kws
           ./build/test_mfcc_f32
+
+  benchmark:
+    needs: build
+    runs-on: ubuntu-24.04-riscv
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: build/
+
+      - name: Make benchmark executable
+        run: chmod +x build/audiomark
+
+      - name: Print CPU info
+        run: cat /proc/cpuinfo
+
+      - name: Run AudioMark benchmark
+        timeout-minutes: 15
+        run: ./build/audiomark 2>&1 | tee audiomark_output.txt
+
+      - name: Report AudioMark score
+        if: always()
+        run: if [ -f audiomark_output.txt ]; then cat audiomark_output.txt; else echo "Benchmark did not run."; fi
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audiomark-results
+          path: audiomark_output.txt
+          retention-days: 30
