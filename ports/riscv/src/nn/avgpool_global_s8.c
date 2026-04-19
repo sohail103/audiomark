@@ -27,15 +27,14 @@
 #define INPUT_X  5
 #define CHANNELS 64
 #define COUNT    (INPUT_Y * INPUT_X)
-#define ACT_MIN  -128
-#define ACT_MAX  127
+#define HALF     (COUNT / 2)
 
 int32_t
 nn_avgpool_global_s8(const q7_t *input_data, q7_t *output_data)
 {
     for (int32_t c = 0; c < CHANNELS; c++)
     {
-        int32_t sum = 0;
+        int16_t sum = 0;
 
         const q7_t *base = input_data + c;
 
@@ -46,24 +45,14 @@ nn_avgpool_global_s8(const q7_t *input_data, q7_t *output_data)
             base += CHANNELS; /* move to next pixel, same channel */
         }
 
-        /* rounding */
-        if (sum > 0)
+        /* symmetric remove rounding */
+        if (sum >= 0)
         {
-            sum = (sum + COUNT / 2) / COUNT;
+            sum = (sum + HALF) / COUNT;
         }
         else
         {
-            sum = (sum - COUNT / 2) / COUNT;
-        }
-
-        /* clamp */
-        if (sum < ACT_MIN)
-        {
-            sum = ACT_MIN;
-        }
-        else if (sum > ACT_MAX)
-        {
-            sum = ACT_MAX;
+            sum = (sum - HALF) / COUNT;
         }
 
         output_data[c] = (q7_t)sum;
