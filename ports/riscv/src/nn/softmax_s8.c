@@ -32,70 +32,83 @@
  */
 
 void
-nn_softmax_s8(const int8_t *input,
-              const int32_t num_rows,
-              const int32_t row_size,
-              const int32_t mult,
-              const int32_t shift,
-              const int32_t diff_min,
-              void         *output)
+nn_softmax_s8_row12(const int8_t *input, int8_t *output)
 {
-    const int32_t mask = (1 << shift);
+    const int32_t mult     = 1881344896;
+    const int32_t shift    = 24;
+    const int32_t diff_min = -124;
 
-    int32_t col = 0;
-    int32_t row_idx;
+    /* Safe mask: (1 << shift) */
+    const int32_t mask = (int32_t)((int64_t)1 << shift);
 
-    for (row_idx = 0; row_idx < num_rows; ++row_idx)
+    /* Step 1: find max */
+    int8_t max = input[0];
+    for (int i = 1; i < 12; i++)
     {
-        /* Find the maximum value in order to ensure numerical stability */
-        int8_t max = *input;
-
-        for (col = 1; col < row_size; ++col)
+        if (input[i] > max)
         {
-            max = MAX(max, input[col]);
+            max = input[i];
         }
+    }
 
-        int32_t diff = 0;
-        int32_t sum  = 0;
+    /* Step 2: compute sum of exps */
+    int32_t sum = 0;
 
-        for (col = 0; col < row_size; ++col)
+    for (int i = 0; i < 12; i++)
+    {
+        int32_t diff = (int32_t)input[i] - (int32_t)max;
+
+        if (diff >= diff_min)
         {
-            diff = input[col] - max;
-            if (diff >= diff_min)
-            {
-                sum += DIV_POW2(EXP_ON_NEG(MUL_SAT(diff * mask, mult)),
-                                ACCUM_BITS);
-            }
+            /* safe scaling: diff * mask */
+            int32_t scaled = (int32_t)((int64_t)diff * mask);
+
+            int32_t prod = MUL_SAT(scaled, mult);
+            int32_t expv = EXP_ON_NEG(prod);
+
+            sum += DIV_POW2(expv, ACCUM_BITS);
         }
+    }
 
-        const int32_t headroom = __builtin_clz(sum);
-        const int32_t shifted_scale
-            = ONE_OVER1((sum > 0 ? sum << headroom : 0) - (1 << 31));
-        int32_t bits_over_unit;
+    /* Step 3: normalization */
+    int32_t headroom = __builtin_clz(sum);
 
-        int8_t *output_s8 = (int8_t *)output + row_idx * row_size;
+    int32_t shifted_sum = (sum > 0) ? (int32_t)((int64_t)sum << headroom) : 0;
 
-        bits_over_unit = ACCUM_BITS - headroom + 23;
+    int32_t shifted_scale
+        = ONE_OVER1(shifted_sum - (int32_t)((uint32_t)1 << 31));
 
-        for (col = 0; col < row_size; ++col)
+    int32_t bits_over_unit = ACCUM_BITS - headroom + 23;
+
+    /* Step 4: output */
+    for (int i = 0; i < 12; i++)
+    {
+        int32_t diff = (int32_t)input[i] - (int32_t)max;
+
+        if (diff >= diff_min)
         {
-            diff = input[col] - max;
-            if (diff >= diff_min)
-            {
-                const int32_t res
-                    = DIV_POW2(MUL_SAT(shifted_scale,
-                                       EXP_ON_NEG(MUL_SAT(diff * mask, mult))),
-                               bits_over_unit)
-                      + Q7_MIN;
-                output_s8[col]
-                    = (int8_t)CLAMP(res, (int32_t)Q7_MAX, (int32_t)Q7_MIN);
-            }
-            else
-            {
-                output_s8[col] = Q7_MIN;
-            }
-        }
+            int32_t scaled = (int32_t)((int64_t)diff * mask);
+            int32_t prod   = MUL_SAT(scaled, mult);
+            int32_t expv   = EXP_ON_NEG(prod);
 
-        input += row_size;
+            int32_t res = DIV_POW2(MUL_SAT(shifted_scale, expv), bits_over_unit)
+                          + Q7_MIN;
+
+            /* clamp */
+            if (res > Q7_MAX)
+            {
+                res = Q7_MAX;
+            }
+            if (res < Q7_MIN)
+            {
+                res = Q7_MIN;
+            }
+
+            output[i] = (int8_t)res;
+        }
+        else
+        {
+            output[i] = Q7_MIN;
+        }
     }
 }
