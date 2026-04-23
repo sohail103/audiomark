@@ -1,23 +1,17 @@
-/*
- * Copyright (C) 2022 Arm Limited or its affiliates.
+/**
+ * Copyright 2026 Sohail Raj Satapathy
  *
- * SPDX-License-Identifier: Apache-2.0
- *
- * Licensed under the Apache License, Version 2.0 (the License); you may
- * not use this file except in compliance with the License.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an AS IS BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * Modifications copyright (C) 2021-2022 Chair of Electronic Design Automation,
- * TUM
- * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
 #include "functions.h"
@@ -43,7 +37,7 @@ nn_softmax_row12_s8(const int8_t *input, int8_t *output)
 
     /* Step 1: find max */
     int8_t max = input[0];
-    for (int i = 1; i < 12; i++)
+    for (uint8_t i = 1; i < 12; i++)
     {
         if (input[i] > max)
         {
@@ -54,7 +48,7 @@ nn_softmax_row12_s8(const int8_t *input, int8_t *output)
     /* Step 2: compute sum of exps */
     int32_t sum = 0;
 
-    for (int i = 0; i < 12; i++)
+    for (uint8_t i = 0; i < 12; i++)
     {
         int32_t diff = (int32_t)input[i] - (int32_t)max;
 
@@ -81,7 +75,7 @@ nn_softmax_row12_s8(const int8_t *input, int8_t *output)
     int32_t bits_over_unit = ACCUM_BITS - headroom + 23;
 
     /* Step 4: output */
-    for (int i = 0; i < 12; i++)
+    for (uint8_t i = 0; i < 12; i++)
     {
         int32_t diff = (int32_t)input[i] - (int32_t)max;
 
