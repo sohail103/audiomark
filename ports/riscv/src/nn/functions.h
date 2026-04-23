@@ -75,6 +75,6 @@ int32_t nn_avgpool_s8(const nn_pool_params *pool_params,
                       const nn_dims        *output_dims,
                       int8_t               *output_data);
 
-void nn_softmax_s8_row12(const int8_t *input, int8_t *output);
+void nn_softmax_row12_s8(const int8_t *input, int8_t *output);
 
 #endif

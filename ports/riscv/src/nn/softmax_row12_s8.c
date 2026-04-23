@@ -32,7 +32,7 @@
  */
 
 void
-nn_softmax_s8_row12(const int8_t *input, int8_t *output)
+nn_softmax_row12_s8(const int8_t *input, int8_t *output)
 {
     const int32_t mult     = 1881344896;
     const int32_t shift    = 24;

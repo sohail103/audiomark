@@ -396,7 +396,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
                                     in_out_buf_0);
     /***************************** Softmax *************** */
 
-    nn_softmax_s8_row12(in_out_buf_0, out_data);
+    nn_softmax_row12_s8(in_out_buf_0, out_data);
 
     return status == 0 ? EE_STATUS_OK : EE_STATUS_ERROR;
 }
