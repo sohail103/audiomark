@@ -17,25 +17,20 @@
 #include "functions.h"
 #include "support_functions.h"
 
-#define ACCUM_BITS 12
-#define Q7_MAX     ((q7_t)(0x7F))
 #define Q7_MIN     ((q7_t)(0x80))
+#define ACCUM_BITS 12
+
+extern const int32_t EXP_LUT[256];
+extern const int32_t RECIP_LUT[256];
 
 /*
- * Softmax function with s8 input and output of s8.
+ * Softmax function with s8 input and output of s8 using lookup tables
  */
 
 void
-nn_softmax_row12_s8(const int8_t *input, int8_t *output)
+nn_softmax_row12_s8(const int8_t *__restrict input, int8_t *__restrict output)
 {
-    const int32_t mult     = 1881344896;
-    const int32_t shift    = 24;
-    const int32_t diff_min = -124;
-
-    /* Safe mask: (1 << shift) */
-    const int32_t mask = (int32_t)((int64_t)1 << shift);
-
-    /* Step 1: find max */
+    /* find max */
     int8_t max = input[0];
     for (uint8_t i = 1; i < 12; i++)
     {
@@ -45,64 +40,50 @@ nn_softmax_row12_s8(const int8_t *input, int8_t *output)
         }
     }
 
-    /* Step 2: compute sum of exps */
+    /* compute sum of exps */
     int32_t sum = 0;
+    int32_t exp_cache[12];
 
     for (uint8_t i = 0; i < 12; i++)
     {
-        int32_t diff = (int32_t)input[i] - (int32_t)max;
+        /* diff_idx is strictly positive (0 to 255) */
+        uint8_t diff_idx = (uint8_t)(max - input[i]);
 
-        if (diff >= diff_min)
-        {
-            /* safe scaling: diff * mask */
-            int32_t scaled = (int32_t)((int64_t)diff * mask);
+        int32_t expv = EXP_LUT[diff_idx];
 
-            int32_t prod = MUL_SAT(scaled, mult);
-            int32_t expv = EXP_ON_NEG(prod);
-
-            sum += DIV_POW2(expv, ACCUM_BITS);
-        }
+        exp_cache[i] = expv;
+        sum += expv >> ACCUM_BITS;
     }
 
-    /* Step 3: normalization */
+    /* normalization */
     int32_t headroom = __builtin_clz(sum);
 
-    int32_t shifted_sum = (sum > 0) ? (int32_t)((int64_t)sum << headroom) : 0;
+    int32_t shifted_sum = (sum > 0) ? (int32_t)((uint32_t)sum << headroom) : 0;
 
-    int32_t shifted_scale
-        = ONE_OVER1(shifted_sum - (int32_t)((uint32_t)1 << 31));
+    /* extract top 8 bits (excluding the mandatory MSB at bit 31) for the
+     * reciprocal LUT index */
+    uint8_t recip_idx     = ((uint32_t)shifted_sum & 0x7FFFFFFF) >> 23;
+    int32_t shifted_scale = RECIP_LUT[recip_idx];
 
     int32_t bits_over_unit = ACCUM_BITS - headroom + 23;
 
-    /* Step 4: output */
+    /* output */
     for (uint8_t i = 0; i < 12; i++)
     {
-        int32_t diff = (int32_t)input[i] - (int32_t)max;
+        int32_t expv = exp_cache[i];
 
-        if (diff >= diff_min)
-        {
-            int32_t scaled = (int32_t)((int64_t)diff * mask);
-            int32_t prod   = MUL_SAT(scaled, mult);
-            int32_t expv   = EXP_ON_NEG(prod);
+        int32_t res
+            = DIV_POW2(MUL_SAT(shifted_scale, expv), bits_over_unit) + Q7_MIN;
 
-            int32_t res = DIV_POW2(MUL_SAT(shifted_scale, expv), bits_over_unit)
-                          + Q7_MIN;
+        /* catch overflow */
+        res = (res > 0x7F) ? 0x7F : res;
 
-            /* clamp */
-            if (res > Q7_MAX)
-            {
-                res = Q7_MAX;
-            }
-            if (res < Q7_MIN)
-            {
-                res = Q7_MIN;
-            }
+        /* mask = 0 if expv == 0, else -1 */
+        int32_t mask = -(expv != 0);
 
-            output[i] = (int8_t)res;
-        }
-        else
-        {
-            output[i] = Q7_MIN;
-        }
+        /* select between res and Q7_MIN */
+        res = (res & mask) | (Q7_MIN & ~mask);
+
+        output[i] = (int8_t)res;
     }
 }
