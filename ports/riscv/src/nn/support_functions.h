@@ -191,8 +191,9 @@ nn_exp_on_negative_values(int32_t val)
     const int32_t val_mod_minus_quarter
         = (val & ((1 << shift) - 1)) - (1 << shift);
     const int32_t remainder = val_mod_minus_quarter - val;
-    const int32_t x         = (val_mod_minus_quarter << 5) + (1 << 28);
-    const int32_t x2        = MUL_SAT(x, x);
+    const int32_t x
+        = ((int32_t)((uint32_t)val_mod_minus_quarter << 5)) + (1 << 28);
+    const int32_t x2 = MUL_SAT(x, x);
 
     int32_t result
         = 1895147668
@@ -227,13 +228,18 @@ nn_exp_on_negative_values(int32_t val)
 static inline int32_t
 nn_mult_by_power_of_two(const int32_t val, const int32_t exp)
 {
-    const int32_t thresh = ((1 << (31 - exp)) - 1);
-    int32_t       result = val << exp;
-    result
-        = SELECT_USING_MASK(MASK_IF_NON_ZERO(val > thresh), NN_Q31_MAX, result);
-    result = SELECT_USING_MASK(
-        MASK_IF_NON_ZERO(val < -thresh), NN_Q31_MIN, result);
-    return result;
+    const int32_t thresh = ((int32_t)(1u << (31 - exp)) - 1);
+
+    if (val > thresh)
+    {
+        return NN_Q31_MAX;
+    }
+    if (val < -thresh)
+    {
+        return NN_Q31_MIN;
+    }
+
+    return (int32_t)(((uint64_t)(uint32_t)val) << exp);
 }
 
 static inline int32_t
