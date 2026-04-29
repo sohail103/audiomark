@@ -46,7 +46,7 @@ int32_t nn_convolve_s8(const nn_context                  *ctx,
 int32_t nn_convolve_s8_get_buffer_size(const nn_dims *input_dims,
                                        const nn_dims *filter_dims);
 
-int32_t nn_depthwise_conv_s8(const nn_dw_conv_params           *dw_conv_params,
+int32_t nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
                              const nn_per_channel_quant_params *quant_params,
                              const nn_dims                     *input_dims,
                              const int8_t                      *input_data,

@@ -170,6 +170,15 @@ nn_divide_by_power_of_two(const int32_t dividend, const int32_t exponent)
 }
 
 static inline int32_t
+nn_read_q7x4(const int8_t *in_pntr)
+{
+    int32_t val;
+    val = (*((uint32_t *)(in_pntr)));
+
+    return val;
+}
+
+static inline int32_t
 nn_requantize(const int32_t val, const int32_t multiplier, const int32_t shift)
 {
     return nn_divide_by_power_of_two(
