@@ -176,16 +176,14 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     /* Same for all layers in DS block */
     bias_dims.c = in_out_dim_0.c;
 
-    status |= nn_depthwise_conv_s8(&dw_conv_params,
-                                   &quant_params,
-                                   &in_out_dim_1,
-                                   in_out_buf_0,
-                                   &dw_conv_filter_dims,
-                                   ds_cnn_s_layer_2_dw_conv2d_weights,
-                                   &bias_dims,
-                                   ds_cnn_s_layer_2_dw_conv2d_bias,
-                                   &in_out_dim_0,
-                                   in_out_buf_1);
+    status |= nn_depthwise_conv_3x3_s8(&dw_conv_params,
+                                       &quant_params,
+                                       &in_out_dim_1,
+                                       in_out_buf_0,
+                                       ds_cnn_s_layer_2_dw_conv2d_weights,
+                                       ds_cnn_s_layer_2_dw_conv2d_bias,
+                                       &in_out_dim_0,
+                                       in_out_buf_1);
 
     /* Layer 2 - Conv */
 
@@ -228,16 +226,14 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_4_dw_conv2d_output_mult;
     quant_params.shift = (int32_t *)ds_cnn_s_layer_4_dw_conv2d_output_shift;
 
-    status |= nn_depthwise_conv_s8(&dw_conv_params,
-                                   &quant_params,
-                                   &in_out_dim_1,
-                                   in_out_buf_0,
-                                   &dw_conv_filter_dims,
-                                   ds_cnn_s_layer_4_dw_conv2d_weights,
-                                   &bias_dims,
-                                   ds_cnn_s_layer_4_dw_conv2d_bias,
-                                   &in_out_dim_0,
-                                   in_out_buf_1);
+    status |= nn_depthwise_conv_3x3_s8(&dw_conv_params,
+                                       &quant_params,
+                                       &in_out_dim_1,
+                                       in_out_buf_0,
+                                       ds_cnn_s_layer_4_dw_conv2d_weights,
+                                       ds_cnn_s_layer_4_dw_conv2d_bias,
+                                       &in_out_dim_0,
+                                       in_out_buf_1);
 
     /* Layer specific params */
     conv_params.input_offset  = CONV_4_INPUT_OFFSET;
@@ -266,16 +262,14 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_6_dw_conv2d_output_mult;
     quant_params.shift = (int32_t *)ds_cnn_s_layer_6_dw_conv2d_output_shift;
 
-    status |= nn_depthwise_conv_s8(&dw_conv_params,
-                                   &quant_params,
-                                   &in_out_dim_1,
-                                   in_out_buf_0,
-                                   &dw_conv_filter_dims,
-                                   ds_cnn_s_layer_6_dw_conv2d_weights,
-                                   &bias_dims,
-                                   ds_cnn_s_layer_6_dw_conv2d_bias,
-                                   &in_out_dim_0,
-                                   in_out_buf_1);
+    status |= nn_depthwise_conv_3x3_s8(&dw_conv_params,
+                                       &quant_params,
+                                       &in_out_dim_1,
+                                       in_out_buf_0,
+                                       ds_cnn_s_layer_6_dw_conv2d_weights,
+                                       ds_cnn_s_layer_6_dw_conv2d_bias,
+                                       &in_out_dim_0,
+                                       in_out_buf_1);
 
     /* Layer specific params */
     conv_params.input_offset  = CONV_6_INPUT_OFFSET;
@@ -303,16 +297,14 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_8_dw_conv2d_output_mult;
     quant_params.shift = (int32_t *)ds_cnn_s_layer_8_dw_conv2d_output_shift;
 
-    status |= nn_depthwise_conv_s8(&dw_conv_params,
-                                   &quant_params,
-                                   &in_out_dim_1,
-                                   in_out_buf_0,
-                                   &dw_conv_filter_dims,
-                                   ds_cnn_s_layer_8_dw_conv2d_weights,
-                                   &bias_dims,
-                                   ds_cnn_s_layer_8_dw_conv2d_bias,
-                                   &in_out_dim_0,
-                                   in_out_buf_1);
+    status |= nn_depthwise_conv_3x3_s8(&dw_conv_params,
+                                       &quant_params,
+                                       &in_out_dim_1,
+                                       in_out_buf_0,
+                                       ds_cnn_s_layer_8_dw_conv2d_weights,
+                                       ds_cnn_s_layer_8_dw_conv2d_bias,
+                                       &in_out_dim_0,
+                                       in_out_buf_1);
 
     conv_params.input_offset  = CONV_8_INPUT_OFFSET;
     conv_params.output_offset = CONV_8_OUTPUT_OFFSET;
