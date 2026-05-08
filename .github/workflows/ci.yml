@@ -8,53 +8,27 @@ on:
       - main
       - ci/**
   workflow_dispatch:
-    inputs:
-      port_dir:
-        description: 'Select port to build'
-        required: true
-        default: 'ports/riscv'
-        type: choice
-        options:
-          - ports/riscv
-          - ports/riscv/v
 
 jobs:
   build-test-benchmark:
     runs-on: ubuntu-24.04-riscv
-    permissions:
-      pull-requests: read 
+    strategy:
+      fail-fast: false 
+      matrix:
+        include:
+          - name: 'Scalar'
+            dir: 'ports/riscv'
+            artifact: 'audiomark-results-scalar'
+          - name: 'Vector'
+            dir: 'ports/riscv/v'
+            artifact: 'audiomark-results-vector'
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0 
-
-      - name: Check for V extension changes
-        uses: dorny/paths-filter@v4
-        id: filter
-        with:
-          filters: |
-            v_ext:
-              - 'ports/riscv/v/**'
-
-      - name: Determine target port
-        run: |
-          # checking if this is a manually triggered run
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "PORT_DIR=${{ inputs.port_dir }}" >> $GITHUB_ENV
-            echo "Manual dispatch triggered. Using ${{ inputs.port_dir }}"
-          
-          elif [[ "${{ steps.filter.outputs.v_ext }}" == "true" ]]; then
-            echo "PORT_DIR=ports/riscv/v" >> $GITHUB_ENV
-            echo "Detected changes in V port. Using ports/riscv/v"
-          
-          else
-            echo "PORT_DIR=ports/riscv" >> $GITHUB_ENV
-            echo "No V extension changes. Using ports/riscv"
-          fi
 
       - name: Configure CMake
-        run: cmake -S . -B build -DPORT_DIR=${{ env.PORT_DIR }}
+        run: cmake -S . -B build -DPORT_DIR=${{ matrix.dir }}
 
       - name: Build
         run: cmake --build build --parallel
@@ -81,17 +55,18 @@ jobs:
             cat audiomark_output.txt 
             SCORE_LINE=$(grep "^Score" audiomark_output.txt | tr -s ' ' || true)
             if [[ -n "$SCORE_LINE" ]]; then
-              echo "### $SCORE_LINE" >> $GITHUB_STEP_SUMMARY
+              echo "### ${{ matrix.name }}" >> $GITHUB_STEP_SUMMARY
+              echo "#### $SCORE_LINE" >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "Benchmark did not run."
-            echo "### Benchmark failed to run" >> $GITHUB_STEP_SUMMARY
+            echo "Pipeline failed before benchmark could complete."
+            echo "### ${{ matrix.name }} - Build, Test, or Benchmark Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload benchmark results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: audiomark-results
+          name: ${{ matrix.artifact }}
           path: audiomark_output.txt
           retention-days: 10
