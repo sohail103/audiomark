@@ -42,7 +42,10 @@ jobs:
           ./build/test_mfcc_f32
 
       - name: Print CPU info
-        run: cat /proc/cpuinfo
+        run: |
+          cat /proc/cpuinfo
+          echo "CC=${CC:-cc}"
+          ${CC:-cc} -v
 
       - name: Run AudioMark benchmark
         timeout-minutes: 10
