@@ -1,5 +1,6 @@
 include_directories(
     ${PORT_DIR}/..
+    ${PORT_DIR}/../src
 )
 
 add_definitions(-DUSE_RISCV_DSP)
