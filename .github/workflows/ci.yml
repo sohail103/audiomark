@@ -1,5 +1,4 @@
 name: CI
-
 on:
   pull_request:
     branches: [main]
@@ -9,11 +8,16 @@ on:
       - ci/**
   workflow_dispatch:
 
+env:
+  TOOLCHAIN_VERSION: "2026.05.06"
+  TOOLCHAIN_DIR: "${{ github.workspace }}/riscv-toolchain"
+  TOOLCHAIN_URL: "https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2026.05.06/riscv64-glibc-ubuntu-24.04-gcc.tar.xz"
+
 jobs:
   build-test-benchmark:
     runs-on: ubuntu-24.04-riscv
     strategy:
-      fail-fast: false 
+      fail-fast: false
       matrix:
         include:
           - name: 'Scalar'
@@ -22,13 +26,32 @@ jobs:
           - name: 'Vector'
             dir: 'ports/riscv/v'
             artifact: 'audiomark-results-vector'
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Cache RISC-V toolchain
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.TOOLCHAIN_DIR }}
+          key: riscv-toolchain-${{ env.TOOLCHAIN_VERSION }}
+
+      - name: Install RISC-V toolchain
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "${TOOLCHAIN_DIR}"
+          curl -fL "${TOOLCHAIN_URL}" -o toolchain.tar.xz
+          tar -xJf toolchain.tar.xz -C "${TOOLCHAIN_DIR}" --strip-components=1
+
+      - name: Configure environment
+        run: |
+          echo "${TOOLCHAIN_DIR}/bin" >> $GITHUB_PATH
+          echo "CC=${TOOLCHAIN_DIR}/bin/riscv64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CXX=${TOOLCHAIN_DIR}/bin/riscv64-unknown-linux-gnu-g++" >> $GITHUB_ENV
+
       - name: Configure CMake
-        run: cmake -S . -B build -DPORT_DIR=${{ matrix.dir }}
+        run: cmake -S . -B build -DPORT_DIR=${{ matrix.dir }} -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}
 
       - name: Build
         run: cmake --build build --parallel
@@ -55,7 +78,7 @@ jobs:
         if: always()
         run: |
           if [ -f audiomark_output.txt ]; then
-            cat audiomark_output.txt 
+            cat audiomark_output.txt
             SCORE_LINE=$(grep "^Score" audiomark_output.txt | tr -s ' ' || true)
             if [[ -n "$SCORE_LINE" ]]; then
               echo "### ${{ matrix.name }}" >> $GITHUB_STEP_SUMMARY
