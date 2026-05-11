@@ -1,5 +1,5 @@
 /**
- * Copyright 2026 Harshit Kumar Shivhare
+ * Copyright 2026 Harshit Kumar Shivhare, Sohail Raj Satapathy
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,10 @@
 #if defined(__riscv) && defined(__riscv_vector) \
     && (__riscv_v_intrinsic >= 1000000)
 #include <riscv_vector.h>
+#elif defined(__riscv) && defined(__riscv_xtheadvector)
+#include <riscv_th_vector.h>
 #else
-#error "RISCV VECTOR EXTENSION v1.0 NOT SUPPORTED"
+#error "RISCV VECTOR EXTENSION NOT SUPPORTED"
 #endif
 
 #endif // RVV_SUPPORT_GUARD_H
