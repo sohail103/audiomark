@@ -17,27 +17,32 @@ jobs:
         include:
           - name: 'Scalar'
             dir: 'ports/riscv'
-            artifact: 'audiomark-results-scalar'
+            march: 'rv64gc'
+            artifact: 'scalar'
+          - name: 'Scalar - Auto vectorized'
+            dir: 'ports/riscv'
+            march: 'rv64gc_xtheadvector'
+            artifact: 'scalar-auto-vectorized'
           - name: 'Vector'
             dir: 'ports/riscv/v'
-            artifact: 'audiomark-results-vector'
+            march: 'rv64gc_xtheadvector'
+            artifact: 'vector'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Install GCC 15
+      - name: Install GCC 14
         run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
           sudo apt-get update
-          sudo apt-get install -y gcc-15
-          echo "CC=gcc-15" >> $GITHUB_ENV
+          sudo apt-get install -y gcc-14 binutils
+          echo "CC=gcc-14" >> $GITHUB_ENV
 
       - name: Configure CMake
         run: |
           cmake -S . -B build \
             -DPORT_DIR=${{ matrix.dir }} \
             -DCMAKE_C_COMPILER=${CC} \
-            -DCMAKE_C_FLAGS="-O3 -march=rv64gc_xtheadvector"
+            -DCMAKE_C_FLAGS="-O3 -march=${{ matrix.march }}"
 
       - name: Build
         run: cmake --build build --parallel
