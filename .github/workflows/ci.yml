@@ -8,11 +8,6 @@ on:
       - ci/**
   workflow_dispatch:
 
-env:
-  TOOLCHAIN_VERSION: "2026.05.06"
-  TOOLCHAIN_DIR: "${{ github.workspace }}/riscv-toolchain"
-  TOOLCHAIN_URL: "https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2026.05.06/riscv64-glibc-ubuntu-24.04-gcc.tar.xz"
-
 jobs:
   build-test-benchmark:
     runs-on: ubuntu-24.04-riscv
@@ -30,28 +25,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Cache RISC-V toolchain
-        id: cache
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.TOOLCHAIN_DIR }}
-          key: riscv-toolchain-${{ env.TOOLCHAIN_VERSION }}
-
-      - name: Install RISC-V toolchain
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Install GCC 15
         run: |
-          mkdir -p "${TOOLCHAIN_DIR}"
-          curl -fL "${TOOLCHAIN_URL}" -o toolchain.tar.xz
-          tar -xJf toolchain.tar.xz -C "${TOOLCHAIN_DIR}" --strip-components=1
-
-      - name: Configure environment
-        run: |
-          echo "${TOOLCHAIN_DIR}/bin" >> $GITHUB_PATH
-          echo "CC=${TOOLCHAIN_DIR}/bin/riscv64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
-          echo "CXX=${TOOLCHAIN_DIR}/bin/riscv64-unknown-linux-gnu-g++" >> $GITHUB_ENV
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update
+          sudo apt-get install -y gcc-15 g++-15
+          echo "CC=gcc-15" >> $GITHUB_ENV
+          echo "CXX=g++-15" >> $GITHUB_ENV
 
       - name: Configure CMake
-        run: cmake -S . -B build -DPORT_DIR=${{ matrix.dir }} -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}
+        run: |
+          cmake -S . -B build \
+            -DPORT_DIR=${{ matrix.dir }} \
+            -DCMAKE_C_COMPILER=${CC} \
+            -DCMAKE_CXX_COMPILER=${CXX} \
+            -DCMAKE_C_FLAGS="-O3 -march=rv64gc_xtheadvector" \
+            -DCMAKE_CXX_FLAGS="-O3 -march=rv64gc_xtheadvector"
 
       - name: Build
         run: cmake --build build --parallel
