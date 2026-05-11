@@ -7,7 +7,6 @@ on:
       - main
       - ci/**
   workflow_dispatch:
-
 jobs:
   build-test-benchmark:
     runs-on: ubuntu-24.04-riscv
@@ -30,7 +29,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-
       - name: Install GCC 16
         run: |
           sudo apt-get update
@@ -41,27 +39,6 @@ jobs:
           echo "CC=gcc-16" >> $GITHUB_ENV
           echo "AS=riscv64-linux-gnu-as" >> $GITHUB_ENV
           echo "LD=riscv64-linux-gnu-ld" >> $GITHUB_ENV
-
-      - name: Configure CMake
-        run: |
-          cmake -S . -B build \
-            -DPORT_DIR=${{ matrix.dir }} \
-            -DCMAKE_C_COMPILER=${CC} \
-            -DCMAKE_ASM_COMPILER=${AS} \
-            -DCMAKE_LINKER=${LD} \
-            -DCMAKE_C_FLAGS="-O3 -march=${{ matrix.march }}"
-
-      - name: Build
-        run: cmake --build build --parallel
-
-      - name: Run unit tests
-        run: |
-          ./build/test_abf_f32
-          ./build/test_aec_f32
-          ./build/test_anr_f32
-          ./build/test_kws
-          ./build/test_mfcc_f32
-
       - name: Print CPU info
         run: |
           cat /proc/cpuinfo
@@ -69,11 +46,27 @@ jobs:
           ${CC} -v
           ${AS} --version
           ${LD} --version
-
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build \
+            -DPORT_DIR=${{ matrix.dir }} \
+            -DCMAKE_C_COMPILER=${CC} \
+            -DCMAKE_ASM_COMPILER=${AS} \
+            -DCMAKE_LINKER=${LD} \
+            -DCMAKE_C_FLAGS="-O3 -march=${{ matrix.march }}" \
+            -DCMAKE_VERBOSE_MAKEFILE=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Run unit tests
+        run: |
+          ./build/test_abf_f32
+          ./build/test_aec_f32
+          ./build/test_anr_f32
+          ./build/test_kws
+          ./build/test_mfcc_f32
       - name: Run AudioMark benchmark
         timeout-minutes: 10
         run: ./build/audiomark 2>&1 | tee audiomark_output.txt
-
       - name: Report AudioMark score
         if: always()
         run: |
@@ -88,7 +81,6 @@ jobs:
             echo "Pipeline failed before benchmark could complete."
             echo "### ${{ matrix.name }} - Build, Test, or Benchmark Failed" >> $GITHUB_STEP_SUMMARY
           fi
-
       - name: Upload benchmark results
         if: always()
         uses: actions/upload-artifact@v7
