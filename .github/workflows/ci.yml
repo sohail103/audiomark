@@ -56,7 +56,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          ./build/test_abf_f32g
+          ./build/test_abf_f32
           ./build/test_aec_f32
           ./build/test_anr_f32
           ./build/test_kws
