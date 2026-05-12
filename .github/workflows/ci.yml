@@ -32,34 +32,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Install latest binutils
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo apt-get update
-          sudo apt-get install -y binutils
-          as --version
-
-      - name: Cache GCC 16.1.0
+      - name: Cache GCC 16.1.0 + Binutils 2.46.0
         id: cache-gcc
         uses: actions/cache@v4
         with:
           path: /opt/gcc-16.1.0
-          key: gcc-16.1.0-riscv64-v1
+          key: gcc-16.1.0-binutils-2.46.0-riscv64-v1
 
-      - name: Install GCC 16.1.0
+      - name: Install GCC 16.1.0 + Binutils 2.46.0
         if: steps.cache-gcc.outputs.cache-hit != 'true'
         run: |
-          wget -q --show-progress https://github.com/sohail103/gcc-16.1.0-riscv/releases/download/v16.1.0/gcc-16.1.0-riscv64.tar.xz
-          sudo tar -xJf gcc-16.1.0-riscv64.tar.xz -C /
-          rm gcc-16.1.0-riscv64.tar.xz
+          wget -q --show-progress https://github.com/sohail103/gcc-16.1.0-riscv/releases/download/v16.1.0/gcc-16.1.0-riscv64-withbinutils.tar.xz
+          sudo tar -xJf gcc-16.1.0-riscv64-withbinutils.tar.xz -C /
+          rm gcc-16.1.0-riscv64-withbinutils.tar.xz
 
       - name: Setup compiler environment
         run: |
-          sudo mkdir -p /opt/riscv-gnu-toolchain/bin
-          sudo ln -sf $(command -v as) /opt/riscv-gnu-toolchain/bin/riscv64-unknown-linux-gnu-as
-          sudo ln -sf $(command -v ld) /opt/riscv-gnu-toolchain/bin/riscv64-unknown-linux-gnu-ld
           echo "/opt/gcc-16.1.0/bin" >> $GITHUB_PATH
           echo "CC=gcc" >> $GITHUB_ENV
           echo "AS=as" >> $GITHUB_ENV
