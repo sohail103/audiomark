@@ -66,12 +66,14 @@ jobs:
 
       - name: Configure CMake
         run: |
+          CRT_DIR=$(dirname $(find /usr -name "crt1.o" 2>/dev/null | head -1))
+          echo "CRT_DIR=${CRT_DIR}"
           cmake -S . -B build \
             -DPORT_DIR=${{ matrix.dir }} \
             -DCMAKE_C_COMPILER=${CC} \
             -DCMAKE_LINKER=${LD} \
-            -DCMAKE_C_FLAGS="-O3 -march=${{ matrix.march }} --sysroot=/" \
-            -DCMAKE_EXE_LINKER_FLAGS="--sysroot=/" \
+            -DCMAKE_C_FLAGS="-O3 -march=${{ matrix.march }}" \
+            -DCMAKE_EXE_LINKER_FLAGS="-L${CRT_DIR} -B${CRT_DIR}" \
             -DCMAKE_VERBOSE_MAKEFILE=ON
 
       - name: Build
