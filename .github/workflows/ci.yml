@@ -35,7 +35,11 @@ jobs:
       - name: Install latest binutils
         run: |
           sudo apt-get update
-          sudo apt-get install -y binutils libgmp10 libmpfr6 libmpc3 zlib1g
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y binutils
+          as --version
 
       - name: Cache GCC 16.1.0
         id: cache-gcc
