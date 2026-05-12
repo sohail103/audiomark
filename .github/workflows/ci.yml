@@ -48,6 +48,7 @@ jobs:
 
       - name: Setup compiler environment
         run: |
+          sudo apt-get install -y libc6-dev
           echo "/opt/gcc-16.1.0/bin" >> $GITHUB_PATH
           echo "CC=gcc" >> $GITHUB_ENV
           echo "AS=as" >> $GITHUB_ENV
@@ -69,7 +70,8 @@ jobs:
             -DPORT_DIR=${{ matrix.dir }} \
             -DCMAKE_C_COMPILER=${CC} \
             -DCMAKE_LINKER=${LD} \
-            -DCMAKE_C_FLAGS="-O3 -march=${{ matrix.march }}" \
+            -DCMAKE_C_FLAGS="-O3 -march=${{ matrix.march }} --sysroot=/" \
+            -DCMAKE_EXE_LINKER_FLAGS="--sysroot=/" \
             -DCMAKE_VERBOSE_MAKEFILE=ON
 
       - name: Build
