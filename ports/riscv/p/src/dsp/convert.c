@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
+#include <dsp_types.h>
 #include "convert.h"
 #include "ee_api.h"
-#include "th_types.h"
 #include "rvp_support_guard.h"
 
 void

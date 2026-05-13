@@ -17,79 +17,35 @@
  * limitations under the License.
  */
 
-#include "./dsp.h"
-
-static riscv_status
-riscv_rfft_512_fast_init_f32(riscv_rfft_fast_instance_f32 *S)
-{
-
-    riscv_status status;
-
-    if (!S)
-    {
-        return RISCV_MATH_ARGUMENT_ERROR;
-    }
-
-    status = riscv_cfft_init_f32(&(S->Sint), 256);
-    if (status != RISCV_MATH_SUCCESS)
-    {
-        return (status);
-    }
-    S->fftLenRFFT = 512U;
-
-    S->pTwiddleRFFT = (float32_t *)twiddleCoef_rfft_512;
-
-    return RISCV_MATH_SUCCESS;
-}
-
-static riscv_status
-riscv_rfft_1024_fast_init_f32(riscv_rfft_fast_instance_f32 *S)
-{
-
-    riscv_status status;
-
-    if (!S)
-    {
-        return RISCV_MATH_ARGUMENT_ERROR;
-    }
-
-    status = riscv_cfft_init_f32(&(S->Sint), 512);
-    if (status != RISCV_MATH_SUCCESS)
-    {
-        return (status);
-    }
-    S->fftLenRFFT = 1024U;
-
-    S->pTwiddleRFFT = (float32_t *)twiddleCoef_rfft_1024;
-
-    return RISCV_MATH_SUCCESS;
-}
+#include <dsp_types.h>
+#include "dsp.h"
+#include "dsp_f32.h"
 
 riscv_status
-riscv_rfft_fast_init_f32(riscv_rfft_fast_instance_f32 *S, uint16_t fftLen)
+riscv_rfft_fast_init_f32(riscv_rfft_fast_instance_f32 *S, uint16_t fftLenReal)
 {
-    typedef riscv_status (*fft_init_ptr)(riscv_rfft_fast_instance_f32 *);
-    fft_init_ptr fptr = 0x0;
+    riscv_status status = RISCV_MATH_SUCCESS;
 
-    switch (fftLen)
+    /*  Initialize the Real FFT length */
+    S->fftLenRFFT = (uint16_t)fftLenReal;
+
+    /*  Initialization of coef modifier depending on the FFT length */
+    switch (fftLenReal)
     {
         case 1024U:
-            fptr = riscv_rfft_1024_fast_init_f32;
+            S->pTwiddleRFFT = (float32_t *)twiddleCoef_rfft_f32_1024;
+            status          = riscv_cfft_init_f32(&(S->Sint), 512);
             break;
-
         case 512U:
-            fptr = riscv_rfft_512_fast_init_f32;
+            S->pTwiddleRFFT = (float32_t *)twiddleCoef_rfft_f32_512;
+            status          = riscv_cfft_init_f32(&(S->Sint), 256);
             break;
-
         default:
+            status = RISCV_MATH_SUCCESS;
             break;
     }
 
-    if (!fptr)
-    {
-        return RISCV_MATH_ARGUMENT_ERROR;
-    }
-    return fptr(S);
+    return status;
 }
 
 static void

@@ -16,7 +16,7 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "dsp/dsp.h"
+#include "dsp.h"
 
 #include <math.h>
 

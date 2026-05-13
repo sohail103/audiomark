@@ -17,27 +17,10 @@
  * limitations under the License.
  */
 
-#include "./dsp.h"
+#include "dsp_f32.h"
+#include "dsp_types.h"
 
-const riscv_cfft_instance_f32 riscv_cfft_sR_f32_len128
-    = { 128,
-        twiddleCoef_128,
-        riscvBitRevIndexTable128,
-        RISCVBITREVINDEXTABLE_128_TABLE_LENGTH };
-
-const riscv_cfft_instance_f32 riscv_cfft_sR_f32_len256
-    = { 256,
-        twiddleCoef_256,
-        riscvBitRevIndexTable256,
-        RISCVBITREVINDEXTABLE_256_TABLE_LENGTH };
-
-const riscv_cfft_instance_f32 riscv_cfft_sR_f32_len512
-    = { 512,
-        twiddleCoef_512,
-        riscvBitRevIndexTable512,
-        RISCVBITREVINDEXTABLE_512_TABLE_LENGTH };
-
-const float32_t twiddleCoef_128[256] = {
+const float32_t twiddleCoef_f32_128[256] = {
     1.000000000f,  0.000000000f,  0.998795456f,  0.049067674f,  0.995184727f,
     0.098017140f,  0.989176510f,  0.146730474f,  0.980785280f,  0.195090322f,
     0.970031253f,  0.242980180f,  0.956940336f,  0.290284677f,  0.941544065f,
@@ -106,7 +89,7 @@ const float32_t twiddleCoef_128[256] = {
   @par
   Cos and Sin values are in interleaved fashion
 */
-const float32_t twiddleCoef_256[512] = {
+const float32_t twiddleCoef_f32_256[512] = {
     1.000000000f,  0.000000000f,  0.999698819f,  0.024541229f,  0.998795456f,
     0.049067674f,  0.997290457f,  0.073564564f,  0.995184727f,  0.098017140f,
     0.992479535f,  0.122410675f,  0.989176510f,  0.146730474f,  0.985277642f,
@@ -226,7 +209,7 @@ const float32_t twiddleCoef_256[512] = {
   @par
   Cos and Sin values are in interleaved fashion
 */
-const float32_t twiddleCoef_512[1024] = {
+const float32_t twiddleCoef_f32_512[1024] = {
     1.000000000f,  0.000000000f,  0.999924702f,  0.012271538f,  0.999698819f,
     0.024541229f,  0.999322385f,  0.036807223f,  0.998795456f,  0.049067674f,
     0.998118113f,  0.061320736f,  0.997290457f,  0.073564564f,  0.996312612f,
@@ -434,7 +417,7 @@ const float32_t twiddleCoef_512[1024] = {
     0.999698819f,  -0.024541229f, 0.999924702f,  -0.012271538f
 };
 
-const float32_t twiddleCoef_rfft_512[512] = {
+const float32_t twiddleCoef_rfft_f32_512[512] = {
     0.000000000f,  1.000000000f,  0.012271538f,  0.999924702f,  0.024541229f,
     0.999698819f,  0.036807223f,  0.999322385f,  0.049067674f,  0.998795456f,
     0.061320736f,  0.998118113f,  0.073564564f,  0.997290457f,  0.085797312f,
@@ -540,7 +523,7 @@ const float32_t twiddleCoef_rfft_512[512] = {
     0.012271538f,  -0.999924702f
 };
 
-const float32_t twiddleCoef_rfft_1024[1024] = {
+const float32_t twiddleCoef_rfft_f32_1024[1024] = {
     0.000000000f,  1.000000000f,  0.006135885f,  0.999981175f,  0.012271538f,
     0.999924702f,  0.018406730f,  0.999830582f,  0.024541229f,  0.999698819f,
     0.030674803f,  0.999529418f,  0.036807223f,  0.999322385f,  0.042938257f,
@@ -748,7 +731,8 @@ const float32_t twiddleCoef_rfft_1024[1024] = {
     0.012271538f,  -0.999924702f, 0.006135885f,  -0.999981175f
 };
 
-const uint16_t riscvBitRevIndexTable128[RISCVBITREVINDEXTABLE_128_TABLE_LENGTH]
+const uint16_t
+    riscvBitRevIndexTable_f32_128[RISCVBITREVINDEXTABLE_FLOAT_128_TABLE_LENGTH]
     = {
           /* 8x2, size 208 */
           8,   512, 16,  64,  24,   576, 32,  128, 40,   640, 48,  192,  56,
@@ -769,7 +753,8 @@ const uint16_t riscvBitRevIndexTable128[RISCVBITREVINDEXTABLE_128_TABLE_LENGTH]
           928, 912, 960, 920, 992,  944, 968, 952, 1000, 968, 992, 984,  1008
       };
 
-const uint16_t riscvBitRevIndexTable256[RISCVBITREVINDEXTABLE_256_TABLE_LENGTH]
+const uint16_t
+    riscvBitRevIndexTable_f32_256[RISCVBITREVINDEXTABLE_FLOAT_256_TABLE_LENGTH]
     = {
           /* 8x4, size 440 */
           8,    512,  16,   1024, 24,   1536, 32,   64,   40,   576,  48,
@@ -814,7 +799,8 @@ const uint16_t riscvBitRevIndexTable256[RISCVBITREVINDEXTABLE_256_TABLE_LENGTH]
           2016, 1976, 2032, 1960, 1968, 2008, 2032, 1992, 2016, 2024, 2032
       };
 
-const uint16_t riscvBitRevIndexTable512[RISCVBITREVINDEXTABLE_512_TABLE_LENGTH]
+const uint16_t
+    riscvBitRevIndexTable_f32_512[RISCVBITREVINDEXTABLE_FLOAT_512_TABLE_LENGTH]
     = {
           /* radix 8, size 448 */
           8,    512,  16,   1024, 24,   1536, 32,   2048, 40,   2560, 48,
