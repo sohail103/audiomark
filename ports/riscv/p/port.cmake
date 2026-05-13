@@ -1,15 +1,22 @@
 include_directories(
-    ${PORT_DIR}
+    ${PORT_DIR}/src
+    ${PORT_DIR}/src/dsp/
+    ${PORT_DIR}/..
+    ${PORT_DIR}/../src/dsp/
 )
 
-# TODO: Add our FFT functions as an FFT backend in fftwrap.c
-# for now, we enable but do not use smallfft since fftwrap.c
-# throws an error without it.
-add_definitions(-DUSE_SMALLFT)
+add_definitions(-DUSE_RISCV_DSP)
 
 set(PORT_SOURCE 
 
     ${PORT_DIR}/../th_api.c
+
+    ${PORT_DIR}/src/dsp/cfft_q31.c
+    ${PORT_DIR}/src/dsp/rfft_fast_q31.c
+    ${PORT_DIR}/src/dsp/convert.c
+    ${PORT_DIR}/src/dsp/cfft_f32.c
+    ${PORT_DIR}/src/dsp/rfft_fast_f32.c
+    ${PORT_DIR}/../src/dsp/tables_q31.c
 
     ${PORT_DIR}/../src/nn/avgpool_s8.c
     ${PORT_DIR}/../src/nn/convolve_s8.c
@@ -23,14 +30,13 @@ set(PORT_SOURCE
 
     ${PORT_DIR}/../src/absmax_f32.c
     ${PORT_DIR}/../src/add_f32.c
-    ${PORT_DIR}/src/cfft_f32.c
-    ${PORT_DIR}/src/cfft_init_f32.c
-    ${PORT_DIR}/src/cfft_tables.c
+
+    ${PORT_DIR}/../src/cfft_f32.c
+    ${PORT_DIR}/../src/cfft_init_f32.c
     ${PORT_DIR}/../src/cmplx_conj_f32.c
     ${PORT_DIR}/../src/cmplx_dot_prod_f32.c
     ${PORT_DIR}/../src/cmplx_mag_f32.c
     ${PORT_DIR}/../src/cmplx_mult_cmplx_f32.c
-    ${PORT_DIR}/src/convert.c
     ${PORT_DIR}/../src/dot_prod_f32.c
     ${PORT_DIR}/../src/f32_to_int16.c
     ${PORT_DIR}/../src/int16_to_f32.c
@@ -39,9 +45,8 @@ set(PORT_SOURCE
     ${PORT_DIR}/../src/nn_classify.c
     ${PORT_DIR}/../src/nn_init.c
     ${PORT_DIR}/../src/offset_f32.c
-    ${PORT_DIR}/src/rfft_f32.c
-    ${PORT_DIR}/src/rfft_init_f32.c
-    ${PORT_DIR}/src/rfft_tables.c
+    ${PORT_DIR}/../src/rfft_f32.c
+    ${PORT_DIR}/../src/rfft_init_f32.c
     ${PORT_DIR}/../src/subtract_f32.c
     ${PORT_DIR}/../src/vlog_f32.c
 )

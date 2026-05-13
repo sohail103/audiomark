@@ -17,77 +17,78 @@
  * limitations under the License.
  */
 
-#include "ee_api.h"
-#include "convert.h"
-#include "cfft_f32.h"
-#include "th_types.h"
+#include <dsp_types.h>
+#include "dsp.h"
+#include "dsp_q31.h"
 #include "rvp_support_guard.h"
 
-void
-th_cfft_f32(riscv_cfft_instance_q31 *p_instance,
-            float                   *p_buf,
-            uint8_t                  ifftFlag,
-            uint8_t                  bitReverseFlagR)
+riscv_status
+riscv_cfft_init_q31(riscv_cfft_instance_q31 *p_instance, uint16_t fftLength)
 {
-    uint32_t fftLen = p_instance->fftLen;
-
-    /* Alloc for max cfft size, Needs fftLen * 2 elements to hold Real + Imag!
-     */
-    q31_t q31_buf[1024 * 2];
-
-    float scale = riscv_float_to_q31_normalize(p_buf, q31_buf, fftLen * 2);
-
-    riscv_cfft_q31(p_instance, q31_buf, ifftFlag, bitReverseFlagR);
-
-    float algorithmic_mult = (ifftFlag == 0U) ? (float)fftLen : 1.0f;
-    float final_mult
-        = (1.0f / 2147483648.0f) * (1.0f / scale) * algorithmic_mult;
-    riscv_q31_to_float_unnormalize(q31_buf, p_buf, fftLen * 2, final_mult);
-}
-
-void
-riscv_cfft_q31(const riscv_cfft_instance_q31 *p_instance,
-               q31_t                         *q_buf,
-               uint8_t                        ifftFlag,
-               uint8_t                        bitReverseFlagR)
-{
-    uint32_t fftLen = p_instance->fftLen;
-
-    if (ifftFlag == 1U)
+    riscv_status status = RISCV_MATH_SUCCESS;
+    p_instance->fftLen  = fftLength;
+    switch (fftLength)
     {
-        switch (fftLen)
-        {
-            case 64:
-            case 256:
-                riscv_radix4_butterfly_inverse_q31(p_instance, q_buf, fftLen);
-                break;
-            case 128:
-            case 512:
-                riscv_cfft_radix4by2_inverse_q31(p_instance, q_buf, fftLen);
-                break;
-        }
-    }
-    else
-    {
-        switch (fftLen)
-        {
-            case 64:
-            case 256:
-                riscv_radix4_butterfly_q31(p_instance, q_buf, fftLen);
-                break;
-            case 128:
-            case 512:
-                riscv_cfft_radix4by2_q31(p_instance, q_buf, fftLen);
-                break;
-        }
+        case 128U:
+            p_instance->pTwiddle     = twiddleCoef_q31_128;
+            p_instance->pBitRevTable = riscvBitRevIndexTable_q31_128;
+            p_instance->bitRevLength
+                = RISCVBITREVINDEXTABLE_FIXED_128_TABLE_LENGTH;
+            p_instance->rearranged_twiddle_stride1
+                = rearranged_twiddle_stride1_64_q31;
+            p_instance->rearranged_twiddle_stride2
+                = rearranged_twiddle_stride2_64_q31;
+            p_instance->rearranged_twiddle_stride3
+                = rearranged_twiddle_stride3_64_q31;
+            p_instance->rearranged_twiddle_tab_stride1_arr
+                = rearranged_twiddle_tab_stride1_arr_64_q31;
+            p_instance->rearranged_twiddle_tab_stride2_arr
+                = rearranged_twiddle_tab_stride2_arr_64_q31;
+            p_instance->rearranged_twiddle_tab_stride3_arr
+                = rearranged_twiddle_tab_stride3_arr_64_q31;
+            break;
+        case 256U:
+            p_instance->pTwiddle     = twiddleCoef_q31_256;
+            p_instance->pBitRevTable = riscvBitRevIndexTable_q31_256;
+            p_instance->bitRevLength
+                = RISCVBITREVINDEXTABLE_FIXED_256_TABLE_LENGTH;
+            p_instance->rearranged_twiddle_stride1
+                = rearranged_twiddle_stride1_256_q31;
+            p_instance->rearranged_twiddle_stride2
+                = rearranged_twiddle_stride2_256_q31;
+            p_instance->rearranged_twiddle_stride3
+                = rearranged_twiddle_stride3_256_q31;
+            p_instance->rearranged_twiddle_tab_stride1_arr
+                = rearranged_twiddle_tab_stride1_arr_256_q31;
+            p_instance->rearranged_twiddle_tab_stride2_arr
+                = rearranged_twiddle_tab_stride2_arr_256_q31;
+            p_instance->rearranged_twiddle_tab_stride3_arr
+                = rearranged_twiddle_tab_stride3_arr_256_q31;
+            break;
+        case 512U:
+            p_instance->pTwiddle     = twiddleCoef_q31_512;
+            p_instance->pBitRevTable = riscvBitRevIndexTable_q31_512;
+            p_instance->bitRevLength
+                = RISCVBITREVINDEXTABLE_FIXED_512_TABLE_LENGTH;
+            p_instance->rearranged_twiddle_stride1
+                = rearranged_twiddle_stride1_256_q31;
+            p_instance->rearranged_twiddle_stride2
+                = rearranged_twiddle_stride2_256_q31;
+            p_instance->rearranged_twiddle_stride3
+                = rearranged_twiddle_stride3_256_q31;
+            p_instance->rearranged_twiddle_tab_stride1_arr
+                = rearranged_twiddle_tab_stride1_arr_256_q31;
+            p_instance->rearranged_twiddle_tab_stride2_arr
+                = rearranged_twiddle_tab_stride2_arr_256_q31;
+            p_instance->rearranged_twiddle_tab_stride3_arr
+                = rearranged_twiddle_tab_stride3_arr_256_q31;
+            break;
+        default:
+            status = RISCV_MATH_ERROR;
+            break;
     }
 
-    if (bitReverseFlagR)
-    {
-        riscv_bitreversal_32_inpl((uint32_t *)q_buf,
-                                  p_instance->bitRevLength,
-                                  p_instance->pBitRevTable);
-    }
+    return status;
 }
 
 void
@@ -134,99 +135,6 @@ riscv_bitreversal_32_inpl(uint32_t       *pSrc,
         __riscv_pstore_i32x2(&src[idx_a], vecB);
         __riscv_pstore_i32x2(&src[idx_b], vecA);
     }
-}
-
-void
-riscv_cfft_radix4by2_inverse_q31(const riscv_cfft_instance_q31 *p_instance,
-                                 q31_t                         *pSrc,
-                                 uint32_t                       fftLen)
-{
-
-    uint32_t     n2;
-    q31_t       *pIn0;
-    q31_t       *pIn1;
-    const q31_t *pCoef = p_instance->pTwiddle;
-    uint32_t     blkCnt;
-    q31x2_t      vecIn0, vecIn1, vecSum, vecDiff;
-    q31x2_t      vecTw, vecCmplxTmp;
-
-    n2   = fftLen >> 1;
-    pIn0 = pSrc;
-    pIn1 = pSrc + fftLen;
-
-    blkCnt = n2;
-
-    while (blkCnt > 0U)
-    {
-        vecIn0 = __riscv_pload_i32x2(pIn0);
-        vecIn1 = __riscv_pload_i32x2(pIn1);
-
-        vecSum = __riscv_paadd_i32x2(vecIn0, vecIn1);
-        __riscv_pstore_i32x2(pIn0, vecSum);
-        pIn0 += 2;
-
-        vecTw = __riscv_pload_i32x2(pCoef);
-        pCoef += 2;
-        vecDiff = __riscv_pasub_i32x2(vecIn0, vecIn1);
-
-        RISCV_PEXT_CMPLX_MULT_FX_AxB(vecDiff, vecTw, vecCmplxTmp);
-
-        __riscv_pstore_i32x2(pIn1, vecCmplxTmp);
-        pIn1 += 2;
-
-        blkCnt--;
-    }
-
-    riscv_radix4_butterfly_inverse_q31(p_instance, pSrc, n2);
-
-    riscv_radix4_butterfly_inverse_q31(p_instance, pSrc + fftLen, n2);
-
-    /* No tail handling required since fftLen is always a multiple of 2 */
-}
-
-void
-riscv_cfft_radix4by2_q31(const riscv_cfft_instance_q31 *p_instance,
-                         q31_t                         *pSrc,
-                         uint32_t                       fftLen)
-{
-    uint32_t     n2;
-    q31_t       *pIn0;
-    q31_t       *pIn1;
-    const q31_t *pCoef = p_instance->pTwiddle;
-    uint32_t     blkCnt;
-    q31x2_t      vecIn0, vecIn1, vecSum, vecDiff;
-    q31x2_t      vecTw, vecCmplxTmp;
-
-    n2   = fftLen >> 1;
-    pIn0 = pSrc;
-    pIn1 = pSrc + fftLen;
-
-    blkCnt = n2;
-
-    while (blkCnt > 0U)
-    {
-        vecIn0 = __riscv_pload_i32x2(pIn0);
-        vecIn1 = __riscv_pload_i32x2(pIn1);
-
-        vecSum = __riscv_paadd_i32x2(vecIn0, vecIn1);
-        __riscv_pstore_i32x2(pIn0, vecSum);
-        pIn0 += 2;
-
-        vecTw = __riscv_pload_i32x2(pCoef);
-        pCoef += 2;
-        vecDiff = __riscv_pasub_i32x2(vecIn0, vecIn1);
-
-        RISCV_PEXT_CMPLX_MULT_FX_AxConjB(vecDiff, vecTw, vecCmplxTmp);
-
-        __riscv_pstore_i32x2(pIn1, vecCmplxTmp);
-        pIn1 += 2;
-
-        blkCnt--;
-    }
-
-    riscv_radix4_butterfly_q31(p_instance, pSrc, n2);
-
-    riscv_radix4_butterfly_q31(p_instance, pSrc + fftLen, n2);
 }
 
 void
@@ -305,32 +213,46 @@ riscv_radix4_butterfly_inverse_q31(const riscv_cfft_instance_q31 *S,
                  */
                 vecW = __riscv_pload_i32x2(pW2);
                 pW2 += 2;
-                RISCV_PEXT_CMPLX_MULT_FX_AxConjB(vecTmp0, vecW, vecTmp1);
-
+                q31x2_t vecProd11 = __riscv_pmulqr_i32x2(vecTmp0, vecW);
+                q31x2_t vecSwapW1 = __riscv_ppairoe_i32x2(vecW, vecW);
+                q31x2_t vecProd21 = __riscv_pmulqr_i32x2(vecTmp0, vecSwapW1);
+                vecTmp1           = __riscv_psa_x_i32x2(
+                    __riscv_ppaireo_i32x2(vecProd11, vecProd21),
+                    __riscv_ppaireo_i32x2(vecProd21, vecProd11));
                 __riscv_pstore_i32x2(inB, vecTmp1);
                 inB += 2;
                 /*
                  * [ 1 -i -1 +i ] * [ A B C D ]'
                  */
-                RISCV_PEXT_CMPLX_ADD_FX_A_ixB(vecDiff0, vecDiff1, vecTmp0);
+                vecTmp0 = __riscv_paas_x_i32x2(vecDiff0, vecDiff1);
                 /*
                  * [ 1 -i -1 +i ] * [ A B C D ]'.* W1
                  */
                 vecW = __riscv_pload_i32x2(pW1);
                 pW1 += 2;
-                RISCV_PEXT_CMPLX_MULT_FX_AxConjB(vecTmp0, vecW, vecTmp1);
+                q31x2_t vecProd12 = __riscv_pmulqr_i32x2(vecTmp0, vecW);
+                q31x2_t vecSwapW2 = __riscv_ppairoe_i32x2(vecW, vecW);
+                q31x2_t vecProd22 = __riscv_pmulqr_i32x2(vecTmp0, vecSwapW2);
+                vecTmp1           = __riscv_psa_x_i32x2(
+                    __riscv_ppaireo_i32x2(vecProd12, vecProd22),
+                    __riscv_ppaireo_i32x2(vecProd22, vecProd12));
                 __riscv_pstore_i32x2(inC, vecTmp1);
                 inC += 2;
                 /*
                  * [ 1 +i -1 -i ] * [ A B C D ]'
                  */
-                RISCV_PEXT_CMPLX_SUB_FX_A_ixB(vecDiff0, vecDiff1, vecTmp0);
+                vecTmp0 = __riscv_pasa_x_i32x2(vecDiff0, vecDiff1);
                 /*
                  * [ 1 +i -1 -i ] * [ A B C D ]'.* W3
                  */
                 vecW = __riscv_pload_i32x2(pW3);
                 pW3 += 2;
-                RISCV_PEXT_CMPLX_MULT_FX_AxConjB(vecTmp0, vecW, vecTmp1);
+                q31x2_t vecProd13 = __riscv_pmulqr_i32x2(vecTmp0, vecW);
+                q31x2_t vecSwapW3 = __riscv_ppairoe_i32x2(vecW, vecW);
+                q31x2_t vecProd23 = __riscv_pmulqr_i32x2(vecTmp0, vecSwapW3);
+                vecTmp1           = __riscv_psa_x_i32x2(
+                    __riscv_ppaireo_i32x2(vecProd13, vecProd23),
+                    __riscv_ppaireo_i32x2(vecProd23, vecProd13));
                 __riscv_pstore_i32x2(inD, vecTmp1);
                 inD += 2;
 
@@ -384,11 +306,11 @@ riscv_radix4_butterfly_inverse_q31(const riscv_cfft_instance_q31 *S,
         __riscv_pstore_i32x2(p + 2, vecTmp0);
 
         /* [ 1 -i -1 +i ] */
-        RISCV_PEXT_CMPLX_ADD_FX_A_ixB(vecDiff0, vecDiff1, vecTmp0);
+        vecTmp0 = __riscv_paas_x_i32x2(vecDiff0, vecDiff1);
         __riscv_pstore_i32x2(p + 4, vecTmp0);
 
         /* [ 1 +i -1 -i ] */
-        RISCV_PEXT_CMPLX_SUB_FX_A_ixB(vecDiff0, vecDiff1, vecTmp0);
+        vecTmp0 = __riscv_pasa_x_i32x2(vecDiff0, vecDiff1);
         __riscv_pstore_i32x2(p + 6, vecTmp0);
 
         p += 8;
@@ -478,32 +400,46 @@ riscv_radix4_butterfly_q31(const riscv_cfft_instance_q31 *S,
                  */
                 vecW = __riscv_pload_i32x2(pW2);
                 pW2 += 2;
-                RISCV_PEXT_CMPLX_MULT_FX_AxB(vecTmp0, vecW, vecTmp1);
-
+                q31x2_t vecProd11 = __riscv_pmulqr_i32x2(vecTmp0, vecW);
+                q31x2_t vecSwapW1 = __riscv_ppairoe_i32x2(vecW, vecW);
+                q31x2_t vecProd21 = __riscv_pmulqr_i32x2(vecTmp0, vecSwapW1);
+                vecTmp1           = __riscv_pas_x_i32x2(
+                    __riscv_ppaireo_i32x2(vecProd11, vecProd21),
+                    __riscv_ppaireo_i32x2(vecProd21, vecProd11));
                 __riscv_pstore_i32x2(inB, vecTmp1);
                 inB += 2;
                 /*
                  * [ 1 -i -1 +i ] * [ A B C D ]'
                  */
-                RISCV_PEXT_CMPLX_SUB_FX_A_ixB(vecDiff0, vecDiff1, vecTmp0);
+                vecTmp0 = __riscv_pasa_x_i32x2(vecDiff0, vecDiff1);
                 /*
                  * [ 1 -i -1 +i ] * [ A B C D ]'.* W1
                  */
                 vecW = __riscv_pload_i32x2(pW1);
                 pW1 += 2;
-                RISCV_PEXT_CMPLX_MULT_FX_AxB(vecTmp0, vecW, vecTmp1);
+                q31x2_t vecProd12 = __riscv_pmulqr_i32x2(vecTmp0, vecW);
+                q31x2_t vecSwapW2 = __riscv_ppairoe_i32x2(vecW, vecW);
+                q31x2_t vecProd22 = __riscv_pmulqr_i32x2(vecTmp0, vecSwapW2);
+                vecTmp1           = __riscv_pas_x_i32x2(
+                    __riscv_ppaireo_i32x2(vecProd12, vecProd22),
+                    __riscv_ppaireo_i32x2(vecProd22, vecProd12));
                 __riscv_pstore_i32x2(inC, vecTmp1);
                 inC += 2;
                 /*
                  * [ 1 +i -1 -i ] * [ A B C D ]'
                  */
-                RISCV_PEXT_CMPLX_ADD_FX_A_ixB(vecDiff0, vecDiff1, vecTmp0);
+                vecTmp0 = __riscv_paas_x_i32x2(vecDiff0, vecDiff1);
                 /*
                  * [ 1 +i -1 -i ] * [ A B C D ]'.* W3
                  */
                 vecW = __riscv_pload_i32x2(pW3);
                 pW3 += 2;
-                RISCV_PEXT_CMPLX_MULT_FX_AxB(vecTmp0, vecW, vecTmp1);
+                q31x2_t vecProd13 = __riscv_pmulqr_i32x2(vecTmp0, vecW);
+                q31x2_t vecSwapW3 = __riscv_ppairoe_i32x2(vecW, vecW);
+                q31x2_t vecProd23 = __riscv_pmulqr_i32x2(vecTmp0, vecSwapW3);
+                vecTmp1           = __riscv_pas_x_i32x2(
+                    __riscv_ppaireo_i32x2(vecProd13, vecProd23),
+                    __riscv_ppaireo_i32x2(vecProd23, vecProd13));
                 __riscv_pstore_i32x2(inD, vecTmp1);
                 inD += 2;
 
@@ -557,11 +493,11 @@ riscv_radix4_butterfly_q31(const riscv_cfft_instance_q31 *S,
         __riscv_pstore_i32x2(p + 2, vecTmp0);
 
         /* [ 1 -i -1 +i ] */
-        RISCV_PEXT_CMPLX_SUB_FX_A_ixB(vecDiff0, vecDiff1, vecTmp0);
+        vecTmp0 = __riscv_pasa_x_i32x2(vecDiff0, vecDiff1);
         __riscv_pstore_i32x2(p + 4, vecTmp0);
 
         /* [ 1 +i -1 -i ] */
-        RISCV_PEXT_CMPLX_ADD_FX_A_ixB(vecDiff0, vecDiff1, vecTmp0);
+        vecTmp0 = __riscv_paas_x_i32x2(vecDiff0, vecDiff1);
         __riscv_pstore_i32x2(p + 6, vecTmp0);
 
         p += 8;
@@ -573,4 +509,150 @@ riscv_radix4_butterfly_q31(const riscv_cfft_instance_q31 *S,
      * output is in 7.25(q25) format for the 64 point
      * output is in 5.27(q27) format for the 16 point
      */
+}
+
+void
+riscv_cfft_radix4by2_inverse_q31(const riscv_cfft_instance_q31 *p_instance,
+                                 q31_t                         *pSrc,
+                                 uint32_t                       fftLen)
+{
+
+    uint32_t     n2;
+    q31_t       *pIn0;
+    q31_t       *pIn1;
+    const q31_t *pCoef = p_instance->pTwiddle;
+    uint32_t     blkCnt;
+    q31x2_t      vecIn0, vecIn1, vecSum, vecDiff;
+    q31x2_t      vecTw, vecCmplxTmp;
+
+    n2   = fftLen >> 1;
+    pIn0 = pSrc;
+    pIn1 = pSrc + fftLen;
+
+    blkCnt = n2;
+
+    while (blkCnt > 0U)
+    {
+        vecIn0 = __riscv_pload_i32x2(pIn0);
+        vecIn1 = __riscv_pload_i32x2(pIn1);
+
+        vecSum = __riscv_paadd_i32x2(vecIn0, vecIn1);
+        __riscv_pstore_i32x2(pIn0, vecSum);
+        pIn0 += 2;
+
+        vecTw = __riscv_pload_i32x2(pCoef);
+        pCoef += 2;
+        vecDiff = __riscv_pasub_i32x2(vecIn0, vecIn1);
+
+        q31x2_t vecProd1  = __riscv_pmulqr_i32x2(vecDiff, vecTw);
+        q31x2_t vecSwapTw = __riscv_ppairoe_i32x2(vecTw, vecTw);
+        q31x2_t vecProd2  = __riscv_pmulqr_i32x2(vecDiff, vecSwapTw);
+        vecCmplxTmp
+            = __riscv_pas_x_i32x2(__riscv_ppaireo_i32x2(vecProd1, vecProd2),
+                                  __riscv_ppaireo_i32x2(vecProd2, vecProd1));
+        __riscv_pstore_i32x2(pIn1, vecCmplxTmp);
+        pIn1 += 2;
+
+        blkCnt--;
+    }
+
+    riscv_radix4_butterfly_inverse_q31(p_instance, pSrc, n2);
+
+    riscv_radix4_butterfly_inverse_q31(p_instance, pSrc + fftLen, n2);
+
+    /* No tail handling required since fftLen is always a multiple of 2 */
+}
+
+void
+riscv_cfft_radix4by2_q31(const riscv_cfft_instance_q31 *p_instance,
+                         q31_t                         *pSrc,
+                         uint32_t                       fftLen)
+{
+    uint32_t     n2;
+    q31_t       *pIn0;
+    q31_t       *pIn1;
+    const q31_t *pCoef = p_instance->pTwiddle;
+    uint32_t     blkCnt;
+    q31x2_t      vecIn0, vecIn1, vecSum, vecDiff;
+    q31x2_t      vecTw, vecCmplxTmp;
+
+    n2   = fftLen >> 1;
+    pIn0 = pSrc;
+    pIn1 = pSrc + fftLen;
+
+    blkCnt = n2;
+
+    while (blkCnt > 0U)
+    {
+        vecIn0 = __riscv_pload_i32x2(pIn0);
+        vecIn1 = __riscv_pload_i32x2(pIn1);
+
+        vecSum = __riscv_paadd_i32x2(vecIn0, vecIn1);
+        __riscv_pstore_i32x2(pIn0, vecSum);
+        pIn0 += 2;
+
+        vecTw = __riscv_pload_i32x2(pCoef);
+        pCoef += 2;
+        vecDiff = __riscv_pasub_i32x2(vecIn0, vecIn1);
+
+        q31x2_t vecProd1  = __riscv_pmulqr_i32x2(vecDiff, vecTw);
+        q31x2_t vecSwapTw = __riscv_ppairoe_i32x2(vecTw, vecTw);
+        q31x2_t vecProd2  = __riscv_pmulqr_i32x2(vecDiff, vecSwapTw);
+        vecCmplxTmp
+            = __riscv_psa_x_i32x2(__riscv_ppaireo_i32x2(vecProd1, vecProd2),
+                                  __riscv_ppaireo_i32x2(vecProd2, vecProd1));
+        __riscv_pstore_i32x2(pIn1, vecCmplxTmp);
+        pIn1 += 2;
+
+        blkCnt--;
+    }
+
+    riscv_radix4_butterfly_q31(p_instance, pSrc, n2);
+
+    riscv_radix4_butterfly_q31(p_instance, pSrc + fftLen, n2);
+}
+
+void
+riscv_cfft_q31(const riscv_cfft_instance_q31 *p_instance,
+               q31_t                         *q_buf,
+               uint8_t                        ifftFlag,
+               uint8_t                        bitReverseFlagR)
+{
+    uint32_t fftLen = p_instance->fftLen;
+
+    if (ifftFlag == 1U)
+    {
+        switch (fftLen)
+        {
+            case 64:
+            case 256:
+                riscv_radix4_butterfly_inverse_q31(p_instance, q_buf, fftLen);
+                break;
+            case 128:
+            case 512:
+                riscv_cfft_radix4by2_inverse_q31(p_instance, q_buf, fftLen);
+                break;
+        }
+    }
+    else
+    {
+        switch (fftLen)
+        {
+            case 64:
+            case 256:
+                riscv_radix4_butterfly_q31(p_instance, q_buf, fftLen);
+                break;
+            case 128:
+            case 512:
+                riscv_cfft_radix4by2_q31(p_instance, q_buf, fftLen);
+                break;
+        }
+    }
+
+    if (bitReverseFlagR)
+    {
+        riscv_bitreversal_32_inpl((uint32_t *)q_buf,
+                                  p_instance->bitRevLength,
+                                  p_instance->pBitRevTable);
+    }
 }

@@ -17,8 +17,9 @@
  * limitations under the License.
  */
 
-#include "./dsp.h"
-
+#include <dsp_types.h>
+#include "dsp.h"
+#include "dsp_f32.h"
 #include <stdlib.h>
 
 riscv_status
@@ -37,20 +38,26 @@ riscv_cfft_init_f32(riscv_cfft_instance_f32 *S, uint16_t fftLen)
     switch (S->fftLen)
     {
         case 512U:
-            FFTINIT(f32, 512);
+            S->bitRevLength = RISCVBITREVINDEXTABLE_FLOAT_512_TABLE_LENGTH;
+            S->pBitRevTable = riscvBitRevIndexTable_f32_512;
+            S->pTwiddle     = twiddleCoef_f32_512;
             break;
 
         case 256U:
-            FFTINIT(f32, 256);
+            S->bitRevLength = RISCVBITREVINDEXTABLE_FLOAT_256_TABLE_LENGTH;
+            S->pBitRevTable = riscvBitRevIndexTable_f32_256;
+            S->pTwiddle     = twiddleCoef_f32_256;
             break;
 
         case 128U:
-            FFTINIT(f32, 128);
+            S->bitRevLength = RISCVBITREVINDEXTABLE_FLOAT_128_TABLE_LENGTH;
+            S->pBitRevTable = riscvBitRevIndexTable_f32_128;
+            S->pTwiddle     = twiddleCoef_f32_128;
             break;
 
         default:
-            /*  Reporting argument error if fftSize is not valid value */
-            status = RISCV_MATH_ARGUMENT_ERROR;
+            /*  Reporting error if fftSize is not valid value */
+            status = RISCV_MATH_ERROR;
             break;
     }
 

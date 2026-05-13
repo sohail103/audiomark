@@ -17,86 +17,54 @@
  * limitations under the License.
  */
 
-#ifndef _RISCV_DSP_DECL_H
+#ifndef _RISCV_DSP_H
 
-#define _RISCV_DSP_DECL_H
+#define _RISCV_DSP_H
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
 #include <stdint.h>
+#include "dsp_types.h" /* each port brings their own types.h */
 
-    typedef enum
-    {
-        RISCV_MATH_SUCCESS = 0,
-        RISCV_MATH_ARGUMENT_ERROR = -1,
-    } riscv_status;
-
-    typedef float float32_t;
-
-    typedef struct
-    {
-        uint16_t         fftLen;   /**< length of the FFT. */
-        const float32_t *pTwiddle; /**< points to the Twiddle factor table. */
-        const uint16_t  *pBitRevTable; /**< points to the bit reversal table. */
-        uint16_t         bitRevLength; /**< bit reversal table length. */
-    } riscv_cfft_instance_f32;
-
-    typedef struct
-    {
-        riscv_cfft_instance_f32 Sint;       /**< Internal CFFT structure. */
-        uint16_t                fftLenRFFT; /**< length of the real sequence */
-        const float32_t *pTwiddleRFFT;      /**< Twiddle factors real stage  */
-    } riscv_rfft_fast_instance_f32;
-
-    void riscv_cfft_f32(const riscv_cfft_instance_f32 *S,
+    void riscv_cfft_f32(const riscv_cfft_instance *S,
                         float32_t                     *p1,
                         uint8_t                        ifftFlag,
                         uint8_t                        bitReverseFlag);
 
-    riscv_status riscv_cfft_init_f32(riscv_cfft_instance_f32 *S,
+    riscv_status riscv_cfft_init_f32(riscv_cfft_instance *S,
                                      uint16_t                 fftLen);
 
-    riscv_status riscv_rfft_fast_init_f32(riscv_rfft_fast_instance_f32 *S,
+    riscv_status riscv_rfft_fast_init_f32(riscv_rfft_fast_instance *S,
                                           uint16_t                      fftLen);
 
-    void riscv_rfft_fast_f32(const riscv_rfft_fast_instance_f32 *S,
+    void riscv_rfft_fast_f32(const riscv_rfft_fast_instance *S,
                              float32_t                          *p,
                              float32_t                          *pOut,
 
                              uint8_t ifftFlag);
 
-    extern const riscv_cfft_instance_f32 riscv_cfft_sR_f32_len128;
-    extern const riscv_cfft_instance_f32 riscv_cfft_sR_f32_len256;
-    extern const riscv_cfft_instance_f32 riscv_cfft_sR_f32_len512;
+    void riscv_cfft_q31(const riscv_cfft_instance *S,
+                        q31_t                         *p1,
+                        uint8_t                        ifftFlag,
+                        uint8_t                        bitReverseFlag);
 
-    extern const float32_t twiddleCoef_rfft_512[512];
-    extern const float32_t twiddleCoef_rfft_1024[1024];
+    riscv_status riscv_cfft_init_q31(riscv_cfft_instance *S,
+                                     uint16_t                 fftLen);
 
-    extern const float32_t twiddleCoef_128[256];
-    extern const float32_t twiddleCoef_256[512];
-    extern const float32_t twiddleCoef_512[1024];
+    riscv_status riscv_rfft_fast_init_q31(riscv_rfft_fast_instance *S,
+                                          uint16_t                      fftLen);
 
-#define RISCVBITREVINDEXTABLE_128_TABLE_LENGTH ((uint16_t)208)
-    extern const uint16_t
-        riscvBitRevIndexTable128[RISCVBITREVINDEXTABLE_128_TABLE_LENGTH];
+    void riscv_rfft_fast_q31(const riscv_rfft_fast_instance *S,
+                             q31_t                              *p,
+                             q31_t                              *pOut,
+                             uint8_t                             ifftFlag);
 
-#define RISCVBITREVINDEXTABLE_256_TABLE_LENGTH ((uint16_t)440)
-    extern const uint16_t
-        riscvBitRevIndexTable256[RISCVBITREVINDEXTABLE_256_TABLE_LENGTH];
-
-#define RISCVBITREVINDEXTABLE_512_TABLE_LENGTH ((uint16_t)448)
-    extern const uint16_t
-        riscvBitRevIndexTable512[RISCVBITREVINDEXTABLE_512_TABLE_LENGTH];
-
-#define FFTINIT(EXT, SIZE)                                          \
-    S->bitRevLength = riscv_cfft_sR_##EXT##_len##SIZE.bitRevLength; \
-    S->pBitRevTable = riscv_cfft_sR_##EXT##_len##SIZE.pBitRevTable; \
-    S->pTwiddle     = riscv_cfft_sR_##EXT##_len##SIZE.pTwiddle;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /*ifndef _RISCV_DSP_DECL_H */
+#endif /*ifndef _RISCV_DSP_H*/

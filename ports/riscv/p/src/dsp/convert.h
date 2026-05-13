@@ -20,8 +20,8 @@
 #ifndef P_RISCV_CONV_H
 #define P_RISCV_CONV_H
 
-#include "th_types.h"
-#include "rvp_support_guard.h"
+#include <dsp_types.h>
+#include <stdint.h>
 
 void riscv_float_to_q31(const float *pSrc, q31_t *pDst, uint32_t blockSize);
 

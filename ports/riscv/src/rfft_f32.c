@@ -16,7 +16,7 @@
 
 #include "ee_audiomark.h"
 #include "ee_api.h"
-#include "dsp/dsp.h"
+#include "dsp.h"
 
 void
 th_rfft_f32(ee_rfft_f32_t *p_instance,

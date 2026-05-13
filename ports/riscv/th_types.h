@@ -15,12 +15,11 @@
 
 #include <stddef.h>
 #include <string.h>
-
-#include "dsp/dsp.h"
+#include <dsp_types.h>
 
 #define TH_FLOAT32_TYPE               float
-#define TH_RFFT_INSTANCE_FLOAT32_TYPE riscv_rfft_fast_instance_f32
-#define TH_CFFT_INSTANCE_FLOAT32_TYPE riscv_cfft_instance_f32
+#define TH_RFFT_INSTANCE_FLOAT32_TYPE riscv_rfft_fast_instance
+#define TH_CFFT_INSTANCE_FLOAT32_TYPE riscv_cfft_instance
 
 /*
    struct for matrix type is not defined yet because audiomark

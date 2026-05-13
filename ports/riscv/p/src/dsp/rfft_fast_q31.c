@@ -17,61 +17,156 @@
  * limitations under the License.
  */
 
-#include "ee_api.h"
-#include "convert.h"
-#include "cfft_f32.h"
-#include "rfft_f32.h"
-#include "th_types.h"
+#include <dsp_types.h>
+#include "dsp.h"
+#include "dsp_q31.h"
 #include "rvp_support_guard.h"
 
-void
-th_rfft_f32(riscv_rfft_fast_instance_q31 *p_instance,
-            float                        *p_in,
-            float                        *p_out,
-            uint8_t                       ifftFlag)
+riscv_status
+riscv_rfft_fast_init_q31(riscv_rfft_fast_instance_q31 *S, uint16_t fftLenReal)
 {
-    uint32_t L2 = p_instance->fftLenRFFT >> 1U; /* half-length for CFFT */
+    riscv_status status = RISCV_MATH_SUCCESS;
 
-    q31_t q31_in[1026];
-    q31_t q31_out[1026];
-    float dynamic_scale, final_mult;
+    /*  Initialize the Real FFT length */
+    S->fftLenRFFT = (uint16_t)fftLenReal;
 
-    if (ifftFlag == 1U)
+    /*  Initialization of coef modifier depending on the FFT length */
+    switch (fftLenReal)
     {
-        dynamic_scale = riscv_float_to_q31_normalize(
-            p_in, q31_in, p_instance->fftLenRFFT + 2);
-
-        riscv_rfft_fast_q31(p_instance, q31_in, q31_out, ifftFlag);
-        /* inverse: CFFT scales by 1/L2, compensate with *2 for the merge
-         * halving */
-        final_mult = (1.0f / 2147483648.0f) * (1.0f / dynamic_scale);
-
-        riscv_q31_to_float_unnormalize(
-            q31_out, p_out, p_instance->fftLenRFFT, final_mult);
+        case 1024U:
+            S->pTwiddleRFFT = (q31_t *)twiddleCoef_rfft_q31_1024;
+            status          = riscv_cfft_init_q31(&(S->Sint), 512);
+            break;
+        case 512U:
+            S->pTwiddleRFFT = (q31_t *)twiddleCoef_rfft_q31_512;
+            status          = riscv_cfft_init_q31(&(S->Sint), 256);
+            break;
+        default:
+            status = RISCV_MATH_ERROR;
+            break;
     }
-    else
+
+    return status;
+}
+
+void
+riscv_merge_rfft_q31(const q31_t *pTwiddleRFFT,
+                     q31_t       *p, /* RIFFT packed input */
+                     q31_t       *pOut,
+                     uint32_t     fftLen) /* half-length = N/2 */
+{
+    /* k=0 */
+    q31x2_t cmplxA = __riscv_pload_i32x2(p);
+    q31x2_t crossA = __riscv_paas_x_i32x2(cmplxA, cmplxA);
+    q31x2_t swapA  = __riscv_ppairoe_i32x2(crossA, crossA);
+    __riscv_pstore_i32x2(pOut, swapA);
+
+    q31_t       *pA    = p + 2;
+    q31_t       *pB    = p + 2 * (fftLen - 1);
+    const q31_t *pCoef = pTwiddleRFFT + 2;
+    q31_t       *pO    = pOut + 2;
+
+    uint32_t k = fftLen - 1;
+    while (k > 0)
     {
-        dynamic_scale = riscv_float_to_q31_normalize(
-            p_in, q31_in, p_instance->fftLenRFFT);
 
-        riscv_rfft_fast_q31(p_instance, q31_in, q31_out, ifftFlag);
-        /* forward CFFT scales by 1/L2, stage halves once more, total = 1/(2*L2)
-         */
-        final_mult
-            = (1.0f / 2147483648.0f) * (1.0f / dynamic_scale) * (float)L2;
+        /* conjugate twiddle for inverse */
+        q31x2_t cmplxA = __riscv_pload_i32x2(pA);
+        q31x2_t cmplxB = __riscv_pload_i32x2(pB);
+        q31x2_t swapxB = __riscv_ppairoe_i32x2(cmplxB, cmplxB);
 
-        riscv_q31_to_float_unnormalize(
-            q31_out, p_out, p_instance->fftLenRFFT + 2, final_mult);
+        /* twidx = (twR, twI) */
+        q31x2_t twidx = __riscv_pload_i32x2(pCoef);
+
+        /* t1x = (xAR - xBR), (xAI + xBI) */
+        q31x2_t t1x = __riscv_psas_x_i32x2(cmplxA, swapxB);
+
+        /* rs = (twx.R * t1a), (twx.I * t1b) */
+        q31x2_t rs = __riscv_pmulqr_i32x2(twidx, t1x);
+
+        /* tu = (twx.I * t1a), (twx.R * t1b) */
+        q31x2_t ctwidx = __riscv_ppairoe_i32x2(twidx, twidx);
+        q31x2_t tu     = __riscv_pmulqr_i32x2(ctwidx, t1x);
+
+        /* px.R = (xAR + xBR - r - s )/2 */
+        /* px.I = (xAI - xBI - (u - t) )/2 */
+        q31x2_t xAB = __riscv_pasa_x_i32x2(cmplxA, swapxB);
+        q31x2_t tr  = __riscv_ppaire_i32x2(tu, rs);
+        q31x2_t su  = __riscv_ppairo_i32x2(rs, tu);
+        q31x2_t xVW = __riscv_pasa_x_i32x2(su, tr);
+        q31x2_t px  = __riscv_pssub_i32x2(xAB, xVW);
+        __riscv_pstore_i32x2(pO, px);
+        pA += 2;
+        pB -= 2;
+        pCoef += 2;
+        pO += 2;
+        k--;
     }
 }
 
 void
-riscv_rfft_fast_q31(riscv_rfft_fast_instance_q31 *p_instance,
-                    q31_t                        *q_in,
-                    q31_t                        *q_out,
-                    uint8_t                       ifftFlag)
+riscv_stage_rfft_q31(const q31_t *pTwiddleRFFT,
+                     q31_t       *p, /* CFFT output in-place */
+                     q31_t       *pOut,
+                     uint32_t     fftLen) /* half-length = N/2 */
 {
-    riscv_cfft_instance_q31 *S_CFFT = &(p_instance->Sint);
+    /* k=0 */
+    q31x2_t cmplxA = __riscv_pload_i32x2(p);
+    q31x2_t crossA = __riscv_psas_x_i32x2(cmplxA, cmplxA);
+    q31x2_t swapA  = __riscv_ppairoe_i32x2(crossA, crossA);
+    __riscv_pstore_i32x2(pOut, swapA);
+
+    q31_t       *pA    = p + 2;
+    q31_t       *pB    = p + 2 * (fftLen - 1);
+    const q31_t *pCoef = pTwiddleRFFT + 2; /* skip k=0 */
+    q31_t       *pO    = pOut + 2;
+
+    uint32_t k = fftLen - 1;
+    while (k > 0)
+    {
+
+        /* conjugate twiddle for inverse */
+        q31x2_t cmplxA = __riscv_pload_i32x2(pA);
+        q31x2_t cmplxB = __riscv_pload_i32x2(pB);
+        q31x2_t swapxA = __riscv_ppairoe_i32x2(cmplxA, cmplxA);
+
+        /* twidx = (twR, twI) */
+        q31x2_t twidx = __riscv_pload_i32x2(pCoef);
+
+        /* t1a = xBR - xAR,  t1b = xBI + xAI */
+        q31x2_t t1x = __riscv_psas_x_i32x2(cmplxB, swapxA);
+
+        /* p01 = (twidx.R * t1a), (twidx.I * t1b) */
+        q31x2_t p03 = __riscv_pmulqr_i32x2(twidx, t1x);
+
+        /* p23 = (twidx.I * t1a), (twidx.R * t1b) */
+        q31x2_t ctwidx = __riscv_ppairoe_i32x2(twidx, twidx);
+        q31x2_t p12    = __riscv_pmulqr_i32x2(ctwidx, t1x);
+
+        /* px.R = (xAR + xBR + p0 + p3)/2 */
+        /* px.I = (xAI - xBI + p1 - p2)/2 */
+        q31x2_t xswapAB = __riscv_paas_x_i32x2(swapxA, cmplxB);
+        q31x2_t xAB     = __riscv_ppairoe_i32x2(xswapAB, xswapAB);
+        q31x2_t p01     = __riscv_ppaire_i32x2(p03, p12);
+        q31x2_t p23     = __riscv_ppairo_i32x2(p12, p03);
+        q31x2_t xVW     = __riscv_pasa_x_i32x2(p01, p23);
+        q31x2_t px      = __riscv_psadd_i32x2(xAB, xVW);
+        __riscv_pstore_i32x2(pO, px);
+        pA += 2;
+        pB -= 2;
+        pCoef += 2;
+        pO += 2;
+        k--;
+    }
+}
+
+void
+riscv_rfft_fast_q31(const riscv_rfft_fast_instance_q31 *p_instance,
+                    q31_t                              *q_in,
+                    q31_t                              *q_out,
+                    uint8_t                             ifftFlag)
+{
+    const riscv_cfft_instance_q31 *S_CFFT = &(p_instance->Sint);
     uint32_t L2 = p_instance->fftLenRFFT >> 1U; /* half-length for CFFT */
 
     /* Calculation of Real FFT */
@@ -90,122 +185,5 @@ riscv_rfft_fast_q31(riscv_rfft_fast_instance_q31 *p_instance,
 
         /*  Real FFT extraction */
         riscv_stage_rfft_q31(p_instance->pTwiddleRFFT, q_in, q_out, L2);
-    }
-}
-
-void
-riscv_merge_rfft_q31(const q31_t *pTwiddleRFFT,
-                     q31_t       *p, /* RIFFT packed input */
-                     q31_t       *pOut,
-                     uint32_t     fftLen) /* half-length = N/2 */
-{
-    /* k=0 */
-    q31x2_t cmplxA = __riscv_pload_i32x2(p);
-    q31x2_t crossA = __riscv_paas_x_i32x2(cmplxA, cmplxA);
-    q31x2_t swapA  = __riscv_ppairoe_i32x2(crossA, crossA);
-    __riscv_pstore_i32x2(pOut, swapA);
-
-    uint32_t twidModifier = 512 / fftLen;
-    uint32_t twidStride = 2 * twidModifier;
-
-    q31_t       *pA    = p + 2;
-    q31_t       *pB    = p + 2 * (fftLen - 1);
-    const q31_t *pCoef = pTwiddleRFFT + twidStride;
-    q31_t       *pO    = pOut + 2;
-
-    uint32_t k = fftLen - 1;
-    while (k > 0)
-    {
-
-        /* conjugate twiddle for inverse */
-        q31x2_t cmplxA = __riscv_pload_i32x2(pA);
-        q31x2_t cmplxB = __riscv_pload_i32x2(pB);
-        q31x2_t swapxB = __riscv_ppairoe_i32x2(cmplxB, cmplxB);
-
-        /* twidx = (twR, twI) */
-        q31x2_t twidx = __riscv_pload_i32x2(pCoef);
-
-        /* t1x = (xAR - xBR), (xAI + xBI) */
-        q31x2_t t1x   = __riscv_psas_x_i32x2(cmplxA, swapxB);
-
-        /* rs = (twx.R * t1a), (twx.I * t1b) */
-        int32x2_t rs  = __riscv_pmulqr_i32x2(twidx, t1x);
-
-        /* tu = (twx.I * t1a), (twx.R * t1b) */
-        int32x2_t ctwidx = __riscv_ppairoe_i32x2(twidx, twidx);
-        int32x2_t tu     = __riscv_pmulqr_i32x2(ctwidx, t1x);
-
-        /* px.R = (xAR + xBR - r - s )/2 */
-        /* px.I = (xAI - xBI - (u - t) )/2 */
-        q31x2_t xAB = __riscv_pasa_x_i32x2(cmplxA, swapxB);
-        q31x2_t tr  = __riscv_ppaire_i32x2(tu, rs);
-        q31x2_t su  = __riscv_ppairo_i32x2(rs, tu);
-        q31x2_t xVW = __riscv_pasa_x_i32x2(su, tr);
-        q31x2_t px  = __riscv_pssub_i32x2(xAB, xVW);
-        __riscv_pstore_i32x2(pO, px);
-        pA += 2;
-        pB -= 2;
-        pCoef += twidStride;
-        pO += 2;
-        k--;
-    }
-}
-
-void
-riscv_stage_rfft_q31(const q31_t *pTwiddleRFFT,
-                     q31_t       *p, /* CFFT output in-place */
-                     q31_t       *pOut,
-                     uint32_t     fftLen) /* half-length = N/2 */
-{
-    /* k=0 */
-    q31x2_t cmplxA = __riscv_pload_i32x2(p);
-    q31x2_t crossA = __riscv_psas_x_i32x2(cmplxA, cmplxA);
-    q31x2_t swapA  = __riscv_ppairoe_i32x2(crossA, crossA);
-    __riscv_pstore_i32x2(pOut, swapA);
-
-    uint32_t twidModifier = 512 / fftLen;
-    uint32_t twidStride = 2 * twidModifier;
-
-    q31_t       *pA    = p + 2;
-    q31_t       *pB    = p + 2 * (fftLen - 1);
-    const q31_t *pCoef = pTwiddleRFFT + twidStride; /* skip k=0 */
-    q31_t       *pO    = pOut + 2;
-
-    uint32_t k = fftLen - 1;
-    while (k > 0)
-    {
-
-        /* conjugate twiddle for inverse */
-        q31x2_t cmplxA = __riscv_pload_i32x2(pA);
-        q31x2_t cmplxB = __riscv_pload_i32x2(pB);
-        q31x2_t swapxA = __riscv_ppairoe_i32x2(cmplxA, cmplxA);
-
-        /* twidx = (twR, twI) */
-        q31x2_t twidx = __riscv_pload_i32x2(pCoef);
-
-        /* t1a = xBR - xAR,  t1b = xBI + xAI */
-        q31x2_t t1x   = __riscv_psas_x_i32x2(cmplxB, swapxA);
-
-        /* p01 = (twidx.R * t1a), (twidx.I * t1b) */
-        int32x2_t p03 = __riscv_pmulqr_i32x2(twidx, t1x);
-
-        /* p23 = (twidx.I * t1a), (twidx.R * t1b) */
-        int32x2_t ctwidx = __riscv_ppairoe_i32x2(twidx, twidx);
-        int32x2_t p12    = __riscv_pmulqr_i32x2(ctwidx, t1x);
-
-        /* px.R = (xAR + xBR + p0 + p3)/2 */
-        /* px.I = (xAI - xBI + p1 - p2)/2 */
-        q31x2_t xswapAB = __riscv_paas_x_i32x2(swapxA, cmplxB);
-        q31x2_t xAB     = __riscv_ppairoe_i32x2(xswapAB, xswapAB);
-        q31x2_t p01     = __riscv_ppaire_i32x2(p03, p12);
-        q31x2_t p23     = __riscv_ppairo_i32x2(p12, p03);
-        q31x2_t xVW     = __riscv_pasa_x_i32x2(p01, p23);
-        q31x2_t px      = __riscv_psadd_i32x2(xAB, xVW);
-        __riscv_pstore_i32x2(pO, px);
-        pA += 2;
-        pB -= 2;
-        pCoef += twidStride;
-        pO += 2;
-        k--;
     }
 }
