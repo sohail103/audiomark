@@ -17,8 +17,7 @@
 #ifndef RVV_SUPPORT_GUARD_H
 #define RVV_SUPPORT_GUARD_H
 
-#if defined(__riscv) && defined(__riscv_vector) \
-    && (__riscv_v_intrinsic >= 1000000)
+#if defined(__riscv) && defined(__riscv_vector)
 #include <riscv_vector.h>
 #elif defined(__riscv) && defined(__riscv_xtheadvector)
 #include <riscv_th_vector.h>
