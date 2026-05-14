@@ -27,7 +27,6 @@ jobs:
             dir: 'ports/riscv/v'
             march: 'rv64gc_xtheadvector'
             artifact: 'vector'
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -46,15 +45,29 @@ jobs:
           sudo tar -xJf gcc-16.1.0-riscv64-withbinutils.tar.xz -C /
           rm gcc-16.1.0-riscv64-withbinutils.tar.xz
 
+      - name: Cache XuanTie toolchain
+        id: cache-xuantie
+        uses: actions/cache@v4
+        with:
+          path: /opt/xuantie
+          key: xuantie-10.4.0-riscv64-v2
+
+      - name: Install XuanTie toolchain
+        if: steps.cache-xuantie.outputs.cache-hit != 'true'
+        run: |
+          wget -q --show-progress https://github.com/sohail103/xuantie-riscv/releases/download/xuantie-10.4.0/xuantie-toolchain.tar.gz
+          sudo mkdir -p /opt/xuantie
+          sudo tar -xzf xuantie-toolchain.tar.gz -C /opt/xuantie
+          rm xuantie-toolchain.tar.gz
+
       - name: Setup compiler environment
         run: |
           sudo apt-get install -y libc6-dev
           MULTIARCH_INC=$(dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null || echo "riscv64-linux-gnu")
           echo "MULTIARCH_INC=${MULTIARCH_INC}"
-          echo "/opt/gcc-16.1.0/bin" >> $GITHUB_PATH
-          echo "CC=gcc" >> $GITHUB_ENV
+          echo "/opt/xuantie/bin" >> $GITHUB_PATH
+          echo "CC=riscv64-unknown-linux-gnu-gcc" >> $GITHUB_ENV
           echo "AS=as" >> $GITHUB_ENV
-          echo "LD=ld" >> $GITHUB_ENV
           echo "MULTIARCH_INC=${MULTIARCH_INC}" >> $GITHUB_ENV
 
       - name: Print CPU and compiler info
@@ -65,17 +78,16 @@ jobs:
           ${CC} -dumpmachine
           ${CC} --print-search-dirs
           ${AS} --version
-          ${LD} --version
 
       - name: Configure CMake
         run: |
           CRT_DIR=$(dirname $(find /usr -name "crt1.o" 2>/dev/null | head -1))
+          SYSBIN_DIR=$(dirname $(find /usr/bin -name "ld.bfd" 2>/dev/null | head -1))
           cmake -S . -B build \
             -DPORT_DIR=${{ matrix.dir }} \
             -DCMAKE_C_COMPILER=${CC} \
-            -DCMAKE_LINKER=${LD} \
             -DCMAKE_C_FLAGS="-O3 -march=${{ matrix.march }} -isystem /usr/include/${MULTIARCH_INC}" \
-            -DCMAKE_EXE_LINKER_FLAGS="-L${CRT_DIR} -B${CRT_DIR}" \
+            -DCMAKE_EXE_LINKER_FLAGS="-L${CRT_DIR} -B${CRT_DIR} -B${SYSBIN_DIR} -fuse-ld=bfd" \
             -DCMAKE_VERBOSE_MAKEFILE=ON
 
       - name: Build
