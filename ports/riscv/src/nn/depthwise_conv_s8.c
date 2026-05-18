@@ -18,81 +18,23 @@
 #include "support_functions.h"
 
 #include <stdint.h>
-#include <stdbool.h>
 
-/* Accumulate one kernel column over valid rows [kh_start, kh_end), 4 channels.
-   ip/kp point to kernel row 0 of this column; row r lives at r * row_stride. */
-static inline void
-acc_col_4ch(int32_t      *b0,
-            int32_t      *b1,
-            int32_t      *b2,
-            int32_t      *b3,
-            const int8_t *ip,
-            const int8_t *kp,
-            int32_t       kh_start,
-            int32_t       kh_end,
-            int32_t       inp_row_stride,
-            int32_t       ker_row_stride,
-            int32_t       input_offset)
-{
-    if (kh_start <= 0 && 0 < kh_end)
-    {
-        *b0 += (ip[0 * inp_row_stride + 0] + input_offset)
-               * kp[0 * ker_row_stride + 0];
-        *b1 += (ip[0 * inp_row_stride + 1] + input_offset)
-               * kp[0 * ker_row_stride + 1];
-        *b2 += (ip[0 * inp_row_stride + 2] + input_offset)
-               * kp[0 * ker_row_stride + 2];
-        *b3 += (ip[0 * inp_row_stride + 3] + input_offset)
-               * kp[0 * ker_row_stride + 3];
-    }
-    if (kh_start <= 1 && 1 < kh_end)
-    {
-        *b0 += (ip[1 * inp_row_stride + 0] + input_offset)
-               * kp[1 * ker_row_stride + 0];
-        *b1 += (ip[1 * inp_row_stride + 1] + input_offset)
-               * kp[1 * ker_row_stride + 1];
-        *b2 += (ip[1 * inp_row_stride + 2] + input_offset)
-               * kp[1 * ker_row_stride + 2];
-        *b3 += (ip[1 * inp_row_stride + 3] + input_offset)
-               * kp[1 * ker_row_stride + 3];
-    }
-    if (kh_start <= 2 && 2 < kh_end)
-    {
-        *b0 += (ip[2 * inp_row_stride + 0] + input_offset)
-               * kp[2 * ker_row_stride + 0];
-        *b1 += (ip[2 * inp_row_stride + 1] + input_offset)
-               * kp[2 * ker_row_stride + 1];
-        *b2 += (ip[2 * inp_row_stride + 2] + input_offset)
-               * kp[2 * ker_row_stride + 2];
-        *b3 += (ip[2 * inp_row_stride + 3] + input_offset)
-               * kp[2 * ker_row_stride + 3];
-    }
-}
-
-static inline void
-acc_col_1ch(int32_t      *b0,
-            const int8_t *ip,
-            const int8_t *kp,
-            int32_t       kh_start,
-            int32_t       kh_end,
-            int32_t       inp_row_stride,
-            int32_t       ker_row_stride,
-            int32_t       input_offset)
-{
-    if (kh_start <= 0 && 0 < kh_end)
-    {
-        *b0 += (ip[0 * inp_row_stride] + input_offset) * kp[0 * ker_row_stride];
-    }
-    if (kh_start <= 1 && 1 < kh_end)
-    {
-        *b0 += (ip[1 * inp_row_stride] + input_offset) * kp[1 * ker_row_stride];
-    }
-    if (kh_start <= 2 && 2 < kh_end)
-    {
-        *b0 += (ip[2 * inp_row_stride] + input_offset) * kp[2 * ker_row_stride];
-    }
-}
+/*
+ * acc_col_1ch: accumulate one kernel column (up to 3 rows) into a single
+ * channel accumulator. kh_start/kh_end select which rows are valid.
+ * Keeping this as a macro rather than an inline function avoids the
+ * parameter-passing register pressure that contributes to spills.
+ */
+#define ACC_COL(b, ip, kp, kh_start, kh_end, inp_rs, ker_rs, ioff)     \
+    do                                                                 \
+    {                                                                  \
+        if ((kh_start) <= 0 && 0 < (kh_end))                           \
+            (b) += ((ip)[0 * (inp_rs)] + (ioff)) * (kp)[0 * (ker_rs)]; \
+        if ((kh_start) <= 1 && 1 < (kh_end))                           \
+            (b) += ((ip)[1 * (inp_rs)] + (ioff)) * (kp)[1 * (ker_rs)]; \
+        if ((kh_start) <= 2 && 2 < (kh_end))                           \
+            (b) += ((ip)[2 * (inp_rs)] + (ioff)) * (kp)[2 * (ker_rs)]; \
+    } while (0)
 
 int32_t
 nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
@@ -125,15 +67,7 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
     const int32_t ker_row_stride = input_ch * 3;
     const int32_t col_stride     = input_ch;
 
-    /*
-     * Compute interior rectangle boundaries directly by walking output
-     * coordinates, avoiding closed-form rounding errors entirely.
-     *
-     * int_h0: first out_h where in_h = out_h*stride_y - pad_y >= 0
-     * int_h1: first out_h where in_h + 2 >= input_y  (bottom tap out of bounds)
-     * int_w0: first out_w where in_w = out_w*stride_x - pad_x >= 0
-     * int_w1: first out_w where in_w + 2 >= input_x  (right tap out of bounds)
-     */
+    /* Compute interior rectangle boundaries. */
     int32_t int_h0 = 0;
     while (int_h0 < output_y && (int_h0 * stride_y - pad_y) < 0)
     {
@@ -171,80 +105,11 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
         {
             const int32_t in_w     = out_w * stride_x - pad_x;
             const int32_t kw_start = (in_w < 0) ? -in_w : 0;
-            const bool    right_ok = (in_w + 2) < input_x;
+            const int32_t right_ok = (in_w + 2) < input_x;
             const int8_t *inp_base
                 = input + in_h * inp_row_stride + in_w * col_stride;
 
-            int32_t ch = 0;
-            for (; ch <= (input_ch - 4); ch += 4)
-            {
-                const int8_t *ip = inp_base + ch;
-                const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch + 0], b1 = bias[ch + 1];
-                int32_t       b2 = bias[ch + 2], b3 = bias[ch + 3];
-
-                if (kw_start == 0)
-                {
-                    acc_col_4ch(&b0,
-                                &b1,
-                                &b2,
-                                &b3,
-                                ip,
-                                kp,
-                                kh_start,
-                                kh_end,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
-                }
-                acc_col_4ch(&b0,
-                            &b1,
-                            &b2,
-                            &b3,
-                            ip + col_stride,
-                            kp + col_stride,
-                            kh_start,
-                            kh_end,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                if (right_ok)
-                {
-                    acc_col_4ch(&b0,
-                                &b1,
-                                &b2,
-                                &b3,
-                                ip + 2 * col_stride,
-                                kp + 2 * col_stride,
-                                kh_start,
-                                kh_end,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
-                }
-
-                b0                = nn_requantize(
-                                        b0, output_mult[ch + 0], output_shift[ch + 0])
-                                    + output_offset;
-                b1                = nn_requantize(
-                                        b1, output_mult[ch + 1], output_shift[ch + 1])
-                                    + output_offset;
-                b2                = nn_requantize(
-                                        b2, output_mult[ch + 2], output_shift[ch + 2])
-                                    + output_offset;
-                b3                = nn_requantize(
-                                        b3, output_mult[ch + 3], output_shift[ch + 3])
-                                    + output_offset;
-                output[out_idx++] = (int8_t)MIN(MAX(b0, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b1, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b2, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b3, output_activation_min),
-                                                output_activation_max);
-            }
-            for (; ch < input_ch; ++ch)
+            for (int32_t ch = 0; ch < input_ch; ++ch)
             {
                 const int8_t *ip = inp_base + ch;
                 const int8_t *kp = kernel + ch;
@@ -252,33 +117,35 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
 
                 if (kw_start == 0)
                 {
-                    acc_col_1ch(&b0,
-                                ip,
-                                kp,
-                                kh_start,
-                                kh_end,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
-                }
-                acc_col_1ch(&b0,
-                            ip + col_stride,
-                            kp + col_stride,
+                    ACC_COL(b0,
+                            ip,
+                            kp,
                             kh_start,
                             kh_end,
                             inp_row_stride,
                             ker_row_stride,
                             input_offset);
+                }
+
+                ACC_COL(b0,
+                        ip + col_stride,
+                        kp + col_stride,
+                        kh_start,
+                        kh_end,
+                        inp_row_stride,
+                        ker_row_stride,
+                        input_offset);
+
                 if (right_ok)
                 {
-                    acc_col_1ch(&b0,
-                                ip + 2 * col_stride,
-                                kp + 2 * col_stride,
-                                kh_start,
-                                kh_end,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
+                    ACC_COL(b0,
+                            ip + 2 * col_stride,
+                            kp + 2 * col_stride,
+                            kh_start,
+                            kh_end,
+                            inp_row_stride,
+                            ker_row_stride,
+                            input_offset);
                 }
 
                 b0 = nn_requantize(b0, output_mult[ch], output_shift[ch])
@@ -294,85 +161,16 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
     {
         const int32_t in_h = out_h * stride_y - pad_y;
 
-        /* Left border columns: all rows valid, left column clipped */
+        /* Left border columns */
         for (int32_t out_w = 0; out_w < int_w0; ++out_w)
         {
             const int32_t in_w     = out_w * stride_x - pad_x;
             const int32_t kw_start = -in_w;
-            const bool    right_ok = (in_w + 2) < input_x;
+            const int32_t right_ok = (in_w + 2) < input_x;
             const int8_t *inp_base
                 = input + in_h * inp_row_stride + in_w * col_stride;
 
-            int32_t ch = 0;
-            for (; ch <= (input_ch - 4); ch += 4)
-            {
-                const int8_t *ip = inp_base + ch;
-                const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch + 0], b1 = bias[ch + 1];
-                int32_t       b2 = bias[ch + 2], b3 = bias[ch + 3];
-
-                if (kw_start == 0)
-                {
-                    acc_col_4ch(&b0,
-                                &b1,
-                                &b2,
-                                &b3,
-                                ip,
-                                kp,
-                                0,
-                                3,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
-                }
-                acc_col_4ch(&b0,
-                            &b1,
-                            &b2,
-                            &b3,
-                            ip + col_stride,
-                            kp + col_stride,
-                            0,
-                            3,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                if (right_ok)
-                {
-                    acc_col_4ch(&b0,
-                                &b1,
-                                &b2,
-                                &b3,
-                                ip + 2 * col_stride,
-                                kp + 2 * col_stride,
-                                0,
-                                3,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
-                }
-
-                b0                = nn_requantize(
-                                        b0, output_mult[ch + 0], output_shift[ch + 0])
-                                    + output_offset;
-                b1                = nn_requantize(
-                                        b1, output_mult[ch + 1], output_shift[ch + 1])
-                                    + output_offset;
-                b2                = nn_requantize(
-                                        b2, output_mult[ch + 2], output_shift[ch + 2])
-                                    + output_offset;
-                b3                = nn_requantize(
-                                        b3, output_mult[ch + 3], output_shift[ch + 3])
-                                    + output_offset;
-                output[out_idx++] = (int8_t)MIN(MAX(b0, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b1, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b2, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b3, output_activation_min),
-                                                output_activation_max);
-            }
-            for (; ch < input_ch; ++ch)
+            for (int32_t ch = 0; ch < input_ch; ++ch)
             {
                 const int8_t *ip = inp_base + ch;
                 const int8_t *kp = kernel + ch;
@@ -380,33 +178,35 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
 
                 if (kw_start == 0)
                 {
-                    acc_col_1ch(&b0,
-                                ip,
-                                kp,
-                                0,
-                                3,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
-                }
-                acc_col_1ch(&b0,
-                            ip + col_stride,
-                            kp + col_stride,
+                    ACC_COL(b0,
+                            ip,
+                            kp,
                             0,
                             3,
                             inp_row_stride,
                             ker_row_stride,
                             input_offset);
+                }
+
+                ACC_COL(b0,
+                        ip + col_stride,
+                        kp + col_stride,
+                        0,
+                        3,
+                        inp_row_stride,
+                        ker_row_stride,
+                        input_offset);
+
                 if (right_ok)
                 {
-                    acc_col_1ch(&b0,
-                                ip + 2 * col_stride,
-                                kp + 2 * col_stride,
-                                0,
-                                3,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
+                    ACC_COL(b0,
+                            ip + 2 * col_stride,
+                            kp + 2 * col_stride,
+                            0,
+                            3,
+                            inp_row_stride,
+                            ker_row_stride,
+                            input_offset);
                 }
 
                 b0 = nn_requantize(b0, output_mult[ch], output_shift[ch])
@@ -416,160 +216,14 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
             }
         }
 
-        /* Interior columns: all 9 taps assumed to be valid, fully unrolled */
+        /* Interior columns: all 9 taps valid, fully unrolled, 1-channel */
         for (int32_t out_w = int_w0; out_w < int_w1; ++out_w)
         {
             const int32_t in_w = out_w * stride_x - pad_x;
             const int8_t *ip0
                 = input + in_h * inp_row_stride + in_w * col_stride;
 
-            int32_t ch = 0;
-            for (; ch <= (input_ch - 4); ch += 4)
-            {
-                const int8_t *ip = ip0 + ch;
-                const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch + 0], b1 = bias[ch + 1];
-                int32_t       b2 = bias[ch + 2], b3 = bias[ch + 3];
-
-                b0 += (ip[0 * inp_row_stride + 0 * col_stride + 0]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 0 * col_stride + 0];
-                b1 += (ip[0 * inp_row_stride + 0 * col_stride + 1]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 0 * col_stride + 1];
-                b2 += (ip[0 * inp_row_stride + 0 * col_stride + 2]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 0 * col_stride + 2];
-                b3 += (ip[0 * inp_row_stride + 0 * col_stride + 3]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 0 * col_stride + 3];
-
-                b0 += (ip[0 * inp_row_stride + 1 * col_stride + 0]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 1 * col_stride + 0];
-                b1 += (ip[0 * inp_row_stride + 1 * col_stride + 1]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 1 * col_stride + 1];
-                b2 += (ip[0 * inp_row_stride + 1 * col_stride + 2]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 1 * col_stride + 2];
-                b3 += (ip[0 * inp_row_stride + 1 * col_stride + 3]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 1 * col_stride + 3];
-
-                b0 += (ip[0 * inp_row_stride + 2 * col_stride + 0]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 2 * col_stride + 0];
-                b1 += (ip[0 * inp_row_stride + 2 * col_stride + 1]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 2 * col_stride + 1];
-                b2 += (ip[0 * inp_row_stride + 2 * col_stride + 2]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 2 * col_stride + 2];
-                b3 += (ip[0 * inp_row_stride + 2 * col_stride + 3]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 2 * col_stride + 3];
-
-                b0 += (ip[1 * inp_row_stride + 0 * col_stride + 0]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 0 * col_stride + 0];
-                b1 += (ip[1 * inp_row_stride + 0 * col_stride + 1]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 0 * col_stride + 1];
-                b2 += (ip[1 * inp_row_stride + 0 * col_stride + 2]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 0 * col_stride + 2];
-                b3 += (ip[1 * inp_row_stride + 0 * col_stride + 3]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 0 * col_stride + 3];
-
-                b0 += (ip[1 * inp_row_stride + 1 * col_stride + 0]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 1 * col_stride + 0];
-                b1 += (ip[1 * inp_row_stride + 1 * col_stride + 1]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 1 * col_stride + 1];
-                b2 += (ip[1 * inp_row_stride + 1 * col_stride + 2]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 1 * col_stride + 2];
-                b3 += (ip[1 * inp_row_stride + 1 * col_stride + 3]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 1 * col_stride + 3];
-
-                b0 += (ip[1 * inp_row_stride + 2 * col_stride + 0]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 2 * col_stride + 0];
-                b1 += (ip[1 * inp_row_stride + 2 * col_stride + 1]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 2 * col_stride + 1];
-                b2 += (ip[1 * inp_row_stride + 2 * col_stride + 2]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 2 * col_stride + 2];
-                b3 += (ip[1 * inp_row_stride + 2 * col_stride + 3]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 2 * col_stride + 3];
-
-                b0 += (ip[2 * inp_row_stride + 0 * col_stride + 0]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 0 * col_stride + 0];
-                b1 += (ip[2 * inp_row_stride + 0 * col_stride + 1]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 0 * col_stride + 1];
-                b2 += (ip[2 * inp_row_stride + 0 * col_stride + 2]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 0 * col_stride + 2];
-                b3 += (ip[2 * inp_row_stride + 0 * col_stride + 3]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 0 * col_stride + 3];
-
-                b0 += (ip[2 * inp_row_stride + 1 * col_stride + 0]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 1 * col_stride + 0];
-                b1 += (ip[2 * inp_row_stride + 1 * col_stride + 1]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 1 * col_stride + 1];
-                b2 += (ip[2 * inp_row_stride + 1 * col_stride + 2]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 1 * col_stride + 2];
-                b3 += (ip[2 * inp_row_stride + 1 * col_stride + 3]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 1 * col_stride + 3];
-
-                b0 += (ip[2 * inp_row_stride + 2 * col_stride + 0]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 2 * col_stride + 0];
-                b1 += (ip[2 * inp_row_stride + 2 * col_stride + 1]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 2 * col_stride + 1];
-                b2 += (ip[2 * inp_row_stride + 2 * col_stride + 2]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 2 * col_stride + 2];
-                b3 += (ip[2 * inp_row_stride + 2 * col_stride + 3]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 2 * col_stride + 3];
-
-                b0                = nn_requantize(
-                                        b0, output_mult[ch + 0], output_shift[ch + 0])
-                                    + output_offset;
-                b1                = nn_requantize(
-                                        b1, output_mult[ch + 1], output_shift[ch + 1])
-                                    + output_offset;
-                b2                = nn_requantize(
-                                        b2, output_mult[ch + 2], output_shift[ch + 2])
-                                    + output_offset;
-                b3                = nn_requantize(
-                                        b3, output_mult[ch + 3], output_shift[ch + 3])
-                                    + output_offset;
-                output[out_idx++] = (int8_t)MIN(MAX(b0, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b1, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b2, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b3, output_activation_min),
-                                                output_activation_max);
-            }
-            for (; ch < input_ch; ++ch)
+            for (int32_t ch = 0; ch < input_ch; ++ch)
             {
                 const int8_t *ip = ip0 + ch;
                 const int8_t *kp = kernel + ch;
@@ -601,112 +255,47 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
             }
         }
 
-        /* Right border columns: all rows valid, right column clipped */
+        /* Right border columns */
         for (int32_t out_w = int_w1; out_w < output_x; ++out_w)
         {
             const int32_t in_w     = out_w * stride_x - pad_x;
-            const bool    right_ok = (in_w + 2) < input_x;
+            const int32_t right_ok = (in_w + 2) < input_x;
             const int8_t *inp_base
                 = input + in_h * inp_row_stride + in_w * col_stride;
 
-            int32_t ch = 0;
-            for (; ch <= (input_ch - 4); ch += 4)
-            {
-                const int8_t *ip = inp_base + ch;
-                const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch + 0], b1 = bias[ch + 1];
-                int32_t       b2 = bias[ch + 2], b3 = bias[ch + 3];
-
-                acc_col_4ch(&b0,
-                            &b1,
-                            &b2,
-                            &b3,
-                            ip,
-                            kp,
-                            0,
-                            3,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                acc_col_4ch(&b0,
-                            &b1,
-                            &b2,
-                            &b3,
-                            ip + col_stride,
-                            kp + col_stride,
-                            0,
-                            3,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                if (right_ok)
-                {
-                    acc_col_4ch(&b0,
-                                &b1,
-                                &b2,
-                                &b3,
-                                ip + 2 * col_stride,
-                                kp + 2 * col_stride,
-                                0,
-                                3,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
-                }
-
-                b0                = nn_requantize(
-                                        b0, output_mult[ch + 0], output_shift[ch + 0])
-                                    + output_offset;
-                b1                = nn_requantize(
-                                        b1, output_mult[ch + 1], output_shift[ch + 1])
-                                    + output_offset;
-                b2                = nn_requantize(
-                                        b2, output_mult[ch + 2], output_shift[ch + 2])
-                                    + output_offset;
-                b3                = nn_requantize(
-                                        b3, output_mult[ch + 3], output_shift[ch + 3])
-                                    + output_offset;
-                output[out_idx++] = (int8_t)MIN(MAX(b0, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b1, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b2, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b3, output_activation_min),
-                                                output_activation_max);
-            }
-            for (; ch < input_ch; ++ch)
+            for (int32_t ch = 0; ch < input_ch; ++ch)
             {
                 const int8_t *ip = inp_base + ch;
                 const int8_t *kp = kernel + ch;
                 int32_t       b0 = bias[ch];
 
-                acc_col_1ch(&b0,
-                            ip,
-                            kp,
-                            0,
-                            3,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                acc_col_1ch(&b0,
-                            ip + col_stride,
-                            kp + col_stride,
-                            0,
-                            3,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
+                /* kw_start is always 0 in the right-border region */
+                ACC_COL(b0,
+                        ip,
+                        kp,
+                        0,
+                        3,
+                        inp_row_stride,
+                        ker_row_stride,
+                        input_offset);
+                ACC_COL(b0,
+                        ip + col_stride,
+                        kp + col_stride,
+                        0,
+                        3,
+                        inp_row_stride,
+                        ker_row_stride,
+                        input_offset);
                 if (right_ok)
                 {
-                    acc_col_1ch(&b0,
-                                ip + 2 * col_stride,
-                                kp + 2 * col_stride,
-                                0,
-                                3,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
+                    ACC_COL(b0,
+                            ip + 2 * col_stride,
+                            kp + 2 * col_stride,
+                            0,
+                            3,
+                            inp_row_stride,
+                            ker_row_stride,
+                            input_offset);
                 }
 
                 b0 = nn_requantize(b0, output_mult[ch], output_shift[ch])
@@ -727,80 +316,11 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
         {
             const int32_t in_w     = out_w * stride_x - pad_x;
             const int32_t kw_start = (in_w < 0) ? -in_w : 0;
-            const bool    right_ok = (in_w + 2) < input_x;
+            const int32_t right_ok = (in_w + 2) < input_x;
             const int8_t *inp_base
                 = input + in_h * inp_row_stride + in_w * col_stride;
 
-            int32_t ch = 0;
-            for (; ch <= (input_ch - 4); ch += 4)
-            {
-                const int8_t *ip = inp_base + ch;
-                const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch + 0], b1 = bias[ch + 1];
-                int32_t       b2 = bias[ch + 2], b3 = bias[ch + 3];
-
-                if (kw_start == 0)
-                {
-                    acc_col_4ch(&b0,
-                                &b1,
-                                &b2,
-                                &b3,
-                                ip,
-                                kp,
-                                0,
-                                kh_end,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
-                }
-                acc_col_4ch(&b0,
-                            &b1,
-                            &b2,
-                            &b3,
-                            ip + col_stride,
-                            kp + col_stride,
-                            0,
-                            kh_end,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                if (right_ok)
-                {
-                    acc_col_4ch(&b0,
-                                &b1,
-                                &b2,
-                                &b3,
-                                ip + 2 * col_stride,
-                                kp + 2 * col_stride,
-                                0,
-                                kh_end,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
-                }
-
-                b0                = nn_requantize(
-                                        b0, output_mult[ch + 0], output_shift[ch + 0])
-                                    + output_offset;
-                b1                = nn_requantize(
-                                        b1, output_mult[ch + 1], output_shift[ch + 1])
-                                    + output_offset;
-                b2                = nn_requantize(
-                                        b2, output_mult[ch + 2], output_shift[ch + 2])
-                                    + output_offset;
-                b3                = nn_requantize(
-                                        b3, output_mult[ch + 3], output_shift[ch + 3])
-                                    + output_offset;
-                output[out_idx++] = (int8_t)MIN(MAX(b0, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b1, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b2, output_activation_min),
-                                                output_activation_max);
-                output[out_idx++] = (int8_t)MIN(MAX(b3, output_activation_min),
-                                                output_activation_max);
-            }
-            for (; ch < input_ch; ++ch)
+            for (int32_t ch = 0; ch < input_ch; ++ch)
             {
                 const int8_t *ip = inp_base + ch;
                 const int8_t *kp = kernel + ch;
@@ -808,33 +328,35 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
 
                 if (kw_start == 0)
                 {
-                    acc_col_1ch(&b0,
-                                ip,
-                                kp,
-                                0,
-                                kh_end,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
-                }
-                acc_col_1ch(&b0,
-                            ip + col_stride,
-                            kp + col_stride,
+                    ACC_COL(b0,
+                            ip,
+                            kp,
                             0,
                             kh_end,
                             inp_row_stride,
                             ker_row_stride,
                             input_offset);
+                }
+
+                ACC_COL(b0,
+                        ip + col_stride,
+                        kp + col_stride,
+                        0,
+                        kh_end,
+                        inp_row_stride,
+                        ker_row_stride,
+                        input_offset);
+
                 if (right_ok)
                 {
-                    acc_col_1ch(&b0,
-                                ip + 2 * col_stride,
-                                kp + 2 * col_stride,
-                                0,
-                                kh_end,
-                                inp_row_stride,
-                                ker_row_stride,
-                                input_offset);
+                    ACC_COL(b0,
+                            ip + 2 * col_stride,
+                            kp + 2 * col_stride,
+                            0,
+                            kh_end,
+                            inp_row_stride,
+                            ker_row_stride,
+                            input_offset);
                 }
 
                 b0 = nn_requantize(b0, output_mult[ch], output_shift[ch])
