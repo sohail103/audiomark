@@ -68,12 +68,7 @@ int32_t nn_fully_connected_s8(const nn_fc_params               *fc_params,
                               const nn_dims                    *output_dims,
                               int8_t                           *output_data);
 
-int32_t nn_avgpool_s8(const nn_pool_params *pool_params,
-                      const nn_dims        *input_dims,
-                      const int8_t         *input_data,
-                      const nn_dims        *filter_dims,
-                      const nn_dims        *output_dims,
-                      int8_t               *output_data);
+int32_t nn_avgpool_25x5x64_s8(const q7_t *input_data, q7_t *output_data);
 
 void nn_softmax_row12_s8(const int8_t *input, int8_t *output);
 

@@ -350,12 +350,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     in_out_dim_0.w = AVERAGE_POOL_9_OUTPUT_W;
     in_out_dim_0.c = in_out_dim_1.c;
 
-    status |= nn_avgpool_s8(&pool_params,
-                            &in_out_dim_1,
-                            in_out_buf_0,
-                            &conv_filter_dims,
-                            &in_out_dim_0,
-                            in_out_buf_1);
+    status |= nn_avgpool_25x5x64_s8(in_out_buf_0, in_out_buf_1);
 
     /***************************** Fully Connected ****************/
     nn_fc_params fc_params;
