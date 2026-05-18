@@ -17,11 +17,10 @@
 #ifndef RVV_SUPPORT_GUARD_H
 #define RVV_SUPPORT_GUARD_H
 
-#if defined(__riscv) && defined(__riscv_vector) \
-    && (__riscv_v_intrinsic >= 1000000)
+#if defined(__riscv) && defined(__riscv_vector)
 #include <riscv_vector.h>
 #else
-#error "RISCV VECTOR EXTENSION v1.0 NOT SUPPORTED"
+#error "RISCV VECTOR EXTENSION NOT SUPPORTED"
 #endif
 
 #endif // RVV_SUPPORT_GUARD_H
