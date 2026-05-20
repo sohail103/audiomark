@@ -56,7 +56,7 @@ jobs:
           path: audiomark_output.txt
           retention-days: 30
 
-  build-vector:
+  build-test-benchmark-vector:
     runs-on: ubuntu-24.04-riscv
     steps:
       - name: Checkout repository
@@ -67,11 +67,67 @@ jobs:
           cat /proc/cpuinfo
           cc -v 2>&1
 
+      - name: Check for RVV extension and install QEMU if needed
+        run: |
+          ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
+          EXTENSIONS=${ISA#rv64}
+          if [[ "$EXTENSIONS" == *v* ]]; then
+            echo "RVV_SUPPORTED=true" >> $GITHUB_ENV
+          else
+            echo "RVV_SUPPORTED=false" >> $GITHUB_ENV
+            sudo apt-get update -qq
+            sudo apt-get install -y qemu-user
+          fi
+
       - name: Configure CMake (RVV)
-        run: >
-          cmake -S . -B build-vector
-          -DPORT_DIR=ports/riscv/v
-          -DCMAKE_C_FLAGS="-O2 -march=rv64gcv"
+        run: |
+          if [ "$RVV_SUPPORTED" = "true" ]; then
+            cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v
+          else
+            cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v -DCMAKE_C_FLAGS="-O2 -march=rv64gcv"
+          fi
 
       - name: Build (RVV)
         run: cmake --build build-vector --parallel
+
+      - name: Run unit tests
+        run: |
+          if [ "$RVV_SUPPORTED" = "true" ]; then
+            ./build-vector/test_abf_f32
+            ./build-vector/test_aec_f32
+            ./build-vector/test_anr_f32
+            ./build-vector/test_kws
+            ./build-vector/test_mfcc_f32
+          else
+            qemu-riscv64 -cpu rv64,v=true,vext_spec=v1.0,vlen=128 ./build-vector/test_abf_f32
+            qemu-riscv64 -cpu rv64,v=true,vext_spec=v1.0,vlen=128 ./build-vector/test_aec_f32
+            qemu-riscv64 -cpu rv64,v=true,vext_spec=v1.0,vlen=128 ./build-vector/test_anr_f32
+            qemu-riscv64 -cpu rv64,v=true,vext_spec=v1.0,vlen=128 ./build-vector/test_kws
+            qemu-riscv64 -cpu rv64,v=true,vext_spec=v1.0,vlen=128 ./build-vector/test_mfcc_f32
+          fi
+
+      - name: Run AudioMark benchmark
+        timeout-minutes: 15
+        run: |
+          if [ "$RVV_SUPPORTED" = "true" ]; then
+            ./build-vector/audiomark 2>&1 | tee audiomark_vector_output.txt
+          else
+            qemu-riscv64 -cpu rv64,v=true,vlen=128 ./build-vector/audiomark 2>&1 | tee audiomark_vector_output.txt
+          fi
+
+      - name: Report AudioMark score
+        if: always()
+        run: |
+          if [ -f audiomark_vector_output.txt ]; then
+            cat audiomark_vector_output.txt
+          else
+            echo "Benchmark did not run."
+          fi
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: audiomark-vector-results
+          path: audiomark_vector_output.txt
+          retention-days: 30
