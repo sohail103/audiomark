@@ -72,16 +72,16 @@ jobs:
           ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
           EXTENSIONS=${ISA#rv64}
           if [[ "$EXTENSIONS" == *v* ]]; then
-            echo "RVV_SUPPORTED=true" >> $GITHUB_ENV
+            echo 'RUN=' >> $GITHUB_ENV
           else
-            echo "RVV_SUPPORTED=false" >> $GITHUB_ENV
+            echo 'RUN=qemu-riscv64 -cpu rv64,v=true,vext_spec=v1.0,vlen=128' >> $GITHUB_ENV
             sudo apt-get update -qq
             sudo apt-get install -y qemu-user
           fi
 
       - name: Configure CMake (RVV)
         run: |
-          if [ "$RVV_SUPPORTED" = "true" ]; then
+          if [ -z "$RUN" ]; then
             cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v
           else
             cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v -DCMAKE_C_FLAGS="-O2 -march=rv64gcv"
@@ -92,28 +92,16 @@ jobs:
 
       - name: Run unit tests
         run: |
-          if [ "$RVV_SUPPORTED" = "true" ]; then
-            ./build-vector/test_abf_f32
-            ./build-vector/test_aec_f32
-            ./build-vector/test_anr_f32
-            ./build-vector/test_kws
-            ./build-vector/test_mfcc_f32
-          else
-            qemu-riscv64 -cpu rv64,v=true,vext_spec=v1.0,vlen=128 ./build-vector/test_abf_f32
-            qemu-riscv64 -cpu rv64,v=true,vext_spec=v1.0,vlen=128 ./build-vector/test_aec_f32
-            qemu-riscv64 -cpu rv64,v=true,vext_spec=v1.0,vlen=128 ./build-vector/test_anr_f32
-            qemu-riscv64 -cpu rv64,v=true,vext_spec=v1.0,vlen=128 ./build-vector/test_kws
-            qemu-riscv64 -cpu rv64,v=true,vext_spec=v1.0,vlen=128 ./build-vector/test_mfcc_f32
-          fi
+          $RUN ./build-vector/test_abf_f32
+          $RUN ./build-vector/test_aec_f32
+          $RUN ./build-vector/test_anr_f32
+          $RUN ./build-vector/test_kws
+          $RUN ./build-vector/test_mfcc_f32
 
       - name: Run AudioMark benchmark
         timeout-minutes: 15
         run: |
-          if [ "$RVV_SUPPORTED" = "true" ]; then
-            ./build-vector/audiomark 2>&1 | tee audiomark_vector_output.txt
-          else
-            qemu-riscv64 -cpu rv64,v=true,vlen=128 ./build-vector/audiomark 2>&1 | tee audiomark_vector_output.txt
-          fi
+          $RUN ./build-vector/audiomark 2>&1 | tee audiomark_vector_output.txt
 
       - name: Report AudioMark score
         if: always()
