@@ -93,6 +93,22 @@ q7_t *nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
                                 const int32_t *const output_bias,
                                 q7_t                *out_0);
 
+int32_t nn_mat_mult_nt_t_s8(const q7_t    *lhs,
+                            const q7_t    *rhs,
+                            const q31_t   *bias,
+                            q7_t          *dst,
+                            const int32_t *dst_multipliers,
+                            const int32_t *dst_shifts,
+                            const int32_t  lhs_rows,
+                            const int32_t  rhs_rows,
+                            const int32_t  rhs_cols,
+                            const int32_t  lhs_offset,
+                            const int32_t  dst_offset,
+                            const int32_t  activation_min,
+                            const int32_t  activation_max,
+                            const int32_t  row_address_offset,
+                            const int32_t  lhs_cols_offset);
+
 #define RIGHT_SHIFT(_shift) (_shift > 0 ? 0 : -_shift)
 
 /* Macros for shortening quantization functions' names and avoid long lines */
