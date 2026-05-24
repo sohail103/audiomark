@@ -19,12 +19,6 @@
 
 #include <stdint.h>
 
-/*
- * acc_col_1ch: accumulate one kernel column (up to 3 rows) into a single
- * channel accumulator. kh_start/kh_end select which rows are valid.
- * Keeping this as a macro rather than an inline function avoids the
- * parameter-passing register pressure that contributes to spills.
- */
 #define ACC_COL(b, ip, kp, kh_start, kh_end, inp_rs, ker_rs, ioff)     \
     do                                                                 \
     {                                                                  \
@@ -35,6 +29,296 @@
         if ((kh_start) <= 2 && 2 < (kh_end))                           \
             (b) += ((ip)[2 * (inp_rs)] + (ioff)) * (kp)[2 * (ker_rs)]; \
     } while (0)
+
+/*
+ * bundling stride layout constants so a single pointer can be passed instead of
+ * 3 separate scalars
+ */
+typedef struct
+{
+    int32_t inp_row_stride; /* input_ch * input_x   */
+    int32_t ker_row_stride; /* input_ch * 3         */
+    int32_t col_stride;     /* input_ch             */
+} nn_conv_strides;
+
+/*
+ * quantisation and activation scalars needed to finish every output sample
+ */
+typedef struct
+{
+    const int32_t *output_mult;
+    const int32_t *output_shift;
+    int32_t        output_offset;
+    int32_t        output_activation_min;
+    int32_t        output_activation_max;
+} nn_conv_out_params;
+
+/*
+ * compute_interior_col_range - returns the [w0, w1) column range where all 3
+ * kernel columns are fully in-bounds.
+ */
+static void
+compute_interior_col_range(int32_t  output_x,
+                           int32_t  stride_x,
+                           int32_t  pad_x,
+                           int32_t  input_x,
+                           int32_t *out_w0,
+                           int32_t *out_w1)
+{
+    int32_t w0 = 0;
+    while (w0 < output_x && (w0 * stride_x - pad_x) < 0)
+    {
+        ++w0;
+    }
+
+    int32_t w1 = w0;
+    while (w1 < output_x && (w1 * stride_x - pad_x + 2) < input_x)
+    {
+        ++w1;
+    }
+
+    *out_w0 = w0;
+    *out_w1 = w1;
+}
+
+/*
+ * process_border_pixel - computes one output pixel whose kernel window may be
+ * partially out-of-bounds in either the horizontal or vertical dimension (or
+ * both).
+ */
+static void
+process_border_pixel(const int8_t             *inp_base,
+                     const int8_t             *kernel,
+                     const int32_t            *bias,
+                     int32_t                   input_ch,
+                     int32_t                   input_offset,
+                     int32_t                   kh_start,
+                     int32_t                   kh_end,
+                     int32_t                   kw_start,
+                     int32_t                   right_ok,
+                     const nn_conv_strides    *strides,
+                     const nn_conv_out_params *outp,
+                     q7_t                    **out_ptr)
+{
+    const int32_t inp_rs = strides->inp_row_stride;
+    const int32_t ker_rs = strides->ker_row_stride;
+    const int32_t col_s  = strides->col_stride;
+
+    for (int32_t ch = 0; ch < input_ch; ++ch)
+    {
+        const int8_t *ip = inp_base + ch;
+        const int8_t *kp = kernel + ch;
+        int32_t       b0 = bias[ch];
+
+        if (kw_start == 0)
+        {
+            ACC_COL(b0, ip, kp, kh_start, kh_end, inp_rs, ker_rs, input_offset);
+        }
+
+        ACC_COL(b0,
+                ip + col_s,
+                kp + col_s,
+                kh_start,
+                kh_end,
+                inp_rs,
+                ker_rs,
+                input_offset);
+
+        if (right_ok)
+        {
+            ACC_COL(b0,
+                    ip + 2 * col_s,
+                    kp + 2 * col_s,
+                    kh_start,
+                    kh_end,
+                    inp_rs,
+                    ker_rs,
+                    input_offset);
+        }
+
+        b0 = nn_requantize(b0, outp->output_mult[ch], outp->output_shift[ch])
+             + outp->output_offset;
+        *(*out_ptr)++ = (int8_t)MIN(MAX(b0, outp->output_activation_min),
+                                    outp->output_activation_max);
+    }
+}
+
+/*
+ * all 9 kernel taps are in-bounds. fully unrolled fast path.
+ */
+static void
+process_interior_pixel(const int8_t             *ip0,
+                       const int8_t             *kernel,
+                       const int32_t            *bias,
+                       int32_t                   input_ch,
+                       int32_t                   input_offset,
+                       const nn_conv_strides    *strides,
+                       const nn_conv_out_params *outp,
+                       q7_t                    **out_ptr)
+{
+    const int32_t inp_rs = strides->inp_row_stride;
+    const int32_t ker_rs = strides->ker_row_stride;
+    const int32_t col_s  = strides->col_stride;
+
+    for (int32_t ch = 0; ch < input_ch; ++ch)
+    {
+        const int8_t *ip = ip0 + ch;
+        const int8_t *kp = kernel + ch;
+        int32_t       b0 = bias[ch];
+
+        b0 += (ip[0 * inp_rs + 0 * col_s] + input_offset)
+              * kp[0 * ker_rs + 0 * col_s];
+        b0 += (ip[0 * inp_rs + 1 * col_s] + input_offset)
+              * kp[0 * ker_rs + 1 * col_s];
+        b0 += (ip[0 * inp_rs + 2 * col_s] + input_offset)
+              * kp[0 * ker_rs + 2 * col_s];
+        b0 += (ip[1 * inp_rs + 0 * col_s] + input_offset)
+              * kp[1 * ker_rs + 0 * col_s];
+        b0 += (ip[1 * inp_rs + 1 * col_s] + input_offset)
+              * kp[1 * ker_rs + 1 * col_s];
+        b0 += (ip[1 * inp_rs + 2 * col_s] + input_offset)
+              * kp[1 * ker_rs + 2 * col_s];
+        b0 += (ip[2 * inp_rs + 0 * col_s] + input_offset)
+              * kp[2 * ker_rs + 0 * col_s];
+        b0 += (ip[2 * inp_rs + 1 * col_s] + input_offset)
+              * kp[2 * ker_rs + 1 * col_s];
+        b0 += (ip[2 * inp_rs + 2 * col_s] + input_offset)
+              * kp[2 * ker_rs + 2 * col_s];
+
+        b0 = nn_requantize(b0, outp->output_mult[ch], outp->output_shift[ch])
+             + outp->output_offset;
+        *(*out_ptr)++ = (int8_t)MIN(MAX(b0, outp->output_activation_min),
+                                    outp->output_activation_max);
+    }
+}
+
+/*
+ * handles one output row whose vertical kernel window is clipped
+ * by the top or bottom border
+ */
+static void
+process_border_row(int32_t                   out_w,     /* first col  */
+                   int32_t                   out_w_end, /* past-end   */
+                   int32_t                   stride_x,
+                   int32_t                   pad_x,
+                   int32_t                   input_x,
+                   int32_t                   input_ch,
+                   int32_t                   input_offset,
+                   int32_t                   kh_start,
+                   int32_t                   kh_end,
+                   const int8_t             *input_row, /* row base   */
+                   const int8_t             *kernel,
+                   const int32_t            *bias,
+                   const nn_conv_strides    *strides,
+                   const nn_conv_out_params *outp,
+                   q7_t                    **out_ptr)
+{
+    for (; out_w < out_w_end; ++out_w)
+    {
+        const int32_t in_w     = out_w * stride_x - pad_x;
+        const int32_t kw_start = (in_w < 0) ? -in_w : 0;
+        const int32_t right_ok = (in_w + 2) < input_x;
+        const int8_t *inp_base = input_row + in_w * strides->col_stride;
+
+        process_border_pixel(inp_base,
+                             kernel,
+                             bias,
+                             input_ch,
+                             input_offset,
+                             kh_start,
+                             kh_end,
+                             kw_start,
+                             right_ok,
+                             strides,
+                             outp,
+                             out_ptr);
+    }
+}
+
+/*
+ * process_interior_row
+ *
+ * handles one complete interior output row, split into three column bands:
+ *   left border  [0,       int_w0)  — horizontal kernel may be clipped
+ *   interior     [int_w0,  int_w1)  — all 9 taps in-bounds (fast path)
+ *   right border [int_w1,  out_x)   — right kernel column may be clipped
+ */
+static void
+process_interior_row(int32_t                   out_h,
+                     int32_t                   output_x,
+                     int32_t                   stride_x,
+                     int32_t                   pad_x,
+                     int32_t                   input_x,
+                     int32_t                   input_ch,
+                     int32_t                   input_offset,
+                     const int8_t             *input,
+                     const int8_t             *kernel,
+                     const int32_t            *bias,
+                     const nn_conv_strides    *strides,
+                     const nn_conv_out_params *outp,
+                     int32_t                   in_h,
+                     q7_t                    **out_ptr)
+{
+    int32_t int_w0, int_w1;
+    compute_interior_col_range(
+        output_x, stride_x, pad_x, input_x, &int_w0, &int_w1);
+
+    const int8_t *input_row = input + in_h * strides->inp_row_stride;
+
+    /* --- left border columns (kh always full, kw may be clipped left) --- */
+    for (int32_t out_w = 0; out_w < int_w0; ++out_w)
+    {
+        const int32_t in_w     = out_w * stride_x - pad_x;
+        const int32_t kw_start = -in_w; /* in_w < 0 guaranteed here */
+        const int32_t right_ok = (in_w + 2) < input_x;
+        const int8_t *inp_base = input_row + in_w * strides->col_stride;
+
+        process_border_pixel(inp_base,
+                             kernel,
+                             bias,
+                             input_ch,
+                             input_offset,
+                             /*kh_start=*/0,
+                             /*kh_end=*/3,
+                             kw_start,
+                             right_ok,
+                             strides,
+                             outp,
+                             out_ptr);
+    }
+
+    /* fully interior columns: all 9 taps valid  */
+    for (int32_t out_w = int_w0; out_w < int_w1; ++out_w)
+    {
+        const int32_t in_w = out_w * stride_x - pad_x;
+        const int8_t *ip0  = input_row + in_w * strides->col_stride;
+
+        process_interior_pixel(
+            ip0, kernel, bias, input_ch, input_offset, strides, outp, out_ptr);
+    }
+
+    /* right border columns (kw may be clipped right) */
+    for (int32_t out_w = int_w1; out_w < output_x; ++out_w)
+    {
+        const int32_t in_w     = out_w * stride_x - pad_x;
+        const int32_t right_ok = (in_w + 2) < input_x;
+        const int8_t *inp_base = input_row + in_w * strides->col_stride;
+
+        /* kw_start is always 0 in the right-border region */
+        process_border_pixel(inp_base,
+                             kernel,
+                             bias,
+                             input_ch,
+                             input_offset,
+                             /*kh_start=*/0,
+                             /*kh_end=*/3,
+                             /*kw_start=*/0,
+                             right_ok,
+                             strides,
+                             outp,
+                             out_ptr);
+    }
+}
 
 int32_t
 nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
@@ -56,18 +340,21 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
     const int32_t output_x = output_dims->w;
     const int32_t output_y = output_dims->h;
 
-    const int32_t  input_offset          = dw_conv_params->input_offset;
-    const int32_t  output_offset         = dw_conv_params->output_offset;
-    const int32_t  output_activation_min = dw_conv_params->activation.min;
-    const int32_t  output_activation_max = dw_conv_params->activation.max;
-    const int32_t *output_mult           = quant_params->multiplier;
-    const int32_t *output_shift          = quant_params->shift;
+    const nn_conv_strides strides = {
+        .inp_row_stride = input_ch * input_x,
+        .ker_row_stride = input_ch * 3,
+        .col_stride     = input_ch,
+    };
 
-    const int32_t inp_row_stride = input_ch * input_x;
-    const int32_t ker_row_stride = input_ch * 3;
-    const int32_t col_stride     = input_ch;
+    const nn_conv_out_params outp = {
+        .output_mult           = quant_params->multiplier,
+        .output_shift          = quant_params->shift,
+        .output_offset         = dw_conv_params->output_offset,
+        .output_activation_min = dw_conv_params->activation.min,
+        .output_activation_max = dw_conv_params->activation.max,
+    };
 
-    /* Compute interior rectangle boundaries. */
+    /* Compute interior rectangle boundaries (vertical). */
     int32_t int_h0 = 0;
     while (int_h0 < output_y && (int_h0 * stride_y - pad_y) < 0)
     {
@@ -80,291 +367,75 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
         ++int_h1;
     }
 
-    int32_t int_w0 = 0;
-    while (int_w0 < output_x && (int_w0 * stride_x - pad_x) < 0)
-    {
-        ++int_w0;
-    }
+    q7_t *out_ptr = output;
 
-    int32_t int_w1 = int_w0;
-    while (int_w1 < output_x && (int_w1 * stride_x - pad_x + 2) < input_x)
-    {
-        ++int_w1;
-    }
-
-    int32_t out_idx = 0;
-
-    /* Top border rows */
+    /* Top border rows (kernel clipped at the top) */
     for (int32_t out_h = 0; out_h < int_h0; ++out_h)
     {
-        const int32_t in_h     = out_h * stride_y - pad_y;
-        const int32_t kh_start = -in_h;
-        const int32_t kh_end   = MIN(3, input_y - in_h);
+        const int32_t in_h      = out_h * stride_y - pad_y;
+        const int32_t kh_start  = -in_h;
+        const int32_t kh_end    = MIN(3, input_y - in_h);
+        const int8_t *input_row = input + in_h * strides.inp_row_stride;
 
-        for (int32_t out_w = 0; out_w < output_x; ++out_w)
-        {
-            const int32_t in_w     = out_w * stride_x - pad_x;
-            const int32_t kw_start = (in_w < 0) ? -in_w : 0;
-            const int32_t right_ok = (in_w + 2) < input_x;
-            const int8_t *inp_base
-                = input + in_h * inp_row_stride + in_w * col_stride;
-
-            for (int32_t ch = 0; ch < input_ch; ++ch)
-            {
-                const int8_t *ip = inp_base + ch;
-                const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch];
-
-                if (kw_start == 0)
-                {
-                    ACC_COL(b0,
-                            ip,
-                            kp,
-                            kh_start,
-                            kh_end,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                }
-
-                ACC_COL(b0,
-                        ip + col_stride,
-                        kp + col_stride,
-                        kh_start,
-                        kh_end,
-                        inp_row_stride,
-                        ker_row_stride,
-                        input_offset);
-
-                if (right_ok)
-                {
-                    ACC_COL(b0,
-                            ip + 2 * col_stride,
-                            kp + 2 * col_stride,
-                            kh_start,
-                            kh_end,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                }
-
-                b0 = nn_requantize(b0, output_mult[ch], output_shift[ch])
-                     + output_offset;
-                output[out_idx++] = (int8_t)MIN(MAX(b0, output_activation_min),
-                                                output_activation_max);
-            }
-        }
+        process_border_row(0,
+                           output_x,
+                           stride_x,
+                           pad_x,
+                           input_x,
+                           input_ch,
+                           dw_conv_params->input_offset,
+                           kh_start,
+                           kh_end,
+                           input_row,
+                           kernel,
+                           bias,
+                           &strides,
+                           &outp,
+                           &out_ptr);
     }
 
-    /* Interior rows */
+    /* Interior rows (full vertical kernel) */
     for (int32_t out_h = int_h0; out_h < int_h1; ++out_h)
     {
         const int32_t in_h = out_h * stride_y - pad_y;
-
-        /* Left border columns */
-        for (int32_t out_w = 0; out_w < int_w0; ++out_w)
-        {
-            const int32_t in_w     = out_w * stride_x - pad_x;
-            const int32_t kw_start = -in_w;
-            const int32_t right_ok = (in_w + 2) < input_x;
-            const int8_t *inp_base
-                = input + in_h * inp_row_stride + in_w * col_stride;
-
-            for (int32_t ch = 0; ch < input_ch; ++ch)
-            {
-                const int8_t *ip = inp_base + ch;
-                const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch];
-
-                if (kw_start == 0)
-                {
-                    ACC_COL(b0,
-                            ip,
-                            kp,
-                            0,
-                            3,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                }
-
-                ACC_COL(b0,
-                        ip + col_stride,
-                        kp + col_stride,
-                        0,
-                        3,
-                        inp_row_stride,
-                        ker_row_stride,
-                        input_offset);
-
-                if (right_ok)
-                {
-                    ACC_COL(b0,
-                            ip + 2 * col_stride,
-                            kp + 2 * col_stride,
-                            0,
-                            3,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                }
-
-                b0 = nn_requantize(b0, output_mult[ch], output_shift[ch])
-                     + output_offset;
-                output[out_idx++] = (int8_t)MIN(MAX(b0, output_activation_min),
-                                                output_activation_max);
-            }
-        }
-
-        /* Interior columns: all 9 taps valid, fully unrolled, 1-channel */
-        for (int32_t out_w = int_w0; out_w < int_w1; ++out_w)
-        {
-            const int32_t in_w = out_w * stride_x - pad_x;
-            const int8_t *ip0
-                = input + in_h * inp_row_stride + in_w * col_stride;
-
-            for (int32_t ch = 0; ch < input_ch; ++ch)
-            {
-                const int8_t *ip = ip0 + ch;
-                const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch];
-
-                b0 += (ip[0 * inp_row_stride + 0 * col_stride] + input_offset)
-                      * kp[0 * ker_row_stride + 0 * col_stride];
-                b0 += (ip[0 * inp_row_stride + 1 * col_stride] + input_offset)
-                      * kp[0 * ker_row_stride + 1 * col_stride];
-                b0 += (ip[0 * inp_row_stride + 2 * col_stride] + input_offset)
-                      * kp[0 * ker_row_stride + 2 * col_stride];
-                b0 += (ip[1 * inp_row_stride + 0 * col_stride] + input_offset)
-                      * kp[1 * ker_row_stride + 0 * col_stride];
-                b0 += (ip[1 * inp_row_stride + 1 * col_stride] + input_offset)
-                      * kp[1 * ker_row_stride + 1 * col_stride];
-                b0 += (ip[1 * inp_row_stride + 2 * col_stride] + input_offset)
-                      * kp[1 * ker_row_stride + 2 * col_stride];
-                b0 += (ip[2 * inp_row_stride + 0 * col_stride] + input_offset)
-                      * kp[2 * ker_row_stride + 0 * col_stride];
-                b0 += (ip[2 * inp_row_stride + 1 * col_stride] + input_offset)
-                      * kp[2 * ker_row_stride + 1 * col_stride];
-                b0 += (ip[2 * inp_row_stride + 2 * col_stride] + input_offset)
-                      * kp[2 * ker_row_stride + 2 * col_stride];
-
-                b0 = nn_requantize(b0, output_mult[ch], output_shift[ch])
-                     + output_offset;
-                output[out_idx++] = (int8_t)MIN(MAX(b0, output_activation_min),
-                                                output_activation_max);
-            }
-        }
-
-        /* Right border columns */
-        for (int32_t out_w = int_w1; out_w < output_x; ++out_w)
-        {
-            const int32_t in_w     = out_w * stride_x - pad_x;
-            const int32_t right_ok = (in_w + 2) < input_x;
-            const int8_t *inp_base
-                = input + in_h * inp_row_stride + in_w * col_stride;
-
-            for (int32_t ch = 0; ch < input_ch; ++ch)
-            {
-                const int8_t *ip = inp_base + ch;
-                const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch];
-
-                /* kw_start is always 0 in the right-border region */
-                ACC_COL(b0,
-                        ip,
-                        kp,
-                        0,
-                        3,
-                        inp_row_stride,
-                        ker_row_stride,
-                        input_offset);
-                ACC_COL(b0,
-                        ip + col_stride,
-                        kp + col_stride,
-                        0,
-                        3,
-                        inp_row_stride,
-                        ker_row_stride,
-                        input_offset);
-                if (right_ok)
-                {
-                    ACC_COL(b0,
-                            ip + 2 * col_stride,
-                            kp + 2 * col_stride,
-                            0,
-                            3,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                }
-
-                b0 = nn_requantize(b0, output_mult[ch], output_shift[ch])
-                     + output_offset;
-                output[out_idx++] = (int8_t)MIN(MAX(b0, output_activation_min),
-                                                output_activation_max);
-            }
-        }
+        process_interior_row(out_h,
+                             output_x,
+                             stride_x,
+                             pad_x,
+                             input_x,
+                             input_ch,
+                             dw_conv_params->input_offset,
+                             input,
+                             kernel,
+                             bias,
+                             &strides,
+                             &outp,
+                             in_h,
+                             &out_ptr);
     }
 
-    /* Bottom border rows */
+    /* Bottom border rows (kernel clipped at the bottom) */
     for (int32_t out_h = int_h1; out_h < output_y; ++out_h)
     {
-        const int32_t in_h   = out_h * stride_y - pad_y;
-        const int32_t kh_end = MIN(3, input_y - in_h);
+        const int32_t in_h      = out_h * stride_y - pad_y;
+        const int32_t kh_end    = MIN(3, input_y - in_h);
+        const int8_t *input_row = input + in_h * strides.inp_row_stride;
 
-        for (int32_t out_w = 0; out_w < output_x; ++out_w)
-        {
-            const int32_t in_w     = out_w * stride_x - pad_x;
-            const int32_t kw_start = (in_w < 0) ? -in_w : 0;
-            const int32_t right_ok = (in_w + 2) < input_x;
-            const int8_t *inp_base
-                = input + in_h * inp_row_stride + in_w * col_stride;
-
-            for (int32_t ch = 0; ch < input_ch; ++ch)
-            {
-                const int8_t *ip = inp_base + ch;
-                const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch];
-
-                if (kw_start == 0)
-                {
-                    ACC_COL(b0,
-                            ip,
-                            kp,
-                            0,
-                            kh_end,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                }
-
-                ACC_COL(b0,
-                        ip + col_stride,
-                        kp + col_stride,
-                        0,
-                        kh_end,
-                        inp_row_stride,
-                        ker_row_stride,
-                        input_offset);
-
-                if (right_ok)
-                {
-                    ACC_COL(b0,
-                            ip + 2 * col_stride,
-                            kp + 2 * col_stride,
-                            0,
-                            kh_end,
-                            inp_row_stride,
-                            ker_row_stride,
-                            input_offset);
-                }
-
-                b0 = nn_requantize(b0, output_mult[ch], output_shift[ch])
-                     + output_offset;
-                output[out_idx++] = (int8_t)MIN(MAX(b0, output_activation_min),
-                                                output_activation_max);
-            }
-        }
+        process_border_row(0,
+                           output_x,
+                           stride_x,
+                           pad_x,
+                           input_x,
+                           input_ch,
+                           dw_conv_params->input_offset,
+                           /*kh_start=*/0,
+                           kh_end,
+                           input_row,
+                           kernel,
+                           bias,
+                           &strides,
+                           &outp,
+                           &out_ptr);
     }
 
     return 0;
