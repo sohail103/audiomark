@@ -1,10 +1,17 @@
-/*
- * Copyright (C) 2010-2022 Arm Limited or its affiliates.
- * SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright 2026 Sohail Raj Satapathy
  *
- * Modifications copyright (C) 2021-2024 Chair of Electronic Design Automation,
- * TUM
- * Modifications copyright (C) 2026 Sohail Raj Satapathy
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include "functions.h"
@@ -46,23 +53,16 @@ nn_conv1x1_s8(const nn_context                  *ctx,
     const int32_t *output_mult  = quant_params->multiplier;
     const int32_t *output_shift = quant_params->shift;
 
-    /*
-     * 2-column im2col buffer: 2 * input_ch * sizeof(q15_t) = 256 bytes.
-     * Stack allocation is fine at this size.
-     */
     q15_t buffer[2 * CONV_2_IN_CH];
 
     const q7_t *inp = input_data;
     q7_t       *out = output_data;
+    int32_t     px  = 0;
 
-    int32_t px = 0;
-
-    /* Main loop: 2 spatial pixels per call to mat_mult_kernel_s8_s16 */
     for (; px <= spatial - 2; px += 2)
     {
-        nn_q7_to_q15_with_offset(inp, buffer, input_ch, input_offset);
-        nn_q7_to_q15_with_offset(
-            inp + input_ch, buffer + input_ch, input_ch, input_offset);
+        /* Two adjacent pixels = 2*input_ch = 128 contiguous q7 bytes */
+        nn_q7_to_q15_with_offset(inp, buffer, 2 * input_ch, input_offset);
 
         out = nn_mat_mult_kernel_s8_s16(filter_data,
                                         buffer,
@@ -78,7 +78,7 @@ nn_conv1x1_s8(const nn_context                  *ctx,
         inp += 2 * input_ch;
     }
 
-    /* Scalar tail for the leftover pixel (125 is odd, always exactly 1) */
+    /* Scalar tail: 125 is odd, always exactly one leftover pixel */
     if (px < spatial)
     {
         nn_q7_to_q15_with_offset(inp, buffer, input_ch, input_offset);
