@@ -77,46 +77,45 @@ stage_rfft_f32(const riscv_rfft_fast_instance_f32 *S,
     pB = p + 2 * k;
     pA += 2;
 
-    int32_t blkCnt = k;
+    size_t blkCnt = k;
 
     while (blkCnt > 0)
     {
         size_t vl = __riscv_vsetvl_e32m2(blkCnt);
 
-        vfloat32m2x2_t vTmp = __riscv_vlseg2e32_v_f32m2x2(pA, vl);
-        vfloat32m2_t   xAr  = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t   xAi  = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vA  = __riscv_vlseg2e32_v_f32m2x2(pA, vl);
+        vfloat32m2_t   xAr = __riscv_vget_v_f32m2x2_f32m2(vA, 0);
+        vfloat32m2_t   xAi = __riscv_vget_v_f32m2x2_f32m2(vA, 1);
 
-        vTmp             = __riscv_vlsseg2e32_v_f32m2x2(pB, -8, vl);
-        vfloat32m2_t xBr = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t xBi = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vB  = __riscv_vlsseg2e32_v_f32m2x2(pB, -8, vl);
+        vfloat32m2_t   xBr = __riscv_vget_v_f32m2x2_f32m2(vB, 0);
+        vfloat32m2_t   xBi = __riscv_vget_v_f32m2x2_f32m2(vB, 1);
 
-        xBi = __riscv_vfneg_v_f32m2(xBi, vl);
-
-        vTmp             = __riscv_vlseg2e32_v_f32m2x2(pCoeff, vl);
-        vfloat32m2_t twR = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t twI = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vTw = __riscv_vlseg2e32_v_f32m2x2(pCoeff, vl);
+        vfloat32m2_t   twR = __riscv_vget_v_f32m2x2_f32m2(vTw, 0);
+        vfloat32m2_t   twI = __riscv_vget_v_f32m2x2_f32m2(vTw, 1);
 
         /* tmp1 = xA + xB */
         vfloat32m2_t tmp1R = __riscv_vfadd_vv_f32m2(xAr, xBr, vl);
-        vfloat32m2_t tmp1I = __riscv_vfadd_vv_f32m2(xAi, xBi, vl);
+        vfloat32m2_t tmp1I = __riscv_vfsub_vv_f32m2(xAi, xBi, vl);
 
         /* tmp2 = xB - xA */
         vfloat32m2_t tmp2R = __riscv_vfsub_vv_f32m2(xBr, xAr, vl);
-        vfloat32m2_t tmp2I = __riscv_vfsub_vv_f32m2(xBi, xAi, vl);
+        vfloat32m2_t tmp2I = __riscv_vfadd_vv_f32m2(xBi, xAi, vl);
 
         /* res = tw * tmp2 */
         vfloat32m2_t resR = __riscv_vfmul_vv_f32m2(twR, tmp2R, vl);
-        resR              = __riscv_vfnmsac_vv_f32m2(resR, twI, tmp2I, vl);
+        resR              = __riscv_vfmacc_vv_f32m2(resR, twI, tmp2I, vl);
 
-        vfloat32m2_t resI = __riscv_vfmul_vv_f32m2(twR, tmp2I, vl);
-        resI              = __riscv_vfmacc_vv_f32m2(resI, twI, tmp2R, vl);
+        vfloat32m2_t resI = __riscv_vfmul_vv_f32m2(twI, tmp2R, vl);
+        resI              = __riscv_vfnmsac_vv_f32m2(resI, twR, tmp2I, vl);
+
+        vfloat32m2_t half1R = __riscv_vfmul_vf_f32m2(tmp1R, 0.5f, vl);
+        vfloat32m2_t half1I = __riscv_vfmul_vf_f32m2(tmp1I, 0.5f, vl);
 
         /* res = (res + tmp1) * 0.5f*/
-        resR = __riscv_vfmul_vf_f32m2(
-            __riscv_vfadd_vv_f32m2(resR, tmp1R, vl), 0.5f, vl);
-        resI = __riscv_vfmul_vf_f32m2(
-            __riscv_vfadd_vv_f32m2(resI, tmp1I, vl), 0.5f, vl);
+        resR = __riscv_vfmacc_vf_f32m2(half1R, 0.5f, resR, vl);
+        resI = __riscv_vfmacc_vf_f32m2(half1I, 0.5f, resI, vl);
 
         __riscv_vsseg2e32_v_f32m2x2(
             pOut, __riscv_vcreate_v_f32m2x2(resR, resI), vl);
@@ -151,31 +150,29 @@ merge_rfft_f32(const riscv_rfft_fast_instance_f32 *S,
     pB = p + 2 * k;
     pA += 2;
 
-    int32_t blkCnt = k;
+    size_t blkCnt = k;
 
     while (blkCnt > 0)
     {
         size_t vl = __riscv_vsetvl_e32m2(blkCnt);
 
-        vfloat32m2x2_t vTmp = __riscv_vlseg2e32_v_f32m2x2(pA, vl);
-        vfloat32m2_t   xAr  = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t   xAi  = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vA  = __riscv_vlseg2e32_v_f32m2x2(pA, vl);
+        vfloat32m2_t   xAr = __riscv_vget_v_f32m2x2_f32m2(vA, 0);
+        vfloat32m2_t   xAi = __riscv_vget_v_f32m2x2_f32m2(vA, 1);
 
-        vTmp             = __riscv_vlsseg2e32_v_f32m2x2(pB, -8, vl);
-        vfloat32m2_t xBr = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t xBi = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vB  = __riscv_vlsseg2e32_v_f32m2x2(pB, -8, vl);
+        vfloat32m2_t   xBr = __riscv_vget_v_f32m2x2_f32m2(vB, 0);
+        vfloat32m2_t   xBi = __riscv_vget_v_f32m2x2_f32m2(vB, 1);
 
-        xBi = __riscv_vfneg_v_f32m2(xBi, vl);
-
-        vTmp             = __riscv_vlseg2e32_v_f32m2x2(pCoeff, vl);
-        vfloat32m2_t twR = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t twI = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vTw = __riscv_vlseg2e32_v_f32m2x2(pCoeff, vl);
+        vfloat32m2_t   twR = __riscv_vget_v_f32m2x2_f32m2(vTw, 0);
+        vfloat32m2_t   twI = __riscv_vget_v_f32m2x2_f32m2(vTw, 1);
 
         vfloat32m2_t tmp1R = __riscv_vfadd_vv_f32m2(xAr, xBr, vl);
-        vfloat32m2_t tmp1I = __riscv_vfadd_vv_f32m2(xAi, xBi, vl);
+        vfloat32m2_t tmp1I = __riscv_vfsub_vv_f32m2(xAi, xBi, vl);
 
-        vfloat32m2_t tmp2R = __riscv_vfsub_vv_f32m2(xBr, xAr, vl);
-        vfloat32m2_t tmp2I = __riscv_vfsub_vv_f32m2(xBi, xAi, vl);
+        vfloat32m2_t tmp2R = __riscv_vfsub_vv_f32m2(xAr, xBr, vl);
+        vfloat32m2_t tmp2I = __riscv_vfadd_vv_f32m2(xAi, xBi, vl);
 
         /* res = conj(tw) * tmp2 */
         vfloat32m2_t resR = __riscv_vfmul_vv_f32m2(twR, tmp2R, vl);
@@ -184,10 +181,12 @@ merge_rfft_f32(const riscv_rfft_fast_instance_f32 *S,
         vfloat32m2_t resI = __riscv_vfmul_vv_f32m2(twR, tmp2I, vl);
         resI              = __riscv_vfnmsac_vv_f32m2(resI, twI, tmp2R, vl);
 
-        resR = __riscv_vfmul_vf_f32m2(
-            __riscv_vfadd_vv_f32m2(resR, tmp1R, vl), 0.5f, vl);
-        resI = __riscv_vfmul_vf_f32m2(
-            __riscv_vfadd_vv_f32m2(resI, tmp1I, vl), 0.5f, vl);
+        vfloat32m2_t half1R = __riscv_vfmul_vf_f32m2(tmp1R, 0.5f, vl);
+        vfloat32m2_t half1I = __riscv_vfmul_vf_f32m2(tmp1I, 0.5f, vl);
+
+        /* res = (res + tmp1) * 0.5f*/
+        resR = __riscv_vfnmsac_vf_f32m2(half1R, 0.5f, resR, vl);
+        resI = __riscv_vfnmsac_vf_f32m2(half1I, 0.5f, resI, vl);
 
         __riscv_vsseg2e32_v_f32m2x2(
             pOut, __riscv_vcreate_v_f32m2x2(resR, resI), vl);

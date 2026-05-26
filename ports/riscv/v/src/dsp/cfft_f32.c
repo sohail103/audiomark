@@ -102,35 +102,33 @@ riscv_bitreversal_32_inpl(uint32_t       *pSrc,
     int32_t   remaining = bitRevLen >> 1;
 
     /* load first iteration's offsets before entering loop */
-    size_t         vl  = __riscv_vsetvl_e64m2(remaining);
-    vuint16mf2x2_t seg = __riscv_vlseg2e16_v_u16mf2x2(pBitRevTab, vl);
-    vuint16mf2_t   oa  = __riscv_vget_v_u16mf2x2_u16mf2(seg, 0);
-    vuint16mf2_t   ob  = __riscv_vget_v_u16mf2x2_u16mf2(seg, 1);
+    size_t        vl  = __riscv_vsetvl_e64m4(remaining);
+    vuint16m1x2_t seg = __riscv_vlseg2e16_v_u16m1x2(pBitRevTab, vl);
+    vuint16m1_t   oa  = __riscv_vget_v_u16m1x2_u16m1(seg, 0);
+    vuint16m1_t   ob  = __riscv_vget_v_u16m1x2_u16m1(seg, 1);
     pBitRevTab += vl * 2;
     remaining -= vl;
 
     while (remaining > 0)
     {
-        vuint64m2_t va = __riscv_vluxei16_v_u64m2(base, oa, vl);
-        vuint64m2_t vb = __riscv_vluxei16_v_u64m2(base, ob, vl);
-        __riscv_vsuxei16_v_u64m2(base, oa, vb, vl);
-        __riscv_vsuxei16_v_u64m2(base, ob, va, vl);
+        vuint64m4_t va = __riscv_vluxei16_v_u64m4(base, oa, vl);
+        vuint64m4_t vb = __riscv_vluxei16_v_u64m4(base, ob, vl);
+        __riscv_vsuxei16_v_u64m4(base, oa, vb, vl);
+        __riscv_vsuxei16_v_u64m4(base, ob, va, vl);
 
-        size_t         vl_next = __riscv_vsetvl_e64m2(remaining);
-        vuint16mf2x2_t seg_next
-            = __riscv_vlseg2e16_v_u16mf2x2(pBitRevTab, vl_next);
-        oa = __riscv_vget_v_u16mf2x2_u16mf2(seg_next, 0);
-        ob = __riscv_vget_v_u16mf2x2_u16mf2(seg_next, 1);
-        pBitRevTab += vl_next * 2;
-        remaining -= vl_next;
-        vl = vl_next;
+        vl = __riscv_vsetvl_e64m4(remaining);
+        seg = __riscv_vlseg2e16_v_u16m1x2(pBitRevTab, vl);
+        oa = __riscv_vget_v_u16m1x2_u16m1(seg, 0);
+        ob = __riscv_vget_v_u16m1x2_u16m1(seg, 1);
+        pBitRevTab += vl* 2;
+        remaining -= vl;
     }
 
     /* process last primed offsets */
-    vuint64m2_t va = __riscv_vluxei16_v_u64m2(base, oa, vl);
-    vuint64m2_t vb = __riscv_vluxei16_v_u64m2(base, ob, vl);
-    __riscv_vsuxei16_v_u64m2(base, oa, vb, vl);
-    __riscv_vsuxei16_v_u64m2(base, ob, va, vl);
+    vuint64m4_t va = __riscv_vluxei16_v_u64m4(base, oa, vl);
+    vuint64m4_t vb = __riscv_vluxei16_v_u64m4(base, ob, vl);
+    __riscv_vsuxei16_v_u64m4(base, oa, vb, vl);
+    __riscv_vsuxei16_v_u64m4(base, ob, va, vl);
 }
 
 static float32_t
@@ -195,41 +193,37 @@ riscv_radix4_butterfly_inverse_f32(const riscv_cfft_instance_f32 *S,
             float32_t const *tw2 = pW2;
             float32_t const *tw3 = pW3;
 
-            uint32_t blkCnt = n2;
+            size_t blkCnt = n2;
 
             while (blkCnt > 0)
             {
                 size_t vl = __riscv_vsetvl_e32m2(blkCnt);
 
-                vfloat32m2x2_t vTmp = __riscv_vlseg2e32_v_f32m2x2(inA, vl);
-                vfloat32m2_t   Ar   = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t   Ai   = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+                vfloat32m2x2_t vA = __riscv_vlseg2e32_v_f32m2x2(inA, vl);
+                vfloat32m2_t   Ar = __riscv_vget_v_f32m2x2_f32m2(vA, 0);
+                vfloat32m2_t   Ai = __riscv_vget_v_f32m2x2_f32m2(vA, 1);
 
-                vTmp            = __riscv_vlseg2e32_v_f32m2x2(inC, vl);
-                vfloat32m2_t Cr = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t Ci = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+                vfloat32m2x2_t vC = __riscv_vlseg2e32_v_f32m2x2(inC, vl);
+                vfloat32m2_t   Cr = __riscv_vget_v_f32m2x2_f32m2(vC, 0);
+                vfloat32m2_t   Ci = __riscv_vget_v_f32m2x2_f32m2(vC, 1);
 
                 vfloat32m2_t Sum0r  = __riscv_vfadd_vv_f32m2(Ar, Cr, vl);
                 vfloat32m2_t Sum0i  = __riscv_vfadd_vv_f32m2(Ai, Ci, vl);
                 vfloat32m2_t Diff0r = __riscv_vfsub_vv_f32m2(Ar, Cr, vl);
                 vfloat32m2_t Diff0i = __riscv_vfsub_vv_f32m2(Ai, Ci, vl);
 
-                vTmp            = __riscv_vlseg2e32_v_f32m2x2(inB, vl);
-                vfloat32m2_t Br = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t Bi = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+                vfloat32m2x2_t vB = __riscv_vlseg2e32_v_f32m2x2(inB, vl);
+                vfloat32m2_t   Br = __riscv_vget_v_f32m2x2_f32m2(vB, 0);
+                vfloat32m2_t   Bi = __riscv_vget_v_f32m2x2_f32m2(vB, 1);
 
-                vTmp            = __riscv_vlseg2e32_v_f32m2x2(inD, vl);
-                vfloat32m2_t Dr = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t Di = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+                vfloat32m2x2_t vD = __riscv_vlseg2e32_v_f32m2x2(inD, vl);
+                vfloat32m2_t   Dr = __riscv_vget_v_f32m2x2_f32m2(vD, 0);
+                vfloat32m2_t   Di = __riscv_vget_v_f32m2x2_f32m2(vD, 1);
 
                 vfloat32m2_t Sum1r  = __riscv_vfadd_vv_f32m2(Br, Dr, vl);
                 vfloat32m2_t Sum1i  = __riscv_vfadd_vv_f32m2(Bi, Di, vl);
                 vfloat32m2_t Diff1r = __riscv_vfsub_vv_f32m2(Br, Dr, vl);
                 vfloat32m2_t Diff1i = __riscv_vfsub_vv_f32m2(Bi, Di, vl);
-
-                vTmp             = __riscv_vlseg2e32_v_f32m2x2(tw2, vl);
-                vfloat32m2_t W2r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t W2i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
 
                 /* Out0 = Sum0 + Sum1 */
                 vfloat32m2_t out0r = __riscv_vfadd_vv_f32m2(Sum0r, Sum1r, vl);
@@ -237,13 +231,13 @@ riscv_radix4_butterfly_inverse_f32(const riscv_cfft_instance_f32 *S,
                 __riscv_vsseg2e32_v_f32m2x2(
                     inA, __riscv_vcreate_v_f32m2x2(out0r, out0i), vl);
 
+                vfloat32m2x2_t vW2 = __riscv_vlseg2e32_v_f32m2x2(tw2, vl);
+                vfloat32m2_t   W2r = __riscv_vget_v_f32m2x2_f32m2(vW2, 0);
+                vfloat32m2_t   W2i = __riscv_vget_v_f32m2x2_f32m2(vW2, 1);
+
                 /* T1 = Sum0 - Sum1 */
                 vfloat32m2_t T1r = __riscv_vfsub_vv_f32m2(Sum0r, Sum1r, vl);
                 vfloat32m2_t T1i = __riscv_vfsub_vv_f32m2(Sum0i, Sum1i, vl);
-
-                vTmp             = __riscv_vlseg2e32_v_f32m2x2(tw1, vl);
-                vfloat32m2_t W1r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t W1i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
 
                 /* Out1 = T1 * W2 */
                 vfloat32m2_t out1r = __riscv_vfmul_vv_f32m2(T1r, W2r, vl);
@@ -253,13 +247,13 @@ riscv_radix4_butterfly_inverse_f32(const riscv_cfft_instance_f32 *S,
                 __riscv_vsseg2e32_v_f32m2x2(
                     inB, __riscv_vcreate_v_f32m2x2(out1r, out1i), vl);
 
+                vfloat32m2x2_t vW1 = __riscv_vlseg2e32_v_f32m2x2(tw1, vl);
+                vfloat32m2_t   W1r = __riscv_vget_v_f32m2x2_f32m2(vW1, 0);
+                vfloat32m2_t   W1i = __riscv_vget_v_f32m2x2_f32m2(vW1, 1);
+
                 /* T2 = Diff0 + i*Diff1 */
                 vfloat32m2_t T2r = __riscv_vfsub_vv_f32m2(Diff0r, Diff1i, vl);
                 vfloat32m2_t T2i = __riscv_vfadd_vv_f32m2(Diff0i, Diff1r, vl);
-
-                vTmp             = __riscv_vlseg2e32_v_f32m2x2(tw3, vl);
-                vfloat32m2_t W3r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t W3i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
 
                 /* Out2 = T2 * W1 */
                 vfloat32m2_t out2r = __riscv_vfmul_vv_f32m2(T2r, W1r, vl);
@@ -268,6 +262,10 @@ riscv_radix4_butterfly_inverse_f32(const riscv_cfft_instance_f32 *S,
                 out2i = __riscv_vfmacc_vv_f32m2(out2i, T2i, W1r, vl);
                 __riscv_vsseg2e32_v_f32m2x2(
                     inC, __riscv_vcreate_v_f32m2x2(out2r, out2i), vl);
+
+                vfloat32m2x2_t vW3 = __riscv_vlseg2e32_v_f32m2x2(tw3, vl);
+                vfloat32m2_t   W3r = __riscv_vget_v_f32m2x2_f32m2(vW3, 0);
+                vfloat32m2_t   W3i = __riscv_vget_v_f32m2x2_f32m2(vW3, 1);
 
                 /* T3 = Diff0 - i*Diff1 */
                 vfloat32m2_t T3r = __riscv_vfadd_vv_f32m2(Diff0r, Diff1i, vl);
@@ -300,7 +298,7 @@ riscv_radix4_butterfly_inverse_f32(const riscv_cfft_instance_f32 *S,
     }
 
     float32_t *pBase  = pSrc;
-    uint32_t   blkCnt = fftLen / 4;
+    size_t blkCnt = fftLen / 4;
 
     while (blkCnt > 0)
     {
@@ -393,41 +391,37 @@ riscv_radix4_butterfly_f32(const riscv_cfft_instance_f32 *S,
             float32_t const *tw2 = pW2;
             float32_t const *tw3 = pW3;
 
-            uint32_t blkCnt = n2;
+            size_t blkCnt = n2;
 
             while (blkCnt > 0)
             {
                 size_t vl = __riscv_vsetvl_e32m2(blkCnt);
 
-                vfloat32m2x2_t vTmp = __riscv_vlseg2e32_v_f32m2x2(inA, vl);
-                vfloat32m2_t   Ar   = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t   Ai   = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+                vfloat32m2x2_t vA = __riscv_vlseg2e32_v_f32m2x2(inA, vl);
+                vfloat32m2_t   Ar = __riscv_vget_v_f32m2x2_f32m2(vA, 0);
+                vfloat32m2_t   Ai = __riscv_vget_v_f32m2x2_f32m2(vA, 1);
 
-                vTmp            = __riscv_vlseg2e32_v_f32m2x2(inC, vl);
-                vfloat32m2_t Cr = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t Ci = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+                vfloat32m2x2_t vC = __riscv_vlseg2e32_v_f32m2x2(inC, vl);
+                vfloat32m2_t   Cr = __riscv_vget_v_f32m2x2_f32m2(vC, 0);
+                vfloat32m2_t   Ci = __riscv_vget_v_f32m2x2_f32m2(vC, 1);
 
                 vfloat32m2_t Sum0r  = __riscv_vfadd_vv_f32m2(Ar, Cr, vl);
                 vfloat32m2_t Sum0i  = __riscv_vfadd_vv_f32m2(Ai, Ci, vl);
                 vfloat32m2_t Diff0r = __riscv_vfsub_vv_f32m2(Ar, Cr, vl);
                 vfloat32m2_t Diff0i = __riscv_vfsub_vv_f32m2(Ai, Ci, vl);
 
-                vTmp            = __riscv_vlseg2e32_v_f32m2x2(inB, vl);
-                vfloat32m2_t Br = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t Bi = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+                vfloat32m2x2_t vB = __riscv_vlseg2e32_v_f32m2x2(inB, vl);
+                vfloat32m2_t   Br = __riscv_vget_v_f32m2x2_f32m2(vB, 0);
+                vfloat32m2_t   Bi = __riscv_vget_v_f32m2x2_f32m2(vB, 1);
 
-                vTmp            = __riscv_vlseg2e32_v_f32m2x2(inD, vl);
-                vfloat32m2_t Dr = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t Di = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+                vfloat32m2x2_t vD = __riscv_vlseg2e32_v_f32m2x2(inD, vl);
+                vfloat32m2_t   Dr = __riscv_vget_v_f32m2x2_f32m2(vD, 0);
+                vfloat32m2_t   Di = __riscv_vget_v_f32m2x2_f32m2(vD, 1);
 
                 vfloat32m2_t Sum1r  = __riscv_vfadd_vv_f32m2(Br, Dr, vl);
                 vfloat32m2_t Sum1i  = __riscv_vfadd_vv_f32m2(Bi, Di, vl);
                 vfloat32m2_t Diff1r = __riscv_vfsub_vv_f32m2(Br, Dr, vl);
                 vfloat32m2_t Diff1i = __riscv_vfsub_vv_f32m2(Bi, Di, vl);
-
-                vTmp             = __riscv_vlseg2e32_v_f32m2x2(tw2, vl);
-                vfloat32m2_t W2r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t W2i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
 
                 /* Out0 = Sum0 + Sum1 */
                 vfloat32m2_t out0r = __riscv_vfadd_vv_f32m2(Sum0r, Sum1r, vl);
@@ -435,13 +429,13 @@ riscv_radix4_butterfly_f32(const riscv_cfft_instance_f32 *S,
                 __riscv_vsseg2e32_v_f32m2x2(
                     inA, __riscv_vcreate_v_f32m2x2(out0r, out0i), vl);
 
+                vfloat32m2x2_t vW2 = __riscv_vlseg2e32_v_f32m2x2(tw2, vl);
+                vfloat32m2_t   W2r = __riscv_vget_v_f32m2x2_f32m2(vW2, 0);
+                vfloat32m2_t   W2i = __riscv_vget_v_f32m2x2_f32m2(vW2, 1);
+
                 /* T1 = Sum0 - Sum1 */
                 vfloat32m2_t T1r = __riscv_vfsub_vv_f32m2(Sum0r, Sum1r, vl);
                 vfloat32m2_t T1i = __riscv_vfsub_vv_f32m2(Sum0i, Sum1i, vl);
-
-                vTmp             = __riscv_vlseg2e32_v_f32m2x2(tw1, vl);
-                vfloat32m2_t W1r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t W1i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
 
                 /* Out1 = T1 * conj(W2) */
                 vfloat32m2_t out1r = __riscv_vfmul_vv_f32m2(T1r, W2r, vl);
@@ -451,12 +445,12 @@ riscv_radix4_butterfly_f32(const riscv_cfft_instance_f32 *S,
                 __riscv_vsseg2e32_v_f32m2x2(
                     inB, __riscv_vcreate_v_f32m2x2(out1r, out1i), vl);
 
+                vfloat32m2x2_t vW1 = __riscv_vlseg2e32_v_f32m2x2(tw1, vl);
+                vfloat32m2_t   W1r = __riscv_vget_v_f32m2x2_f32m2(vW1, 0);
+                vfloat32m2_t   W1i = __riscv_vget_v_f32m2x2_f32m2(vW1, 1);
+
                 vfloat32m2_t T2r = __riscv_vfadd_vv_f32m2(Diff0r, Diff1i, vl);
                 vfloat32m2_t T2i = __riscv_vfsub_vv_f32m2(Diff0i, Diff1r, vl);
-
-                vTmp             = __riscv_vlseg2e32_v_f32m2x2(tw3, vl);
-                vfloat32m2_t W3r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-                vfloat32m2_t W3i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
 
                 /* Out2 = T2 * conj(W1) */
                 vfloat32m2_t out2r = __riscv_vfmul_vv_f32m2(T2r, W1r, vl);
@@ -465,6 +459,10 @@ riscv_radix4_butterfly_f32(const riscv_cfft_instance_f32 *S,
                 out2i = __riscv_vfnmsac_vv_f32m2(out2i, T2r, W1i, vl);
                 __riscv_vsseg2e32_v_f32m2x2(
                     inC, __riscv_vcreate_v_f32m2x2(out2r, out2i), vl);
+
+                vfloat32m2x2_t vW3 = __riscv_vlseg2e32_v_f32m2x2(tw3, vl);
+                vfloat32m2_t   W3r = __riscv_vget_v_f32m2x2_f32m2(vW3, 0);
+                vfloat32m2_t   W3i = __riscv_vget_v_f32m2x2_f32m2(vW3, 1);
 
                 vfloat32m2_t T3r = __riscv_vfsub_vv_f32m2(Diff0r, Diff1i, vl);
                 vfloat32m2_t T3i = __riscv_vfadd_vv_f32m2(Diff0i, Diff1r, vl);
@@ -496,7 +494,7 @@ riscv_radix4_butterfly_f32(const riscv_cfft_instance_f32 *S,
     }
 
     float32_t *pBase  = pSrc;
-    uint32_t   blkCnt = fftLen / 4;
+    size_t blkCnt = fftLen / 4;
 
     while (blkCnt > 0)
     {
@@ -558,23 +556,23 @@ riscv_cfft_radix4by2_f32(const riscv_cfft_instance_f32 *S,
     float32_t       *pIn1     = pSrc + fftLen;
     float32_t const *pCoefVec = pCoef;
 
-    uint32_t blkCnt = n2;
+    size_t blkCnt = n2;
 
     while (blkCnt > 0)
     {
         size_t vl = __riscv_vsetvl_e32m2(blkCnt);
 
-        vfloat32m2x2_t vTmp  = __riscv_vlseg2e32_v_f32m2x2(pIn0, vl);
-        vfloat32m2_t   In0_r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t   In0_i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vIn0  = __riscv_vlseg2e32_v_f32m2x2(pIn0, vl);
+        vfloat32m2_t   In0_r = __riscv_vget_v_f32m2x2_f32m2(vIn0, 0);
+        vfloat32m2_t   In0_i = __riscv_vget_v_f32m2x2_f32m2(vIn0, 1);
 
-        vTmp               = __riscv_vlseg2e32_v_f32m2x2(pIn1, vl);
-        vfloat32m2_t In1_r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t In1_i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vIn1  = __riscv_vlseg2e32_v_f32m2x2(pIn1, vl);
+        vfloat32m2_t   In1_r = __riscv_vget_v_f32m2x2_f32m2(vIn1, 0);
+        vfloat32m2_t   In1_i = __riscv_vget_v_f32m2x2_f32m2(vIn1, 1);
 
-        vTmp              = __riscv_vlseg2e32_v_f32m2x2(pCoefVec, vl);
-        vfloat32m2_t Tw_r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t Tw_i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vTw  = __riscv_vlseg2e32_v_f32m2x2(pCoefVec, vl);
+        vfloat32m2_t   Tw_r = __riscv_vget_v_f32m2x2_f32m2(vTw, 0);
+        vfloat32m2_t   Tw_i = __riscv_vget_v_f32m2x2_f32m2(vTw, 1);
 
         vfloat32m2_t Sum_r = __riscv_vfadd_vv_f32m2(In0_r, In1_r, vl);
         vfloat32m2_t Sum_i = __riscv_vfadd_vv_f32m2(In0_i, In1_i, vl);
@@ -618,23 +616,23 @@ riscv_cfft_radix4by2_inverse_f32(const riscv_cfft_instance_f32 *S,
     float32_t       *pIn1     = pSrc + fftLen;
     float32_t const *pCoefVec = pCoef;
 
-    uint32_t blkCnt = n2;
+    size_t blkCnt = n2;
 
     while (blkCnt > 0)
     {
         size_t vl = __riscv_vsetvl_e32m2(blkCnt);
 
-        vfloat32m2x2_t vTmp  = __riscv_vlseg2e32_v_f32m2x2(pIn0, vl);
-        vfloat32m2_t   In0_r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t   In0_i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vIn0  = __riscv_vlseg2e32_v_f32m2x2(pIn0, vl);
+        vfloat32m2_t   In0_r = __riscv_vget_v_f32m2x2_f32m2(vIn0, 0);
+        vfloat32m2_t   In0_i = __riscv_vget_v_f32m2x2_f32m2(vIn0, 1);
 
-        vTmp               = __riscv_vlseg2e32_v_f32m2x2(pIn1, vl);
-        vfloat32m2_t In1_r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t In1_i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vIn1  = __riscv_vlseg2e32_v_f32m2x2(pIn1, vl);
+        vfloat32m2_t   In1_r = __riscv_vget_v_f32m2x2_f32m2(vIn1, 0);
+        vfloat32m2_t   In1_i = __riscv_vget_v_f32m2x2_f32m2(vIn1, 1);
 
-        vTmp              = __riscv_vlseg2e32_v_f32m2x2(pCoefVec, vl);
-        vfloat32m2_t Tw_r = __riscv_vget_v_f32m2x2_f32m2(vTmp, 0);
-        vfloat32m2_t Tw_i = __riscv_vget_v_f32m2x2_f32m2(vTmp, 1);
+        vfloat32m2x2_t vTw  = __riscv_vlseg2e32_v_f32m2x2(pCoefVec, vl);
+        vfloat32m2_t   Tw_r = __riscv_vget_v_f32m2x2_f32m2(vTw, 0);
+        vfloat32m2_t   Tw_i = __riscv_vget_v_f32m2x2_f32m2(vTw, 1);
 
         vfloat32m2_t Sum_r = __riscv_vfadd_vv_f32m2(In0_r, In1_r, vl);
         vfloat32m2_t Sum_i = __riscv_vfadd_vv_f32m2(In0_i, In1_i, vl);
