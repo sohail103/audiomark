@@ -97,7 +97,7 @@ riscv_radix8_butterfly_f32(float32_t       *pSrc,
         {
             uint32_t   rem    = (fftLen - i1 + n1 - 1) / n1;
             size_t     vl     = __riscv_vsetvl_e32m1(rem);
-            ssize_t    stride = (ssize_t)n1 * 2 * sizeof(float32_t);
+            ptrdiff_t  stride = (ptrdiff_t)n1 * 2 * sizeof(float32_t);
             float32_t *b      = pSrc + 2 * i1;
 
             vfloat32m1_t vr1 = __riscv_vlse32_v_f32m1(b, stride, vl);
@@ -244,7 +244,7 @@ riscv_radix8_butterfly_f32(float32_t       *pSrc,
             {
                 uint32_t   rem    = (fftLen - i1 + n1 - 1) / n1;
                 size_t     vl     = __riscv_vsetvl_e32m1(rem);
-                ssize_t    stride = (ssize_t)n1 * 2 * sizeof(float32_t);
+                ptrdiff_t  stride = (ptrdiff_t)n1 * 2 * sizeof(float32_t);
                 float32_t *b      = pSrc + 2 * i1;
 
                 vfloat32m1_t vr1 = __riscv_vlse32_v_f32m1(b, stride, vl);
@@ -448,17 +448,17 @@ riscv_cfft_radix8by2_f32(riscv_cfft_instance_f32 *S, float32_t *p1)
         vfloat32m2_t vt1r, vt1i, vt2r, vt2i, vt3r, vt3i, vt4r, vt4i;
         vfloat32m2_t vtwR, vtwI;
 
-        ssize_t stride = 2 * sizeof(float32_t);
-        vt1r           = __riscv_vlse32_v_f32m2(p1, stride, vl);
-        vt1i           = __riscv_vlse32_v_f32m2(p1 + 1, stride, vl);
-        vt2r           = __riscv_vlse32_v_f32m2(p2, stride, vl);
-        vt2i           = __riscv_vlse32_v_f32m2(p2 + 1, stride, vl);
-        vt3r           = __riscv_vlse32_v_f32m2(pMid1, stride, vl);
-        vt3i           = __riscv_vlse32_v_f32m2(pMid1 + 1, stride, vl);
-        vt4r           = __riscv_vlse32_v_f32m2(pMid2, stride, vl);
-        vt4i           = __riscv_vlse32_v_f32m2(pMid2 + 1, stride, vl);
-        vtwR           = __riscv_vlse32_v_f32m2(tw, stride, vl);
-        vtwI           = __riscv_vlse32_v_f32m2(tw + 1, stride, vl);
+        ptrdiff_t stride = 2 * sizeof(float32_t);
+        vt1r             = __riscv_vlse32_v_f32m2(p1, stride, vl);
+        vt1i             = __riscv_vlse32_v_f32m2(p1 + 1, stride, vl);
+        vt2r             = __riscv_vlse32_v_f32m2(p2, stride, vl);
+        vt2i             = __riscv_vlse32_v_f32m2(p2 + 1, stride, vl);
+        vt3r             = __riscv_vlse32_v_f32m2(pMid1, stride, vl);
+        vt3i             = __riscv_vlse32_v_f32m2(pMid1 + 1, stride, vl);
+        vt4r             = __riscv_vlse32_v_f32m2(pMid2, stride, vl);
+        vt4i             = __riscv_vlse32_v_f32m2(pMid2 + 1, stride, vl);
+        vtwR             = __riscv_vlse32_v_f32m2(tw, stride, vl);
+        vtwI             = __riscv_vlse32_v_f32m2(tw + 1, stride, vl);
 
         vfloat32m2_t vsum1r = __riscv_vfadd_vv_f32m2(vt1r, vt2r, vl);
         vfloat32m2_t vsum1i = __riscv_vfadd_vv_f32m2(vt1i, vt2i, vl);
@@ -555,7 +555,7 @@ riscv_cfft_radix8by4_f32(riscv_cfft_instance_f32 *S, float32_t *p1)
         size_t vl = __riscv_vsetvl_e32m1(l);
 
         vfloat32m1_t vp1r, vp1i, vp2r, vp2i, vp3r, vp3i, vp4r, vp4i;
-        ssize_t      stride = 2 * sizeof(float32_t);
+        ptrdiff_t    stride = 2 * sizeof(float32_t);
         vp1r                = __riscv_vlse32_v_f32m1(p1, stride, vl);
         vp1i                = __riscv_vlse32_v_f32m1(p1 + 1, stride, vl);
         vp2r                = __riscv_vlse32_v_f32m1(p2, stride, vl);
@@ -591,17 +591,17 @@ riscv_cfft_radix8by4_f32(riscv_cfft_instance_f32 *S, float32_t *p1)
             __riscv_vfsub_vv_f32m1(vs1, vp4r, vl), vp2r, vl);
 
         vfloat32m1_t vtw2R, vtw2I, vtw3R, vtw3I, vtw4R, vtw4I;
-        ssize_t      stride2 = 2 * sizeof(float32_t);
+        ptrdiff_t    stride2 = 2 * sizeof(float32_t);
         vtw2R                = __riscv_vlse32_v_f32m1(tw2, stride2, vl);
         vtw2I                = __riscv_vlse32_v_f32m1(tw2 + 1, stride2, vl);
 
-        ssize_t stride3 = 4 * sizeof(float32_t);
-        vtw3R           = __riscv_vlse32_v_f32m1(tw3, stride3, vl);
-        vtw3I           = __riscv_vlse32_v_f32m1(tw3 + 1, stride3, vl);
+        ptrdiff_t stride3 = 4 * sizeof(float32_t);
+        vtw3R             = __riscv_vlse32_v_f32m1(tw3, stride3, vl);
+        vtw3I             = __riscv_vlse32_v_f32m1(tw3 + 1, stride3, vl);
 
-        ssize_t stride4 = 6 * sizeof(float32_t);
-        vtw4R           = __riscv_vlse32_v_f32m1(tw4, stride4, vl);
-        vtw4I           = __riscv_vlse32_v_f32m1(tw4 + 1, stride4, vl);
+        ptrdiff_t stride4 = 6 * sizeof(float32_t);
+        vtw4R             = __riscv_vlse32_v_f32m1(tw4, stride4, vl);
+        vtw4I             = __riscv_vlse32_v_f32m1(tw4 + 1, stride4, vl);
 
         vfloat32m1_t vout2r = __riscv_vfmacc_vv_f32m1(
             __riscv_vfmul_vv_f32m1(vt2r, vtw2R, vl), vt2i, vtw2I, vl);
@@ -624,7 +624,7 @@ riscv_cfft_radix8by4_f32(riscv_cfft_instance_f32 *S, float32_t *p1)
         __riscv_vsse32_v_f32m1(p4, stride, vout4r, vl);
         __riscv_vsse32_v_f32m1(p4 + 1, stride, vout4i, vl);
 
-        ssize_t bcs = -2 * (ssize_t)sizeof(float32_t);
+        ptrdiff_t bcs = -2 * (ptrdiff_t)sizeof(float32_t);
 
         vfloat32m1_t ve1r = __riscv_vlse32_v_f32m1(pEnd1 - 1, bcs, vl);
         vfloat32m1_t ve1i = __riscv_vlse32_v_f32m1(pEnd1, bcs, vl);
