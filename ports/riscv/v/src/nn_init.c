@@ -1,0 +1,29 @@
+/**
+ * Copyright (C) 2024 SPEC Embedded Group
+ * Copyright (C) 2022-2023 EEMBC
+ * Copyright (C) 2022-2024 Arm Limited
+ *
+ * All EEMBC Benchmark Software are products of EEMBC and are provided under the
+ * terms of the EEMBC Benchmark License Agreements. The EEMBC Benchmark Software
+ * are proprietary intellectual properties of EEMBC and its Members and is
+ * protected under all applicable laws, including all applicable copyright laws.
+ *
+ * If you received this EEMBC Benchmark Software without having a currently
+ * effective EEMBC Benchmark License Agreement, you must discontinue use.
+ *
+ * Modifications copyright (C) 2026 Sohail Raj Satapathy
+ */
+
+#include "ee_audiomark.h"
+#include "ee_api.h"
+#include "nn/functions.h"
+#include "nn/support_functions.h"
+
+/* Test for a complete int8 DS_CNN_S keyword spotting network from
+ * https://github.com/ARM-software/ML-zoo & Tag: 22.02 */
+nn_context ctx;
+
+void
+th_nn_init(void)
+{
+}
