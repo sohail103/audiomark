@@ -15,13 +15,14 @@
  */
 
 #include "functions.h"
-#include "support_functions.h"
+#include "rvp_support_guard.h"
+#include <riscv_p_asm.h>
 
 extern const int32_t EXP_LUT[256];
 extern const int32_t RECIP_LUT[256];
 
 void
-nn_softmax_1x12_s8(const int8_t *restrict input, int8_t *restrict output)
+nn_softmax_row12_s8(const int8_t *restrict input, int8_t *restrict output)
 {
     /* Find the Max — SIMD block unchanged */
     int8x4_t V_in1   = __riscv_pload_i8x4(input);
@@ -41,29 +42,46 @@ nn_softmax_1x12_s8(const int8_t *restrict input, int8_t *restrict output)
     uint64_t u_sum = 0;
 
     /* Exp lookup and accumulate */
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 12; i++)
+    {
         exp_res[i] = EXP_LUT[(uint8_t)(max_val - input[i])];
         u_sum += (uint64_t)exp_res[i];
     }
 
-    int      c            = __builtin_clzll(u_sum);
-    uint64_t norm64       = u_sum << c;
+    int      c      = __builtin_clzll(u_sum);
+    uint64_t norm64 = u_sum << c;
 
-    uint32_t recip_index  = (uint32_t)(norm64 >> 55) & 0xFF;
-    uint32_t fraction     = (uint32_t)(norm64 >> 48) & 0x7F;
+    uint32_t recip_index = (uint32_t)(norm64 >> 55) & 0xFF;
+    uint32_t fraction    = (uint32_t)(norm64 >> 48) & 0x7F;
 
-    int64_t  y0           = RECIP_LUT[recip_index];
-    int64_t  y1           = RECIP_LUT[recip_index + (recip_index < 255)];
-    int64_t  normalized_recip = y0 + ((fraction * (y1 - y0)) >> 7);
+    int32_t y0               = RECIP_LUT[recip_index];
+    int32_t y1               = RECIP_LUT[recip_index + (recip_index < 255)];
+    int32_t normalized_recip = y0 + ((int32_t)(fraction * (y1 - y0)) >> 7);
 
-    int      final_shift  = 86 - c;
-    int64_t  round_const  = (int64_t)1 << (final_shift - 1);
+    int       final_shift = 86 - c;
+    int32x2_t vRecip      = __riscv_pmv_s_i32x2(normalized_recip);
 
     /* Requantize */
-    for (int i = 0; i < 12; i++) {
-        int64_t p = ((int64_t)exp_res[i] * normalized_recip + round_const)
-                    >> final_shift;
-        p -= 128;
-        output[i] = (int8_t)(p < -128 ? -128 : (p > 127 ? 127 : p));
+    for (int i = 0; i < 12; i += 4)
+    {
+
+        int32x2_t vp0 = __riscv_pload_i32x2(exp_res + i);
+        int32x2_t vp1 = __riscv_pload_i32x2(exp_res + i + 2);
+
+        vp0 = __riscv_pmulhr_i32x2(vp0, vRecip);
+        vp1 = __riscv_pmulhr_i32x2(vp1, vRecip);
+
+        int16x2_t nVp0 = __riscv_pnclipr_s_i16x2(vp0, final_shift - 32);
+        int16x2_t nVp1 = __riscv_pnclipr_s_i16x2(vp1, final_shift - 32);
+        int16x4_t vp   = __riscv_pmv_s_i16x4(0);
+
+        vp = __riscv_pset_i16x2_i16x4(vp, nVp0, 0);
+        vp = __riscv_pset_i16x2_i16x4(vp, nVp1, 1);
+
+        vp = __riscv_psub_i16x4(vp, __riscv_pmv_s_i16x4(128));
+
+        int8x4_t nvp = __riscv_pnclipr_s_i8x4(vp, 0);
+
+        __riscv_pstore_i8x4(output + i, nvp);
     }
 }

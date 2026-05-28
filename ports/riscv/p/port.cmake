@@ -3,6 +3,7 @@ include_directories(
     ${PORT_DIR}/src/dsp/
     ${PORT_DIR}/..
     ${PORT_DIR}/../src/dsp/
+    ${PORT_DIR}/../src/nn/
 )
 
 add_definitions(-DUSE_RISCV_DSP)
@@ -25,7 +26,7 @@ set(PORT_SOURCE
     ${PORT_DIR}/../src/nn/mat_mult_kernel_s8_s16.c
     ${PORT_DIR}/../src/nn/q7_to_q15_with_offset.c
     ${PORT_DIR}/src/nn/softmax_row12_s8.c
-    ${PORT_DIR}/src/nn/softmax_luts.c
+    ${PORT_DIR}/../src/nn/softmax_luts.c
     ${PORT_DIR}/../src/nn/vec_mat_mult_t_s8.c
 
     ${PORT_DIR}/../src/absmax_f32.c
