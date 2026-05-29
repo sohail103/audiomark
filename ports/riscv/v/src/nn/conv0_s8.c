@@ -38,7 +38,6 @@
 #define PW    1
 #define PATCH (FH * FW) /* 40 */
 
-/* interior output range where no kernel position falls outside the input */
 #define Y_LO 2
 #define Y_HI 22
 #define X_LO 1
@@ -46,7 +45,6 @@
 
 static q15_t col_buf[2 * PATCH];
 
-/* widen FW=4 int8 pixels to q15 for one kernel row; no bounds check */
 #define FILL_ROW(row_ptr, r, in_off, dst)                                      \
     do                                                                         \
     {                                                                          \
@@ -92,7 +90,6 @@ nn_conv0_s8(const nn_conv_params              *conv_params,
 
             if (y_intr && x_intr)
             {
-                /* fast path: all kernel positions are in-bounds */
                 const int8_t *row = input_data + by * IW + bx;
                 FILL_ROW(row, 0, in_off, slot);
                 FILL_ROW(row, 1, in_off, slot);
@@ -107,7 +104,6 @@ nn_conv0_s8(const nn_conv_params              *conv_params,
             }
             else
             {
-                /* boundary: zero-pad out-of-bounds positions */
                 for (int ky = 0; ky < FH; ky++)
                 {
                     const int32_t iy = by + ky;
@@ -128,19 +124,20 @@ nn_conv0_s8(const nn_conv_params              *conv_params,
 
             if (px_count == 2)
             {
-                /* GEMM: w(i8)[OC,PATCH] x [slot0,slot1](q15) -> out[2,OC] */
                 for (int co = 0; co < OC; co++)
                 {
                     const int8_t *w   = filter_data + co * PATCH;
-                    int32_t       s0  = bias_data ? bias_data[co] : 0;
-                    int32_t       s1  = s0;
+                    const q15_t  *p0  = slot0;
+                    const q15_t  *p1  = slot1;
                     int           rem = PATCH;
-                    const q15_t  *p0 = slot0, *p1 = slot1;
+
+                    /* zero-init accumulators at full PATCH width */
+                    size_t     full_vl = __riscv_vsetvl_e8m1(PATCH);
+                    vint32m4_t vacc0   = __riscv_vmv_v_x_i32m4(0, full_vl);
+                    vint32m4_t vacc1   = __riscv_vmv_v_x_i32m4(0, full_vl);
 
                     while (rem > 0)
                     {
-                        /* e8m1 keeps two i32m4 product vectors within 32 regs
-                         */
                         size_t     vl  = __riscv_vsetvl_e8m1(rem);
                         vint8m1_t  vw8 = __riscv_vle8_v_i8m1(w, vl);
                         vint16m2_t vw  = __riscv_vsext_vf2_i16m2(vw8, vl);
@@ -148,16 +145,24 @@ nn_conv0_s8(const nn_conv_params              *conv_params,
                         vint16m2_t vc1 = __riscv_vle16_v_i16m2(p1, vl);
                         vint32m4_t vp0 = __riscv_vwmul_vv_i32m4(vw, vc0, vl);
                         vint32m4_t vp1 = __riscv_vwmul_vv_i32m4(vw, vc1, vl);
-                        vint32m1_t vz  = __riscv_vmv_s_x_i32m1(0, 1);
-                        s0 += __riscv_vmv_x_s_i32m1_i32(
-                            __riscv_vredsum_vs_i32m4_i32m1(vp0, vz, vl));
-                        s1 += __riscv_vmv_x_s_i32m1_i32(
-                            __riscv_vredsum_vs_i32m4_i32m1(vp1, vz, vl));
+                        vacc0          = __riscv_vadd_vv_i32m4(vacc0, vp0, vl);
+                        vacc1          = __riscv_vadd_vv_i32m4(vacc1, vp1, vl);
                         w += vl;
                         p0 += vl;
                         p1 += vl;
                         rem -= (int)vl;
                     }
+
+                    /* one reduction per accumulator at end */
+                    vint32m1_t vz = __riscv_vmv_s_x_i32m1(0, 1);
+                    int32_t    s0 = (bias_data ? bias_data[co] : 0)
+                                    + __riscv_vmv_x_s_i32m1_i32(
+                                        __riscv_vredsum_vs_i32m4_i32m1(
+                                            vacc0, vz, full_vl));
+                    int32_t    s1 = (bias_data ? bias_data[co] : 0)
+                                    + __riscv_vmv_x_s_i32m1_i32(
+                                        __riscv_vredsum_vs_i32m4_i32m1(
+                                            vacc1, vz, full_vl));
 
                     s0      = nn_requantize(s0, mult[co], shift[co]) + out_off;
                     s1      = nn_requantize(s1, mult[co], shift[co]) + out_off;
@@ -176,29 +181,31 @@ nn_conv0_s8(const nn_conv_params              *conv_params,
         for (int co = 0; co < OC; co++)
         {
             const int8_t *w   = filter_data + co * PATCH;
-            int32_t       s   = bias_data ? bias_data[co] : 0;
-            int           rem = PATCH;
             const q15_t  *p   = slot0;
+            int           rem = PATCH;
+
+            size_t     full_vl = __riscv_vsetvl_e8m2(PATCH);
+            vint32m8_t vacc    = __riscv_vmv_v_x_i32m8(0, full_vl);
 
             while (rem > 0)
             {
-                /* single product: bump to e8m2->i16m4->i32m8 for one-shot at
-                 * VLEN>=256 */
                 size_t     vl  = __riscv_vsetvl_e8m2(rem);
                 vint8m2_t  vw8 = __riscv_vle8_v_i8m2(w, vl);
                 vint16m4_t vw  = __riscv_vsext_vf2_i16m4(vw8, vl);
                 vint16m4_t vc  = __riscv_vle16_v_i16m4(p, vl);
                 vint32m8_t vp  = __riscv_vwmul_vv_i32m8(vw, vc, vl);
-                vint32m1_t vz  = __riscv_vmv_s_x_i32m1(0, 1);
-                s += __riscv_vmv_x_s_i32m1_i32(
-                    __riscv_vredsum_vs_i32m8_i32m1(vp, vz, vl));
+                vacc           = __riscv_vadd_vv_i32m8(vacc, vp, vl);
                 w += vl;
                 p += vl;
                 rem -= (int)vl;
             }
 
-            s       = nn_requantize(s, mult[co], shift[co]) + out_off;
-            out[co] = (int8_t)MAX(act_min, MIN(act_max, s));
+            vint32m1_t vz = __riscv_vmv_s_x_i32m1(0, 1);
+            int32_t s = (bias_data ? bias_data[co] : 0)
+                        + __riscv_vmv_x_s_i32m1_i32(
+                            __riscv_vredsum_vs_i32m8_i32m1(vacc, vz, full_vl));
+            s         = nn_requantize(s, mult[co], shift[co]) + out_off;
+            out[co]   = (int8_t)MAX(act_min, MIN(act_max, s));
         }
     }
 

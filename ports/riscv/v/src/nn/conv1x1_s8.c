@@ -49,12 +49,8 @@ nn_conv1x1_s8(const nn_conv_params              *conv_params,
     int8_t       *out = output_data;
     int           px  = 0;
 
-    /* widen 4 input vectors to q15 in one pass, then GEMM against all OC rows
-     */
     for (; px <= SPATIAL - 4; px += 4)
     {
-        /* widen 4 x IC int8 inputs to q15; e8m2->i16m4 covers IC=64 in one shot
-         * at VLEN>=256 */
         for (int n = 0; n < 4; n++)
         {
             const int8_t *src = in + (px + n) * IC;
@@ -73,11 +69,6 @@ nn_conv1x1_s8(const nn_conv_params              *conv_params,
             }
         }
 
-        /*
-         * GEMM: for each output channel, load weight row once and accumulate
-         * four dot-products.  e8m1->i16m2->i32m4 keeps two concurrent
-         * product vectors within the 32-register budget.
-         */
         int8_t *o0 = out + (px + 0) * OC;
         int8_t *o1 = out + (px + 1) * OC;
         int8_t *o2 = out + (px + 2) * OC;
@@ -85,14 +76,19 @@ nn_conv1x1_s8(const nn_conv_params              *conv_params,
 
         for (int co = 0; co < OC; co++)
         {
-            const int8_t *w  = filter_data + co * IC;
-            int32_t       b  = bias_data ? bias_data[co] : 0;
-            int32_t       s0 = b, s1 = b, s2 = b, s3 = b;
-            int           rem = IC;
+            const int8_t *w   = filter_data + co * IC;
             const q15_t  *p0  = col_buf + 0 * IC;
             const q15_t  *p1  = col_buf + 1 * IC;
             const q15_t  *p2  = col_buf + 2 * IC;
             const q15_t  *p3  = col_buf + 3 * IC;
+            int           rem = IC;
+
+            /* zero-init four i32m4 accumulators */
+            size_t     full_vl = __riscv_vsetvl_e8m1(IC);
+            vint32m4_t vacc0   = __riscv_vmv_v_x_i32m4(0, full_vl);
+            vint32m4_t vacc1   = __riscv_vmv_v_x_i32m4(0, full_vl);
+            vint32m4_t vacc2   = __riscv_vmv_v_x_i32m4(0, full_vl);
+            vint32m4_t vacc3   = __riscv_vmv_v_x_i32m4(0, full_vl);
 
             while (rem > 0)
             {
@@ -103,19 +99,14 @@ nn_conv1x1_s8(const nn_conv_params              *conv_params,
                 vint16m2_t vc1 = __riscv_vle16_v_i16m2(p1, vl);
                 vint16m2_t vc2 = __riscv_vle16_v_i16m2(p2, vl);
                 vint16m2_t vc3 = __riscv_vle16_v_i16m2(p3, vl);
-                vint32m4_t vp0 = __riscv_vwmul_vv_i32m4(vw, vc0, vl);
-                vint32m4_t vp1 = __riscv_vwmul_vv_i32m4(vw, vc1, vl);
-                vint32m4_t vp2 = __riscv_vwmul_vv_i32m4(vw, vc2, vl);
-                vint32m4_t vp3 = __riscv_vwmul_vv_i32m4(vw, vc3, vl);
-                vint32m1_t vz  = __riscv_vmv_s_x_i32m1(0, 1);
-                s0 += __riscv_vmv_x_s_i32m1_i32(
-                    __riscv_vredsum_vs_i32m4_i32m1(vp0, vz, vl));
-                s1 += __riscv_vmv_x_s_i32m1_i32(
-                    __riscv_vredsum_vs_i32m4_i32m1(vp1, vz, vl));
-                s2 += __riscv_vmv_x_s_i32m1_i32(
-                    __riscv_vredsum_vs_i32m4_i32m1(vp2, vz, vl));
-                s3 += __riscv_vmv_x_s_i32m1_i32(
-                    __riscv_vredsum_vs_i32m4_i32m1(vp3, vz, vl));
+                vacc0          = __riscv_vadd_vv_i32m4(
+                    vacc0, __riscv_vwmul_vv_i32m4(vw, vc0, vl), vl);
+                vacc1 = __riscv_vadd_vv_i32m4(
+                    vacc1, __riscv_vwmul_vv_i32m4(vw, vc1, vl), vl);
+                vacc2 = __riscv_vadd_vv_i32m4(
+                    vacc2, __riscv_vwmul_vv_i32m4(vw, vc2, vl), vl);
+                vacc3 = __riscv_vadd_vv_i32m4(
+                    vacc3, __riscv_vwmul_vv_i32m4(vw, vc3, vl), vl);
                 w += vl;
                 p0 += vl;
                 p1 += vl;
@@ -123,6 +114,25 @@ nn_conv1x1_s8(const nn_conv_params              *conv_params,
                 p3 += vl;
                 rem -= (int)vl;
             }
+
+            int32_t    b  = bias_data ? bias_data[co] : 0;
+            vint32m1_t vz = __riscv_vmv_s_x_i32m1(0, 1);
+            int32_t    s0
+                = b
+                  + __riscv_vmv_x_s_i32m1_i32(
+                      __riscv_vredsum_vs_i32m4_i32m1(vacc0, vz, full_vl));
+            int32_t s1
+                = b
+                  + __riscv_vmv_x_s_i32m1_i32(
+                      __riscv_vredsum_vs_i32m4_i32m1(vacc1, vz, full_vl));
+            int32_t s2
+                = b
+                  + __riscv_vmv_x_s_i32m1_i32(
+                      __riscv_vredsum_vs_i32m4_i32m1(vacc2, vz, full_vl));
+            int32_t s3
+                = b
+                  + __riscv_vmv_x_s_i32m1_i32(
+                      __riscv_vredsum_vs_i32m4_i32m1(vacc3, vz, full_vl));
 
             int32_t m = mult[co], sh = shift[co];
             s0     = nn_requantize(s0, m, sh) + out_off;
@@ -136,8 +146,7 @@ nn_conv1x1_s8(const nn_conv_params              *conv_params,
         }
     }
 
-    /* SPATIAL=125: one pixel remains; e8m2->i16m4->i32m8 covers IC=64 in one
-     * shot */
+    /* one pixel remains at px=124 */
     if (px < SPATIAL)
     {
         const int8_t *src = in + px * IC;
@@ -159,25 +168,31 @@ nn_conv1x1_s8(const nn_conv_params              *conv_params,
         for (int co = 0; co < OC; co++)
         {
             const int8_t *w = filter_data + co * IC;
-            int32_t       s = bias_data ? bias_data[co] : 0;
+            const q15_t  *p = col_buf;
             rem             = IC;
-            const q15_t *p  = col_buf;
+
+            size_t     full_vl = __riscv_vsetvl_e8m2(IC);
+            vint32m8_t vacc    = __riscv_vmv_v_x_i32m8(0, full_vl);
+
             while (rem > 0)
             {
                 size_t     vl  = __riscv_vsetvl_e8m2(rem);
                 vint8m2_t  vw8 = __riscv_vle8_v_i8m2(w, vl);
                 vint16m4_t vw  = __riscv_vsext_vf2_i16m4(vw8, vl);
                 vint16m4_t vc  = __riscv_vle16_v_i16m4(p, vl);
-                vint32m8_t vp  = __riscv_vwmul_vv_i32m8(vw, vc, vl);
-                vint32m1_t vz  = __riscv_vmv_s_x_i32m1(0, 1);
-                s += __riscv_vmv_x_s_i32m1_i32(
-                    __riscv_vredsum_vs_i32m8_i32m1(vp, vz, vl));
+                vacc           = __riscv_vadd_vv_i32m8(
+                    vacc, __riscv_vwmul_vv_i32m8(vw, vc, vl), vl);
                 w += vl;
                 p += vl;
                 rem -= (int)vl;
             }
-            s      = nn_requantize(s, mult[co], shift[co]) + out_off;
-            o0[co] = (int8_t)MAX(act_min, MIN(act_max, s));
+
+            vint32m1_t vz = __riscv_vmv_s_x_i32m1(0, 1);
+            int32_t s = (bias_data ? bias_data[co] : 0)
+                        + __riscv_vmv_x_s_i32m1_i32(
+                            __riscv_vredsum_vs_i32m8_i32m1(vacc, vz, full_vl));
+            s         = nn_requantize(s, mult[co], shift[co]) + out_off;
+            o0[co]    = (int8_t)MAX(act_min, MIN(act_max, s));
         }
     }
 
