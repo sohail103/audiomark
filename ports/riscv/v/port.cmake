@@ -1,7 +1,8 @@
 include_directories(
+    ${PORT_DIR}/src
+    ${PORT_DIR}/src/dsp/
     ${PORT_DIR}/..
-    ${PORT_DIR}/../src
-    ${PORT_DIR}/../src/dsp
+    ${PORT_DIR}/../src/dsp/
 )
 
 add_definitions(-DUSE_RISCV_DSP)
@@ -11,6 +12,7 @@ set(PORT_SOURCE
     ${PORT_DIR}/../th_api.c
 
     ${PORT_DIR}/../src/dsp/tables_f32.c
+    ${PORT_DIR}/../src/dsp/tables_q31.c
     ${PORT_DIR}/src/dsp/cfft_f32.c
     ${PORT_DIR}/src/dsp/rfft_fast_f32.c
 

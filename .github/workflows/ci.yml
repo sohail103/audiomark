@@ -16,13 +16,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Install Clang
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y clang lld
+
       - name: Print CPU and compiler info
         run: |
           cat /proc/cpuinfo
           cc -v 2>&1
 
       - name: Configure CMake
-        run: cmake -S . -B build -DPORT_DIR=ports/riscv
+        run: cmake -S . -B build -DPORT_DIR=ports/riscv -DCMAKE_C_COMPILER=clang
 
       - name: Build
         run: cmake --build build --parallel
@@ -62,6 +67,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Install Clang
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y clang lld
+
       - name: Print CPU and compiler info
         run: |
           cat /proc/cpuinfo
@@ -82,9 +92,9 @@ jobs:
       - name: Configure CMake (RVV)
         run: |
           if [ -z "$RUN" ]; then
-            cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v
+            cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v -DCMAKE_C_COMPILER=clang
           else
-            cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v -DCMAKE_C_FLAGS="-O2 -march=rv64gcv"
+            cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v -DCMAKE_C_COMPILER=clang -DCMAKE_C_FLAGS="-O2 -march=rv64gcv"
           fi
 
       - name: Build (RVV)

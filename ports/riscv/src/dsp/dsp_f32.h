@@ -48,6 +48,20 @@ extern "C"
     extern const uint16_t riscvBitRevIndexTable_f32_512
         [RISCVBITREVINDEXTABLE_FLOAT_512_TABLE_LENGTH];
 
+    extern const uint32_t  rearranged_twiddle_tab_stride1_arr_64_f32[3];
+    extern const uint32_t  rearranged_twiddle_tab_stride2_arr_64_f32[3];
+    extern const uint32_t  rearranged_twiddle_tab_stride3_arr_64_f32[3];
+    extern const float32_t rearranged_twiddle_stride1_64_f32[40];
+    extern const float32_t rearranged_twiddle_stride2_64_f32[40];
+    extern const float32_t rearranged_twiddle_stride3_64_f32[40];
+
+    extern const uint32_t  rearranged_twiddle_tab_stride1_arr_256_f32[4];
+    extern const uint32_t  rearranged_twiddle_tab_stride2_arr_256_f32[4];
+    extern const uint32_t  rearranged_twiddle_tab_stride3_arr_256_f32[4];
+    extern const float32_t rearranged_twiddle_stride1_256_f32[168];
+    extern const float32_t rearranged_twiddle_stride2_256_f32[168];
+    extern const float32_t rearranged_twiddle_stride3_256_f32[168];
+
 #ifdef __cplusplus
 }
 #endif

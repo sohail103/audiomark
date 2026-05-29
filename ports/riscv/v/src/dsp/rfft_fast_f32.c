@@ -1,4 +1,5 @@
 /*
+ * Copyright 2026 Robin John
  * Copyright 2026 Harshit Kumar Shivhare
  * Copyright (C) 2010-2021 ARM Limited or its affiliates. All rights reserved.
  *
@@ -17,91 +18,56 @@
  * limitations under the License.
  */
 
-#include "dsp/dsp.h"
-#include "dsp/dsp_f32.h"
-#include "../rvv_support_guard.h"
-
-static riscv_status
-riscv_rfft_512_fast_init_f32(riscv_rfft_fast_instance_f32 *S)
-{
-    riscv_status status;
-
-    if (!S)
-    {
-        return RISCV_MATH_ERROR;
-    }
-
-    status = riscv_cfft_init_f32(&(S->Sint), 256);
-    if (status != RISCV_MATH_SUCCESS)
-    {
-        return (status);
-    }
-
-    S->fftLenRFFT   = 512U;
-    S->pTwiddleRFFT = (float32_t *)twiddleCoef_rfft_f32_512;
-    return RISCV_MATH_SUCCESS;
-}
-
-static riscv_status
-riscv_rfft_1024_fast_init_f32(riscv_rfft_fast_instance_f32 *S)
-{
-    riscv_status status;
-
-    if (!S)
-    {
-        return RISCV_MATH_ERROR;
-    }
-
-    status = riscv_cfft_init_f32(&(S->Sint), 512);
-    if (status != RISCV_MATH_SUCCESS)
-    {
-        return (status);
-    }
-
-    S->fftLenRFFT   = 1024U;
-    S->pTwiddleRFFT = (float32_t *)twiddleCoef_rfft_f32_1024;
-    return RISCV_MATH_SUCCESS;
-}
+#include <dsp_types.h>
+#include "dsp.h"
+#include "dsp_f32.h"
+#include "rvv_support_guard.h"
 
 riscv_status
-riscv_rfft_fast_init_f32(riscv_rfft_fast_instance_f32 *S, uint16_t fftLen)
+riscv_rfft_fast_init_f32(riscv_rfft_fast_instance_f32 *S, uint16_t fftLenReal)
 {
-    typedef riscv_status (*fft_init_ptr)(riscv_rfft_fast_instance_f32 *);
-    fft_init_ptr fptr = 0x0;
+    riscv_status status = RISCV_MATH_SUCCESS;
 
-    switch (fftLen)
+    /*  Initialize the Real FFT length */
+    S->fftLenRFFT = (uint16_t)fftLenReal;
+
+    /*  Initialization of coef modifier depending on the FFT length */
+    switch (fftLenReal)
     {
         case 1024U:
-            fptr = riscv_rfft_1024_fast_init_f32;
+            S->pTwiddleRFFT = (float32_t *)twiddleCoef_rfft_f32_1024;
+            status          = riscv_cfft_init_f32(&(S->Sint), 512);
             break;
         case 512U:
-            fptr = riscv_rfft_512_fast_init_f32;
+            S->pTwiddleRFFT = (float32_t *)twiddleCoef_rfft_f32_512;
+            status          = riscv_cfft_init_f32(&(S->Sint), 256);
             break;
         default:
+            status = RISCV_MATH_ERROR;
             break;
     }
 
-    if (!fptr)
-    {
-        return RISCV_MATH_ERROR;
-    }
-    return fptr(S);
+    return status;
 }
 
-static void
+void
 stage_rfft_f32(const riscv_rfft_fast_instance_f32 *S,
                float32_t                          *p,
                float32_t                          *pOut)
 {
     int32_t          k      = (S->Sint).fftLen - 1;
     const float32_t *pCoeff = S->pTwiddleRFFT;
-    float32_t       *pA     = p;
-    float32_t       *pB     = p;
 
-    float32_t xBR = pB[0], xBI = pB[1];
-    float32_t xAR = pA[0], xAI = pA[1];
-    float32_t twR = *pCoeff++;
-    float32_t twI = *pCoeff++;
+    float32_t *pA = p;
+    float32_t *pB = p;
+
+    float32_t xBR = pB[0];
+    float32_t xBI = pB[1];
+    float32_t xAR = pA[0];
+    float32_t xAI = pA[1];
+
+    pCoeff += 2;
+
     float32_t t1a = xBR + xAR;
     float32_t t1b = xBI + xAI;
 
@@ -111,101 +77,125 @@ stage_rfft_f32(const riscv_rfft_fast_instance_f32 *S,
     pB = p + 2 * k;
     pA += 2;
 
-    while (k > 0)
+    size_t blkCnt = k;
+
+    while (blkCnt > 0)
     {
-        size_t       vl = __riscv_vsetvl_e32m1(k);
-        vfloat32m1_t vxAR, vxAI, vtwR, vtwI;
+        size_t vl = __riscv_vsetvl_e32m2(blkCnt);
 
-        ptrdiff_t bstride = 2 * sizeof(float32_t);
-        vxAR              = __riscv_vlse32_v_f32m1(pA, bstride, vl);
-        vxAI              = __riscv_vlse32_v_f32m1(pA + 1, bstride, vl);
+        vfloat32m2x2_t vA  = __riscv_vlseg2e32_v_f32m2x2(pA, vl);
+        vfloat32m2_t   xAr = __riscv_vget_v_f32m2x2_f32m2(vA, 0);
+        vfloat32m2_t   xAi = __riscv_vget_v_f32m2x2_f32m2(vA, 1);
 
-        vtwR = __riscv_vlse32_v_f32m1(pCoeff, bstride, vl);
-        vtwI = __riscv_vlse32_v_f32m1(pCoeff + 1, bstride, vl);
+        vfloat32m2x2_t vB  = __riscv_vlsseg2e32_v_f32m2x2(pB, -8, vl);
+        vfloat32m2_t   xBr = __riscv_vget_v_f32m2x2_f32m2(vB, 0);
+        vfloat32m2_t   xBi = __riscv_vget_v_f32m2x2_f32m2(vB, 1);
 
-        vfloat32m1_t vxBR_raw
-            = __riscv_vlse32_v_f32m1(pB, -2 * (ptrdiff_t)sizeof(float32_t), vl);
-        vfloat32m1_t vxBI_raw = __riscv_vlse32_v_f32m1(
-            pB + 1, -2 * (ptrdiff_t)sizeof(float32_t), vl);
+        vfloat32m2x2_t vTw = __riscv_vlseg2e32_v_f32m2x2(pCoeff, vl);
+        vfloat32m2_t   twR = __riscv_vget_v_f32m2x2_f32m2(vTw, 0);
+        vfloat32m2_t   twI = __riscv_vget_v_f32m2x2_f32m2(vTw, 1);
 
-        vfloat32m1_t vt1a = __riscv_vfsub_vv_f32m1(vxBR_raw, vxAR, vl);
-        vfloat32m1_t vt1b = __riscv_vfadd_vv_f32m1(vxBI_raw, vxAI, vl);
+        /* tmp1 = xA + xB */
+        vfloat32m2_t tmp1R = __riscv_vfadd_vv_f32m2(xAr, xBr, vl);
+        vfloat32m2_t tmp1I = __riscv_vfsub_vv_f32m2(xAi, xBi, vl);
 
-        vfloat32m1_t voutR = __riscv_vfadd_vv_f32m1(vxAR, vxBR_raw, vl);
-        voutR              = __riscv_vfmacc_vv_f32m1(voutR, vtwR, vt1a, vl);
-        voutR              = __riscv_vfmacc_vv_f32m1(voutR, vtwI, vt1b, vl);
-        voutR              = __riscv_vfmul_vf_f32m1(voutR, 0.5f, vl);
+        /* tmp2 = xB - xA */
+        vfloat32m2_t tmp2R = __riscv_vfsub_vv_f32m2(xBr, xAr, vl);
+        vfloat32m2_t tmp2I = __riscv_vfadd_vv_f32m2(xBi, xAi, vl);
 
-        vfloat32m1_t voutI = __riscv_vfsub_vv_f32m1(vxAI, vxBI_raw, vl);
-        voutI              = __riscv_vfmacc_vv_f32m1(voutI, vtwI, vt1a, vl);
-        voutI              = __riscv_vfnmsac_vv_f32m1(voutI, vtwR, vt1b, vl);
-        voutI              = __riscv_vfmul_vf_f32m1(voutI, 0.5f, vl);
+        /* res = tw * tmp2 */
+        vfloat32m2_t resR = __riscv_vfmul_vv_f32m2(twR, tmp2R, vl);
+        resR              = __riscv_vfmacc_vv_f32m2(resR, twI, tmp2I, vl);
 
-        __riscv_vsse32_v_f32m1(pOut, bstride, voutR, vl);
-        __riscv_vsse32_v_f32m1(pOut + 1, bstride, voutI, vl);
+        vfloat32m2_t resI = __riscv_vfmul_vv_f32m2(twI, tmp2R, vl);
+        resI              = __riscv_vfnmsac_vv_f32m2(resI, twR, tmp2I, vl);
+
+        vfloat32m2_t half1R = __riscv_vfmul_vf_f32m2(tmp1R, 0.5f, vl);
+        vfloat32m2_t half1I = __riscv_vfmul_vf_f32m2(tmp1I, 0.5f, vl);
+
+        /* res = (res + tmp1) * 0.5f*/
+        resR = __riscv_vfmacc_vf_f32m2(half1R, 0.5f, resR, vl);
+        resI = __riscv_vfmacc_vf_f32m2(half1I, 0.5f, resI, vl);
+
+        __riscv_vsseg2e32_v_f32m2x2(
+            pOut, __riscv_vcreate_v_f32m2x2(resR, resI), vl);
 
         pA += 2 * vl;
         pB -= 2 * vl;
         pCoeff += 2 * vl;
         pOut += 2 * vl;
-        k -= vl;
+        blkCnt -= vl;
     }
 }
 
-static void
+void
 merge_rfft_f32(const riscv_rfft_fast_instance_f32 *S,
                float32_t                          *p,
                float32_t                          *pOut)
 {
     int32_t          k      = (S->Sint).fftLen - 1;
     const float32_t *pCoeff = S->pTwiddleRFFT;
-    float32_t       *pA     = p;
-    float32_t       *pB     = p;
 
-    float32_t xAR = pA[0], xAI = pA[1];
+    float32_t *pA = p;
+    float32_t *pB = p;
+
+    float32_t xAR = pA[0];
+    float32_t xAI = pA[1];
+
     pCoeff += 2;
+
     *pOut++ = 0.5f * (xAR + xAI);
     *pOut++ = 0.5f * (xAR - xAI);
 
     pB = p + 2 * k;
     pA += 2;
 
-    while (k > 0)
+    size_t blkCnt = k;
+
+    while (blkCnt > 0)
     {
-        size_t       vl = __riscv_vsetvl_e32m1(k);
-        vfloat32m1_t vxAR, vxAI, vtwR, vtwI;
-        ptrdiff_t    bstride = 2 * sizeof(float32_t);
+        size_t vl = __riscv_vsetvl_e32m2(blkCnt);
 
-        vxAR = __riscv_vlse32_v_f32m1(pA, bstride, vl);
-        vxAI = __riscv_vlse32_v_f32m1(pA + 1, bstride, vl);
-        vtwR = __riscv_vlse32_v_f32m1(pCoeff, bstride, vl);
-        vtwI = __riscv_vlse32_v_f32m1(pCoeff + 1, bstride, vl);
+        vfloat32m2x2_t vA  = __riscv_vlseg2e32_v_f32m2x2(pA, vl);
+        vfloat32m2_t   xAr = __riscv_vget_v_f32m2x2_f32m2(vA, 0);
+        vfloat32m2_t   xAi = __riscv_vget_v_f32m2x2_f32m2(vA, 1);
 
-        vfloat32m1_t vxBR
-            = __riscv_vlse32_v_f32m1(pB, -2 * (ptrdiff_t)sizeof(float32_t), vl);
-        vfloat32m1_t vxBI = __riscv_vlse32_v_f32m1(
-            pB + 1, -2 * (ptrdiff_t)sizeof(float32_t), vl);
+        vfloat32m2x2_t vB  = __riscv_vlsseg2e32_v_f32m2x2(pB, -8, vl);
+        vfloat32m2_t   xBr = __riscv_vget_v_f32m2x2_f32m2(vB, 0);
+        vfloat32m2_t   xBi = __riscv_vget_v_f32m2x2_f32m2(vB, 1);
 
-        vfloat32m1_t vt1a  = __riscv_vfsub_vv_f32m1(vxAR, vxBR, vl);
-        vfloat32m1_t vt1b  = __riscv_vfadd_vv_f32m1(vxAI, vxBI, vl);
-        vfloat32m1_t voutR = __riscv_vfadd_vv_f32m1(vxAR, vxBR, vl);
-        voutR              = __riscv_vfnmsac_vv_f32m1(voutR, vtwR, vt1a, vl);
-        voutR              = __riscv_vfnmsac_vv_f32m1(voutR, vtwI, vt1b, vl);
-        voutR              = __riscv_vfmul_vf_f32m1(voutR, 0.5f, vl);
+        vfloat32m2x2_t vTw = __riscv_vlseg2e32_v_f32m2x2(pCoeff, vl);
+        vfloat32m2_t   twR = __riscv_vget_v_f32m2x2_f32m2(vTw, 0);
+        vfloat32m2_t   twI = __riscv_vget_v_f32m2x2_f32m2(vTw, 1);
 
-        vfloat32m1_t voutI = __riscv_vfsub_vv_f32m1(vxAI, vxBI, vl);
-        voutI              = __riscv_vfmacc_vv_f32m1(voutI, vtwI, vt1a, vl);
-        voutI              = __riscv_vfnmsac_vv_f32m1(voutI, vtwR, vt1b, vl);
-        voutI              = __riscv_vfmul_vf_f32m1(voutI, 0.5f, vl);
+        vfloat32m2_t tmp1R = __riscv_vfadd_vv_f32m2(xAr, xBr, vl);
+        vfloat32m2_t tmp1I = __riscv_vfsub_vv_f32m2(xAi, xBi, vl);
 
-        __riscv_vsse32_v_f32m1(pOut, bstride, voutR, vl);
-        __riscv_vsse32_v_f32m1(pOut + 1, bstride, voutI, vl);
+        vfloat32m2_t tmp2R = __riscv_vfsub_vv_f32m2(xAr, xBr, vl);
+        vfloat32m2_t tmp2I = __riscv_vfadd_vv_f32m2(xAi, xBi, vl);
+
+        /* res = conj(tw) * tmp2 */
+        vfloat32m2_t resR = __riscv_vfmul_vv_f32m2(twR, tmp2R, vl);
+        resR              = __riscv_vfmacc_vv_f32m2(resR, twI, tmp2I, vl);
+
+        vfloat32m2_t resI = __riscv_vfmul_vv_f32m2(twR, tmp2I, vl);
+        resI              = __riscv_vfnmsac_vv_f32m2(resI, twI, tmp2R, vl);
+
+        vfloat32m2_t half1R = __riscv_vfmul_vf_f32m2(tmp1R, 0.5f, vl);
+        vfloat32m2_t half1I = __riscv_vfmul_vf_f32m2(tmp1I, 0.5f, vl);
+
+        /* res = (res + tmp1) * 0.5f*/
+        resR = __riscv_vfnmsac_vf_f32m2(half1R, 0.5f, resR, vl);
+        resI = __riscv_vfnmsac_vf_f32m2(half1I, 0.5f, resI, vl);
+
+        __riscv_vsseg2e32_v_f32m2x2(
+            pOut, __riscv_vcreate_v_f32m2x2(resR, resI), vl);
 
         pA += 2 * vl;
         pB -= 2 * vl;
         pCoeff += 2 * vl;
         pOut += 2 * vl;
-        k -= vl;
+        blkCnt -= vl;
     }
 }
 
@@ -217,14 +207,21 @@ riscv_rfft_fast_f32(const riscv_rfft_fast_instance_f32 *S,
 {
     const riscv_cfft_instance_f32 *Sint = &(S->Sint);
 
+    /* Calculation of Real FFT */
     if (ifftFlag)
     {
+        /*  Real FFT compression */
         merge_rfft_f32(S, p, pOut);
+
+        /* Complex radix-4 IFFT process */
         riscv_cfft_f32(Sint, pOut, ifftFlag, 1);
     }
     else
     {
+        /* Calculation of RFFT of input */
         riscv_cfft_f32(Sint, p, ifftFlag, 1);
+
+        /*  Real FFT extraction */
         stage_rfft_f32(S, p, pOut);
     }
 }
