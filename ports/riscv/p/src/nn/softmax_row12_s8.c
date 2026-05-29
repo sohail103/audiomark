@@ -1,4 +1,5 @@
 /**
+ * Copyright 2026 Robin John
  * Copyright 2026 Sohail Raj Satapathy
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +25,7 @@ extern const int32_t RECIP_LUT[256];
 void
 nn_softmax_row12_s8(const int8_t *restrict input, int8_t *restrict output)
 {
-    /* Find the Max — SIMD block unchanged */
+    /* Find the max */
     int8x4_t V_in1   = __riscv_pload_i8x4(input);
     int8x4_t V_in2   = __riscv_pload_i8x4(input + 4);
     int8x4_t V_in3   = __riscv_pload_i8x4(input + 8);
