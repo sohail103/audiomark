@@ -1,4 +1,5 @@
 /**
+ * Copyright 2026 Robin John
  * Copyright 2026 Sohail Raj Satapathy
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,10 +47,13 @@ nn_avgpool_25x5x64_s8(const q7_t *input_data, q7_t *output_data)
         {
             s0 = __riscv_padd_i16x4(
                 s0, __riscv_pwcvt_i16x4(__riscv_pload_i8x4(in_ptr + 0)));
+
             s1 = __riscv_padd_i16x4(
                 s1, __riscv_pwcvt_i16x4(__riscv_pload_i8x4(in_ptr + 4)));
+
             s2 = __riscv_padd_i16x4(
                 s2, __riscv_pwcvt_i16x4(__riscv_pload_i8x4(in_ptr + 8)));
+
             s3 = __riscv_padd_i16x4(
                 s3, __riscv_pwcvt_i16x4(__riscv_pload_i8x4(in_ptr + 12)));
 
@@ -62,12 +66,15 @@ nn_avgpool_25x5x64_s8(const q7_t *input_data, q7_t *output_data)
         __riscv_pstore_i8x4(
             out_ptr + 0,
             __riscv_pnclipr_s_i8x4(__riscv_pmulq_i16x4(s0, V_rec), 6));
+
         __riscv_pstore_i8x4(
             out_ptr + 4,
             __riscv_pnclipr_s_i8x4(__riscv_pmulq_i16x4(s1, V_rec), 6));
+
         __riscv_pstore_i8x4(
             out_ptr + 8,
             __riscv_pnclipr_s_i8x4(__riscv_pmulq_i16x4(s2, V_rec), 6));
+
         __riscv_pstore_i8x4(
             out_ptr + 12,
             __riscv_pnclipr_s_i8x4(__riscv_pmulq_i16x4(s3, V_rec), 6));
