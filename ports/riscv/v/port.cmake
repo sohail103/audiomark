@@ -19,8 +19,7 @@ set(PORT_SOURCE
     ${PORT_DIR}/src/dsp/rfft_fast_f32.c
 
     ${PORT_DIR}/../src/nn/avgpool_25x5x64_s8.c
-    ${PORT_DIR}/src/nn/conv0_s8.c
-    ${PORT_DIR}/src/nn/conv1x1_s8.c
+    ${PORT_DIR}/src/nn/convolve_s8.c
     ${PORT_DIR}/../src/nn/depthwise_conv_s8.c
     ${PORT_DIR}/../src/nn/fully_connected_s8.c
     ${PORT_DIR}/../src/nn/mat_mult_kernel_s8_s16.c
@@ -42,8 +41,8 @@ set(PORT_SOURCE
     ${PORT_DIR}/src/int16_to_f32.c
     ${PORT_DIR}/../src/mat_vec_mult_f32.c
     ${PORT_DIR}/src/multiply_f32.c
-    ${PORT_DIR}/src/nn_classify.c
-    ${PORT_DIR}/src/nn_init.c
+    ${PORT_DIR}/../src/nn_classify.c
+    ${PORT_DIR}/../src/nn_init.c
     ${PORT_DIR}/src/offset_f32.c
     ${PORT_DIR}/../src/rfft_f32.c
     ${PORT_DIR}/../src/rfft_init_f32.c

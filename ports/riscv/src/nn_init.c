@@ -38,11 +38,11 @@
  * https://github.com/ARM-software/ML-zoo & Tag: 22.02 */
 nn_context ctx;
 
-static uint8_t scratch_buffer[MAX_BUF_SIZE] __attribute__((aligned(8)));
+static uint8_t scratch_buffer[1000 * MAX_BUF_SIZE] __attribute__((aligned(8)));
 
 void
 th_nn_init(void)
 {
-    ctx.size = MAX_BUF_SIZE;
+    ctx.size = 1000 * MAX_BUF_SIZE;
     ctx.buf  = scratch_buffer;
 }
