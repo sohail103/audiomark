@@ -42,7 +42,7 @@ set(PORT_SOURCE
     ${PORT_DIR}/../src/mat_vec_mult_f32.c
     ${PORT_DIR}/src/multiply_f32.c
     ${PORT_DIR}/../src/nn_classify.c
-    ${PORT_DIR}/../src/nn_init.c
+    ${PORT_DIR}/src/nn_init.c
     ${PORT_DIR}/src/offset_f32.c
     ${PORT_DIR}/../src/rfft_f32.c
     ${PORT_DIR}/../src/rfft_init_f32.c
