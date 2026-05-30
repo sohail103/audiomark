@@ -25,10 +25,15 @@ extern const int32_t RECIP_LUT[256];
 void
 nn_softmax_row12_s8(const int8_t *restrict input, int8_t *restrict output)
 {
+    const int8_t *in_ptr =
+    __builtin_assume_aligned(input, 4);
+
+    int8_t *out_ptr =
+        __builtin_assume_aligned(output, 4);
     /* Find the max */
-    int8x4_t V_in1   = __riscv_pload_i8x4(input);
-    int8x4_t V_in2   = __riscv_pload_i8x4(input + 4);
-    int8x4_t V_in3   = __riscv_pload_i8x4(input + 8);
+    int8x4_t V_in1   = __riscv_pload_i8x4(in_ptr);
+    int8x4_t V_in2   = __riscv_pload_i8x4(in_ptr + 4);
+    int8x4_t V_in3   = __riscv_pload_i8x4(in_ptr + 8);
     int8x4_t V_mbuf  = __riscv_pmax_i8x4(V_in1, V_in2);
     int8x4_t V_mfin  = __riscv_pmax_i8x4(V_mbuf, V_in3);
     int8_t   b0      = __riscv_pget_i8x4_i8(V_mfin, 0);
@@ -45,7 +50,7 @@ nn_softmax_row12_s8(const int8_t *restrict input, int8_t *restrict output)
     /* Exp lookup and accumulate */
     for (int i = 0; i < 12; i++)
     {
-        exp_res[i] = EXP_LUT[(uint8_t)(max_val - input[i])];
+        exp_res[i] = EXP_LUT[(uint8_t)(max_val - in_ptr[i])];
         u_sum += (uint64_t)exp_res[i];
     }
 
@@ -83,6 +88,6 @@ nn_softmax_row12_s8(const int8_t *restrict input, int8_t *restrict output)
 
         int8x4_t nvp = __riscv_pnclipr_s_i8x4(vp, 0);
 
-        __riscv_pstore_i8x4(output + i, nvp);
+        __riscv_pstore_i8x4(out_ptr + i, nvp);
     }
 }
