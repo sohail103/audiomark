@@ -29,7 +29,7 @@ set(PORT_SOURCE
     ${PORT_DIR}/../src/nn/softmax_luts.c
     ${PORT_DIR}/../src/nn/vec_mat_mult_t_s8.c
 
-    ${PORT_DIR}/../src/absmax_f32.c
+    ${PORT_DIR}/src/absmax_f32.c
     ${PORT_DIR}/../src/add_f32.c
 
     ${PORT_DIR}/../src/cfft_f32.c

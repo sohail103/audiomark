@@ -40,44 +40,70 @@ nn_avgpool_25x5x64_s8(const q7_t *input_data, q7_t *output_data)
         int16x4_t s3 = __riscv_pmv_s_i16x4(0);
 
         /* Start pointer at the current 16-channel block offset */
-        const int8_t *in_ptr = input_data + (c_block * 16);
+        const int8_t *in_ptr
+            = __builtin_assume_aligned(input_data + (c_block * 16), 4);
 
-        /* Walk vertically through the 125 spatial pixels */
-        for (uint8_t spatial = 0; spatial < 125; spatial++)
+        /* Walk vertically through the 124 spatial pixels */
+        for (uint8_t spatial = 62; spatial > 0; spatial--)
         {
-            s0 = __riscv_padd_i16x4(
-                s0, __riscv_pwcvt_i16x4(__riscv_pload_i8x4(in_ptr + 0)));
+            int8x4_t v00 = __riscv_pload_i8x4(in_ptr + 0);
+            int8x4_t v01 = __riscv_pload_i8x4(in_ptr + 64 + 0);
+            s0           = __riscv_pwadda_i16x4(s0, v00, v01);
 
-            s1 = __riscv_padd_i16x4(
-                s1, __riscv_pwcvt_i16x4(__riscv_pload_i8x4(in_ptr + 4)));
+            int8x4_t v10 = __riscv_pload_i8x4(in_ptr + 4);
+            int8x4_t v11 = __riscv_pload_i8x4(in_ptr + 64 + 4);
+            s1           = __riscv_pwadda_i16x4(s1, v10, v11);
 
-            s2 = __riscv_padd_i16x4(
-                s2, __riscv_pwcvt_i16x4(__riscv_pload_i8x4(in_ptr + 8)));
+            int8x4_t v20 = __riscv_pload_i8x4(in_ptr + 8);
+            int8x4_t v21 = __riscv_pload_i8x4(in_ptr + 64 + 8);
+            s2           = __riscv_pwadda_i16x4(s2, v20, v21);
 
-            s3 = __riscv_padd_i16x4(
-                s3, __riscv_pwcvt_i16x4(__riscv_pload_i8x4(in_ptr + 12)));
+            int8x4_t v30 = __riscv_pload_i8x4(in_ptr + 12);
+            int8x4_t v31 = __riscv_pload_i8x4(in_ptr + 64 + 12);
+            s3           = __riscv_pwadda_i16x4(s3, v30, v31);
 
-            in_ptr += 64;
+            in_ptr += 128;
         }
 
+        /* Handle the tail */
+        const int8_t *tail_ptr = __builtin_assume_aligned(
+            input_data + (c_block * 16) + (124 * 64), 4);
+
+        int8x4_t  vt0  = __riscv_pload_i8x4(tail_ptr + 0);
+        int16x4_t vwt0 = __riscv_pwcvt_i16x4(vt0);
+        s0             = __riscv_padd_i16x4(s0, vwt0);
+
+        int8x4_t  vt1  = __riscv_pload_i8x4(tail_ptr + 4);
+        int16x4_t vwt1 = __riscv_pwcvt_i16x4(vt1);
+        s1             = __riscv_padd_i16x4(s1, vwt1);
+
+        int8x4_t  vt2  = __riscv_pload_i8x4(tail_ptr + 8);
+        int16x4_t vwt2 = __riscv_pwcvt_i16x4(vt2);
+        s2             = __riscv_padd_i16x4(s2, vwt2);
+
+        int8x4_t  vt3  = __riscv_pload_i8x4(tail_ptr + 12);
+        int16x4_t vwt3 = __riscv_pwcvt_i16x4(vt3);
+        s3             = __riscv_padd_i16x4(s3, vwt3);
+
         /* Requantize and store the 16 channels */
-        int8_t *out_ptr = output_data + (c_block * 16);
+        int8_t *out_ptr
+            = __builtin_assume_aligned(output_data + (c_block * 16), 4);
 
-        __riscv_pstore_i8x4(
-            out_ptr + 0,
-            __riscv_pnclipr_s_i8x4(__riscv_pmulq_i16x4(s0, V_rec), 6));
+        vwt0 = __riscv_pmulq_i16x4(s0, V_rec);
+        vt0  = __riscv_pnclipr_s_i8x4(vwt0, 6);
+        __riscv_pstore_i8x4(out_ptr + 0, vt0);
 
-        __riscv_pstore_i8x4(
-            out_ptr + 4,
-            __riscv_pnclipr_s_i8x4(__riscv_pmulq_i16x4(s1, V_rec), 6));
+        vwt1 = __riscv_pmulq_i16x4(s1, V_rec);
+        vt1  = __riscv_pnclipr_s_i8x4(vwt1, 6);
+        __riscv_pstore_i8x4(out_ptr + 4, vt1);
 
-        __riscv_pstore_i8x4(
-            out_ptr + 8,
-            __riscv_pnclipr_s_i8x4(__riscv_pmulq_i16x4(s2, V_rec), 6));
+        vwt2 = __riscv_pmulq_i16x4(s2, V_rec);
+        vt2  = __riscv_pnclipr_s_i8x4(vwt2, 6);
+        __riscv_pstore_i8x4(out_ptr + 8, vt2);
 
-        __riscv_pstore_i8x4(
-            out_ptr + 12,
-            __riscv_pnclipr_s_i8x4(__riscv_pmulq_i16x4(s3, V_rec), 6));
+        vwt3 = __riscv_pmulq_i16x4(s3, V_rec);
+        vt3  = __riscv_pnclipr_s_i8x4(vwt3, 6);
+        __riscv_pstore_i8x4(out_ptr + 12, vt3);
     }
 
     return 0;
