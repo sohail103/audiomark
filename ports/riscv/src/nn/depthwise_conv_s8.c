@@ -35,38 +35,51 @@ acc_col_4ch(int32_t      *b0,
             int32_t       ker_row_stride,
             int32_t       input_offset)
 {
-    if (kh_start <= 0 && 0 < kh_end)
+    int32_t start = kh_start < 0 ? 0 : kh_start;
+    int32_t end   = kh_end > 3 ? 3 : kh_end;
+    if (start >= end)
     {
-        *b0 += (ip[0 * inp_row_stride + 0] + input_offset)
-               * kp[0 * ker_row_stride + 0];
-        *b1 += (ip[0 * inp_row_stride + 1] + input_offset)
-               * kp[0 * ker_row_stride + 1];
-        *b2 += (ip[0 * inp_row_stride + 2] + input_offset)
-               * kp[0 * ker_row_stride + 2];
-        *b3 += (ip[0 * inp_row_stride + 3] + input_offset)
-               * kp[0 * ker_row_stride + 3];
+        return;
     }
-    if (kh_start <= 1 && 1 < kh_end)
+    switch (start)
     {
-        *b0 += (ip[1 * inp_row_stride + 0] + input_offset)
-               * kp[1 * ker_row_stride + 0];
-        *b1 += (ip[1 * inp_row_stride + 1] + input_offset)
-               * kp[1 * ker_row_stride + 1];
-        *b2 += (ip[1 * inp_row_stride + 2] + input_offset)
-               * kp[1 * ker_row_stride + 2];
-        *b3 += (ip[1 * inp_row_stride + 3] + input_offset)
-               * kp[1 * ker_row_stride + 3];
-    }
-    if (kh_start <= 2 && 2 < kh_end)
-    {
-        *b0 += (ip[2 * inp_row_stride + 0] + input_offset)
-               * kp[2 * ker_row_stride + 0];
-        *b1 += (ip[2 * inp_row_stride + 1] + input_offset)
-               * kp[2 * ker_row_stride + 1];
-        *b2 += (ip[2 * inp_row_stride + 2] + input_offset)
-               * kp[2 * ker_row_stride + 2];
-        *b3 += (ip[2 * inp_row_stride + 3] + input_offset)
-               * kp[2 * ker_row_stride + 3];
+        case 0: {
+            const int8_t *in  = ip;
+            const int8_t *ker = kp;
+            *b0 += ((int32_t)in[0] + input_offset) * (int32_t)ker[0];
+            *b1 += ((int32_t)in[1] + input_offset) * (int32_t)ker[1];
+            *b2 += ((int32_t)in[2] + input_offset) * (int32_t)ker[2];
+            *b3 += ((int32_t)in[3] + input_offset) * (int32_t)ker[3];
+            if (end == 1)
+            {
+                break;
+            }
+        }
+        /* fall through */
+        case 1: {
+            const int8_t *in  = ip + inp_row_stride;
+            const int8_t *ker = kp + ker_row_stride;
+            *b0 += ((int32_t)in[0] + input_offset) * (int32_t)ker[0];
+            *b1 += ((int32_t)in[1] + input_offset) * (int32_t)ker[1];
+            *b2 += ((int32_t)in[2] + input_offset) * (int32_t)ker[2];
+            *b3 += ((int32_t)in[3] + input_offset) * (int32_t)ker[3];
+            if (end == 2)
+            {
+                break;
+            }
+        }
+        /* fall through */
+        case 2: {
+            const int8_t *in  = ip + 2 * inp_row_stride;
+            const int8_t *ker = kp + 2 * ker_row_stride;
+            *b0 += ((int32_t)in[0] + input_offset) * (int32_t)ker[0];
+            *b1 += ((int32_t)in[1] + input_offset) * (int32_t)ker[1];
+            *b2 += ((int32_t)in[2] + input_offset) * (int32_t)ker[2];
+            *b3 += ((int32_t)in[3] + input_offset) * (int32_t)ker[3];
+            break;
+        }
+        default:
+            break;
     }
 }
 
@@ -80,17 +93,40 @@ acc_col_1ch(int32_t      *b0,
             int32_t       ker_row_stride,
             int32_t       input_offset)
 {
-    if (kh_start <= 0 && 0 < kh_end)
+    int32_t start = kh_start < 0 ? 0 : kh_start;
+    int32_t end   = kh_end > 3 ? 3 : kh_end;
+    if (start >= end)
     {
-        *b0 += (ip[0 * inp_row_stride] + input_offset) * kp[0 * ker_row_stride];
+        return;
     }
-    if (kh_start <= 1 && 1 < kh_end)
+    switch (start)
     {
-        *b0 += (ip[1 * inp_row_stride] + input_offset) * kp[1 * ker_row_stride];
-    }
-    if (kh_start <= 2 && 2 < kh_end)
-    {
-        *b0 += (ip[2 * inp_row_stride] + input_offset) * kp[2 * ker_row_stride];
+        case 0: {
+            *b0 += ((int32_t)ip[0] + input_offset) * (int32_t)kp[0];
+            if (end == 1)
+            {
+                break;
+            }
+        }
+        /* fall through */
+        case 1: {
+            const int8_t *in  = ip + inp_row_stride;
+            const int8_t *ker = kp + ker_row_stride;
+            *b0 += ((int32_t)in[0] + input_offset) * (int32_t)ker[0];
+            if (end == 2)
+            {
+                break;
+            }
+        }
+        /* fall through */
+        case 2: {
+            const int8_t *in  = ip + 2 * inp_row_stride;
+            const int8_t *ker = kp + 2 * ker_row_stride;
+            *b0 += ((int32_t)in[0] + input_offset) * (int32_t)ker[0];
+            break;
+        }
+        default:
+            break;
     }
 }
 
@@ -124,6 +160,9 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
     const int32_t inp_row_stride = input_ch * input_x;
     const int32_t ker_row_stride = input_ch * 3;
     const int32_t col_stride     = input_ch;
+
+    /* Step size for advancing ip0 by one output column in the interior loop. */
+    const int32_t input_x_step = stride_x * col_stride;
 
     /*
      * Compute interior rectangle boundaries directly by walking output
@@ -416,137 +455,99 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
             }
         }
 
-        /* Interior columns: all 9 taps assumed to be valid, fully unrolled */
-        for (int32_t out_w = int_w0; out_w < int_w1; ++out_w)
+        /* Interior columns: all 9 taps valid, fully unrolled.
+         * ip0 is initialised to the first interior column and then stepped by
+         * input_x_step each iteration, avoiding the multiply inside the loop.
+         */
+        const int8_t *ip0 = input + in_h * inp_row_stride
+                            + int_w0 * stride_x * col_stride
+                            - pad_x * col_stride;
+        for (int32_t out_w = int_w0; out_w < int_w1;
+             ++out_w, ip0 += input_x_step)
         {
-            const int32_t in_w = out_w * stride_x - pad_x;
-            const int8_t *ip0
-                = input + in_h * inp_row_stride + in_w * col_stride;
-
             int32_t ch = 0;
             for (; ch <= (input_ch - 4); ch += 4)
             {
                 const int8_t *ip = ip0 + ch;
                 const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch + 0], b1 = bias[ch + 1];
-                int32_t       b2 = bias[ch + 2], b3 = bias[ch + 3];
 
-                b0 += (ip[0 * inp_row_stride + 0 * col_stride + 0]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 0 * col_stride + 0];
-                b1 += (ip[0 * inp_row_stride + 0 * col_stride + 1]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 0 * col_stride + 1];
-                b2 += (ip[0 * inp_row_stride + 0 * col_stride + 2]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 0 * col_stride + 2];
-                b3 += (ip[0 * inp_row_stride + 0 * col_stride + 3]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 0 * col_stride + 3];
+                /* Row and column pointers so each load is base + small
+                 * immediate. This maps directly onto RISC-V register+immediate
+                 * load instructions and avoids repeated address
+                 * rematerialization. */
+                const int8_t *in0 = ip;
+                const int8_t *in1 = ip + inp_row_stride;
+                const int8_t *in2 = ip + 2 * inp_row_stride;
+                const int8_t *k0  = kp;
+                const int8_t *k1  = kp + ker_row_stride;
+                const int8_t *k2  = kp + 2 * ker_row_stride;
 
-                b0 += (ip[0 * inp_row_stride + 1 * col_stride + 0]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 1 * col_stride + 0];
-                b1 += (ip[0 * inp_row_stride + 1 * col_stride + 1]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 1 * col_stride + 1];
-                b2 += (ip[0 * inp_row_stride + 1 * col_stride + 2]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 1 * col_stride + 2];
-                b3 += (ip[0 * inp_row_stride + 1 * col_stride + 3]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 1 * col_stride + 3];
+                const int8_t *in00 = in0;
+                const int8_t *in01 = in0 + col_stride;
+                const int8_t *in02 = in0 + 2 * col_stride;
+                const int8_t *in10 = in1;
+                const int8_t *in11 = in1 + col_stride;
+                const int8_t *in12 = in1 + 2 * col_stride;
+                const int8_t *in20 = in2;
+                const int8_t *in21 = in2 + col_stride;
+                const int8_t *in22 = in2 + 2 * col_stride;
+                const int8_t *k00  = k0;
+                const int8_t *k01  = k0 + col_stride;
+                const int8_t *k02  = k0 + 2 * col_stride;
+                const int8_t *k10  = k1;
+                const int8_t *k11  = k1 + col_stride;
+                const int8_t *k12  = k1 + 2 * col_stride;
+                const int8_t *k20  = k2;
+                const int8_t *k21  = k2 + col_stride;
+                const int8_t *k22  = k2 + 2 * col_stride;
 
-                b0 += (ip[0 * inp_row_stride + 2 * col_stride + 0]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 2 * col_stride + 0];
-                b1 += (ip[0 * inp_row_stride + 2 * col_stride + 1]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 2 * col_stride + 1];
-                b2 += (ip[0 * inp_row_stride + 2 * col_stride + 2]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 2 * col_stride + 2];
-                b3 += (ip[0 * inp_row_stride + 2 * col_stride + 3]
-                       + input_offset)
-                      * kp[0 * ker_row_stride + 2 * col_stride + 3];
+                int32_t b0 = bias[ch + 0], b1 = bias[ch + 1];
+                int32_t b2 = bias[ch + 2], b3 = bias[ch + 3];
 
-                b0 += (ip[1 * inp_row_stride + 0 * col_stride + 0]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 0 * col_stride + 0];
-                b1 += (ip[1 * inp_row_stride + 0 * col_stride + 1]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 0 * col_stride + 1];
-                b2 += (ip[1 * inp_row_stride + 0 * col_stride + 2]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 0 * col_stride + 2];
-                b3 += (ip[1 * inp_row_stride + 0 * col_stride + 3]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 0 * col_stride + 3];
+                b0 += ((int32_t)in00[0] + input_offset) * (int32_t)k00[0];
+                b1 += ((int32_t)in00[1] + input_offset) * (int32_t)k00[1];
+                b2 += ((int32_t)in00[2] + input_offset) * (int32_t)k00[2];
+                b3 += ((int32_t)in00[3] + input_offset) * (int32_t)k00[3];
 
-                b0 += (ip[1 * inp_row_stride + 1 * col_stride + 0]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 1 * col_stride + 0];
-                b1 += (ip[1 * inp_row_stride + 1 * col_stride + 1]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 1 * col_stride + 1];
-                b2 += (ip[1 * inp_row_stride + 1 * col_stride + 2]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 1 * col_stride + 2];
-                b3 += (ip[1 * inp_row_stride + 1 * col_stride + 3]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 1 * col_stride + 3];
+                b0 += ((int32_t)in01[0] + input_offset) * (int32_t)k01[0];
+                b1 += ((int32_t)in01[1] + input_offset) * (int32_t)k01[1];
+                b2 += ((int32_t)in01[2] + input_offset) * (int32_t)k01[2];
+                b3 += ((int32_t)in01[3] + input_offset) * (int32_t)k01[3];
 
-                b0 += (ip[1 * inp_row_stride + 2 * col_stride + 0]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 2 * col_stride + 0];
-                b1 += (ip[1 * inp_row_stride + 2 * col_stride + 1]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 2 * col_stride + 1];
-                b2 += (ip[1 * inp_row_stride + 2 * col_stride + 2]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 2 * col_stride + 2];
-                b3 += (ip[1 * inp_row_stride + 2 * col_stride + 3]
-                       + input_offset)
-                      * kp[1 * ker_row_stride + 2 * col_stride + 3];
+                b0 += ((int32_t)in02[0] + input_offset) * (int32_t)k02[0];
+                b1 += ((int32_t)in02[1] + input_offset) * (int32_t)k02[1];
+                b2 += ((int32_t)in02[2] + input_offset) * (int32_t)k02[2];
+                b3 += ((int32_t)in02[3] + input_offset) * (int32_t)k02[3];
 
-                b0 += (ip[2 * inp_row_stride + 0 * col_stride + 0]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 0 * col_stride + 0];
-                b1 += (ip[2 * inp_row_stride + 0 * col_stride + 1]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 0 * col_stride + 1];
-                b2 += (ip[2 * inp_row_stride + 0 * col_stride + 2]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 0 * col_stride + 2];
-                b3 += (ip[2 * inp_row_stride + 0 * col_stride + 3]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 0 * col_stride + 3];
+                b0 += ((int32_t)in10[0] + input_offset) * (int32_t)k10[0];
+                b1 += ((int32_t)in10[1] + input_offset) * (int32_t)k10[1];
+                b2 += ((int32_t)in10[2] + input_offset) * (int32_t)k10[2];
+                b3 += ((int32_t)in10[3] + input_offset) * (int32_t)k10[3];
 
-                b0 += (ip[2 * inp_row_stride + 1 * col_stride + 0]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 1 * col_stride + 0];
-                b1 += (ip[2 * inp_row_stride + 1 * col_stride + 1]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 1 * col_stride + 1];
-                b2 += (ip[2 * inp_row_stride + 1 * col_stride + 2]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 1 * col_stride + 2];
-                b3 += (ip[2 * inp_row_stride + 1 * col_stride + 3]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 1 * col_stride + 3];
+                b0 += ((int32_t)in11[0] + input_offset) * (int32_t)k11[0];
+                b1 += ((int32_t)in11[1] + input_offset) * (int32_t)k11[1];
+                b2 += ((int32_t)in11[2] + input_offset) * (int32_t)k11[2];
+                b3 += ((int32_t)in11[3] + input_offset) * (int32_t)k11[3];
 
-                b0 += (ip[2 * inp_row_stride + 2 * col_stride + 0]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 2 * col_stride + 0];
-                b1 += (ip[2 * inp_row_stride + 2 * col_stride + 1]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 2 * col_stride + 1];
-                b2 += (ip[2 * inp_row_stride + 2 * col_stride + 2]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 2 * col_stride + 2];
-                b3 += (ip[2 * inp_row_stride + 2 * col_stride + 3]
-                       + input_offset)
-                      * kp[2 * ker_row_stride + 2 * col_stride + 3];
+                b0 += ((int32_t)in12[0] + input_offset) * (int32_t)k12[0];
+                b1 += ((int32_t)in12[1] + input_offset) * (int32_t)k12[1];
+                b2 += ((int32_t)in12[2] + input_offset) * (int32_t)k12[2];
+                b3 += ((int32_t)in12[3] + input_offset) * (int32_t)k12[3];
+
+                b0 += ((int32_t)in20[0] + input_offset) * (int32_t)k20[0];
+                b1 += ((int32_t)in20[1] + input_offset) * (int32_t)k20[1];
+                b2 += ((int32_t)in20[2] + input_offset) * (int32_t)k20[2];
+                b3 += ((int32_t)in20[3] + input_offset) * (int32_t)k20[3];
+
+                b0 += ((int32_t)in21[0] + input_offset) * (int32_t)k21[0];
+                b1 += ((int32_t)in21[1] + input_offset) * (int32_t)k21[1];
+                b2 += ((int32_t)in21[2] + input_offset) * (int32_t)k21[2];
+                b3 += ((int32_t)in21[3] + input_offset) * (int32_t)k21[3];
+
+                b0 += ((int32_t)in22[0] + input_offset) * (int32_t)k22[0];
+                b1 += ((int32_t)in22[1] + input_offset) * (int32_t)k22[1];
+                b2 += ((int32_t)in22[2] + input_offset) * (int32_t)k22[2];
+                b3 += ((int32_t)in22[3] + input_offset) * (int32_t)k22[3];
 
                 b0                = nn_requantize(
                                         b0, output_mult[ch + 0], output_shift[ch + 0])
@@ -573,26 +574,34 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
             {
                 const int8_t *ip = ip0 + ch;
                 const int8_t *kp = kernel + ch;
-                int32_t       b0 = bias[ch];
 
-                b0 += (ip[0 * inp_row_stride + 0 * col_stride] + input_offset)
-                      * kp[0 * ker_row_stride + 0 * col_stride];
-                b0 += (ip[0 * inp_row_stride + 1 * col_stride] + input_offset)
-                      * kp[0 * ker_row_stride + 1 * col_stride];
-                b0 += (ip[0 * inp_row_stride + 2 * col_stride] + input_offset)
-                      * kp[0 * ker_row_stride + 2 * col_stride];
-                b0 += (ip[1 * inp_row_stride + 0 * col_stride] + input_offset)
-                      * kp[1 * ker_row_stride + 0 * col_stride];
-                b0 += (ip[1 * inp_row_stride + 1 * col_stride] + input_offset)
-                      * kp[1 * ker_row_stride + 1 * col_stride];
-                b0 += (ip[1 * inp_row_stride + 2 * col_stride] + input_offset)
-                      * kp[1 * ker_row_stride + 2 * col_stride];
-                b0 += (ip[2 * inp_row_stride + 0 * col_stride] + input_offset)
-                      * kp[2 * ker_row_stride + 0 * col_stride];
-                b0 += (ip[2 * inp_row_stride + 1 * col_stride] + input_offset)
-                      * kp[2 * ker_row_stride + 1 * col_stride];
-                b0 += (ip[2 * inp_row_stride + 2 * col_stride] + input_offset)
-                      * kp[2 * ker_row_stride + 2 * col_stride];
+                const int8_t *in0 = ip;
+                const int8_t *in1 = ip + inp_row_stride;
+                const int8_t *in2 = ip + 2 * inp_row_stride;
+                const int8_t *k0  = kp;
+                const int8_t *k1  = kp + ker_row_stride;
+                const int8_t *k2  = kp + 2 * ker_row_stride;
+
+                int32_t b0 = bias[ch];
+
+                b0 += ((int32_t)in0[0 * col_stride] + input_offset)
+                      * (int32_t)k0[0 * col_stride];
+                b0 += ((int32_t)in0[1 * col_stride] + input_offset)
+                      * (int32_t)k0[1 * col_stride];
+                b0 += ((int32_t)in0[2 * col_stride] + input_offset)
+                      * (int32_t)k0[2 * col_stride];
+                b0 += ((int32_t)in1[0 * col_stride] + input_offset)
+                      * (int32_t)k1[0 * col_stride];
+                b0 += ((int32_t)in1[1 * col_stride] + input_offset)
+                      * (int32_t)k1[1 * col_stride];
+                b0 += ((int32_t)in1[2 * col_stride] + input_offset)
+                      * (int32_t)k1[2 * col_stride];
+                b0 += ((int32_t)in2[0 * col_stride] + input_offset)
+                      * (int32_t)k2[0 * col_stride];
+                b0 += ((int32_t)in2[1 * col_stride] + input_offset)
+                      * (int32_t)k2[1 * col_stride];
+                b0 += ((int32_t)in2[2 * col_stride] + input_offset)
+                      * (int32_t)k2[2 * col_stride];
 
                 b0 = nn_requantize(b0, output_mult[ch], output_shift[ch])
                      + output_offset;
