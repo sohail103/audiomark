@@ -1,0 +1,95 @@
+name: Perf Profile
+
+on:
+  workflow_dispatch:
+      
+jobs:
+  perf-profile:
+    runs-on: ubuntu-24.04-riscv
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/ci/perf')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Install Clang and perf build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y clang lld flex bison libelf-dev libdw-dev \
+            libunwind-dev libslang2-dev liblzma-dev libcap-dev libnuma-dev \
+            libzstd-dev python3-dev
+      - name: Cache perf binary
+        id: cache-perf
+        uses: actions/cache@v5
+        with:
+          path: ~/.local/bin/perf
+          key: perf-${{ runner.os }}-${{ runner.arch }}-kernel-6.1
+      - name: Build and install perf from source
+        if: steps.cache-perf.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get install -y binutils-dev libunwind-dev
+          git clone --depth=1 -b v6.1 \
+            https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git \
+            /tmp/linux-src
+          find /tmp/linux-src/tools -name "Makefile*" | xargs sed -i 's/-Werror[^ ]*//g'
+          make -C /tmp/linux-src/tools/perf -j$(nproc) \
+            NO_LIBPYTHON=1
+          mkdir -p ~/.local/bin
+          cp /tmp/linux-src/tools/perf/perf ~/.local/bin/perf
+      - name: Add perf to PATH
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build -DPORT_DIR=ports/riscv \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_C_FLAGS="-O2 -fno-omit-frame-pointer"
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Check perf hardware counter support
+        run: |
+          DEVICES=$(ls /sys/bus/event_source/devices/)
+          echo "Available perf event sources: $DEVICES"
+          HW_COUNTERS=$(echo "$DEVICES" | tr ' ' '\n' | grep -v -E '^(software|tracepoint|breakpoint)$' | head -1)
+          if [ -n "$HW_COUNTERS" ]; then
+            echo "Hardware performance counters available ($HW_COUNTERS), using cycles event"
+            echo "PERF_MODE=hw" >> $GITHUB_ENV
+          else
+            echo "No hardware performance counters found, falling back to software cpu-clock sampler"
+            echo "PERF_MODE=sw" >> $GITHUB_ENV
+          fi
+      - name: Run perf profile
+        timeout-minutes: 30
+        run: |
+          if [ "$PERF_MODE" = "hw" ]; then
+            perf record -e cycles -g --call-graph=fp \
+              -o $GITHUB_WORKSPACE/perf.data \
+              -- $GITHUB_WORKSPACE/build/audiomark
+          else
+            perf record -e cpu-clock -F 199 -g --call-graph=fp \
+              -o $GITHUB_WORKSPACE/perf.data \
+              -- $GITHUB_WORKSPACE/build/audiomark
+          fi
+          ls -lh $GITHUB_WORKSPACE/perf.data
+      - name: Generate perf report
+        run: |
+          perf report --stdio --no-children -n \
+            --input=$GITHUB_WORKSPACE/perf.data \
+            2>&1 | tee $GITHUB_WORKSPACE/perf_report.txt || true
+          echo "=== Top functions by overhead ===" | tee $GITHUB_WORKSPACE/perf_summary.txt
+          head -80 $GITHUB_WORKSPACE/perf_report.txt | tee -a $GITHUB_WORKSPACE/perf_summary.txt
+      - name: Show perf results
+        run: |
+          if [ -s $GITHUB_WORKSPACE/perf_report.txt ]; then
+            cat $GITHUB_WORKSPACE/perf_report.txt
+          else
+            echo "perf_report.txt is empty, dumping raw perf.data header for diagnosis:"
+            perf report --header-only --input=$GITHUB_WORKSPACE/perf.data
+          fi
+      - name: Upload perf results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: perf-results
+          path: |
+            ${{ github.workspace }}/perf.data
+            ${{ github.workspace }}/perf_report.txt
+            ${{ github.workspace }}/perf_summary.txt
+          retention-days: 30
