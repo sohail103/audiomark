@@ -18,13 +18,13 @@
 #include "ee_api.h"
 #include "nn/functions.h"
 #include "nn/support_functions.h"
-#include "nn/buffer_utils.h"
+#include "buffer_utils.h"
 
 /* Test for a complete int8 DS_CNN_S keyword spotting network from
  * https://github.com/ARM-software/ML-zoo & Tag: 22.02 */
 nn_context ctx;
 
-static uint8_t scratch_buffer[MAX_BUF_SIZE];
+static uint8_t scratch_buffer[MAX_BUF_SIZE] __attribute__((aligned(ALIGNMENT)));
 
 void
 th_nn_init(void)

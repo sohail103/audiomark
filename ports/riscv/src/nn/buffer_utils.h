@@ -38,4 +38,6 @@
 #define MAX_BUF_SIZE \
     (MAX5(BUF_CONV0, BUF_CONV2, BUF_CONV4, BUF_CONV6, BUF_CONV8))
 
+#define ALIGNMENT 8
+
 #endif

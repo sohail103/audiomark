@@ -87,4 +87,6 @@
 #define MAX_BUF_SIZE \
     (MAX5(BUF_CONV0, BUF_CONV2, BUF_CONV4, BUF_CONV6, BUF_CONV8))
 
+#define ALIGNMENT __riscv_v_min_vlen / sizeof(uint8_t)
+
 #endif /* BUFFER_UTILS_H */
