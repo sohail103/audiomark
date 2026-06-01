@@ -34,4 +34,57 @@
                   * (int32_t)(out_ch)                                          \
             + 6 * (int32_t)(out_ch) + 256))
 
+#define BUF_CONV0                        \
+    NN_CONV_S8_BUF_SIZE(CONV_0_IN_CH,    \
+                        CONV_0_FILTER_H, \
+                        CONV_0_FILTER_W, \
+                        CONV_0_OUT_CH,   \
+                        CONV_0_INPUT_H,  \
+                        CONV_0_INPUT_W,  \
+                        CONV_0_OUTPUT_H, \
+                        CONV_0_OUTPUT_W)
+
+#define BUF_CONV2                        \
+    NN_CONV_S8_BUF_SIZE(CONV_2_IN_CH,    \
+                        CONV_2_FILTER_H, \
+                        CONV_2_FILTER_W, \
+                        CONV_2_OUT_CH,   \
+                        CONV_2_INPUT_H,  \
+                        CONV_2_INPUT_W,  \
+                        CONV_2_OUTPUT_H, \
+                        CONV_2_OUTPUT_W)
+
+#define BUF_CONV4                        \
+    NN_CONV_S8_BUF_SIZE(CONV_4_IN_CH,    \
+                        CONV_4_FILTER_H, \
+                        CONV_4_FILTER_W, \
+                        CONV_4_OUT_CH,   \
+                        CONV_4_INPUT_H,  \
+                        CONV_4_INPUT_W,  \
+                        CONV_4_OUTPUT_H, \
+                        CONV_4_OUTPUT_W)
+
+#define BUF_CONV6                        \
+    NN_CONV_S8_BUF_SIZE(CONV_6_IN_CH,    \
+                        CONV_6_FILTER_H, \
+                        CONV_6_FILTER_W, \
+                        CONV_6_OUT_CH,   \
+                        CONV_6_INPUT_H,  \
+                        CONV_6_INPUT_W,  \
+                        CONV_6_OUTPUT_H, \
+                        CONV_6_OUTPUT_W)
+
+#define BUF_CONV8                        \
+    NN_CONV_S8_BUF_SIZE(CONV_8_IN_CH,    \
+                        CONV_8_FILTER_H, \
+                        CONV_8_FILTER_W, \
+                        CONV_8_OUT_CH,   \
+                        CONV_8_INPUT_H,  \
+                        CONV_8_INPUT_W,  \
+                        CONV_8_OUTPUT_H, \
+                        CONV_8_OUTPUT_W)
+
+#define MAX_BUF_SIZE \
+    (MAX5(BUF_CONV0, BUF_CONV2, BUF_CONV4, BUF_CONV6, BUF_CONV8))
+
 #endif /* BUFFER_UTILS_H */
