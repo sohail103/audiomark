@@ -1756,7 +1756,7 @@ nn_convolve_s8(const nn_context                  *ctx,
 
         const int32_t padded_w = input_width + 8;
         const int32_t padded_h = input_height + 8;
-        tiled_input_buf        = buf;
+        tiled_input_buf        = (int8_t *)(void *)buf;
         buf = align_ptr(buf + (size_t)(padded_h * padded_w * input_depth), 16);
     }
 
@@ -1768,10 +1768,10 @@ nn_convolve_s8(const nn_context                  *ctx,
     const int use_4x4 = (filter_height == 4 && filter_width == 4);
     if (use_4x4)
     {
-        generic_tiled_buf = buf;
+        generic_tiled_buf = (int8_t *)(void *)buf;
         buf               = align_ptr(buf + INPUT_BUFFER_SIZE, 16);
 
-        repacked_wgen = buf;
+        repacked_wgen = (int8_t *)(void *)buf;
         buf = align_ptr(buf + (size_t)(output_depth * 4 * 4 * input_depth), 16);
     }
 
@@ -1782,7 +1782,7 @@ nn_convolve_s8(const nn_context                  *ctx,
     buf                  = align_ptr(buf + (size_t)output_depth, 16);
 
     /* 5. Aligned copies of filter and bias */
-    int8_t       *filter_copy = (int8_t *)align_ptr(buf, 16);
+    int8_t       *filter_copy = (int8_t *)(void *)align_ptr(buf, 16);
     const int32_t filter_flat
         = filter_height * filter_width * input_depth * output_depth;
     buf = align_ptr((uint8_t *)filter_copy + (size_t)filter_flat, 16);
