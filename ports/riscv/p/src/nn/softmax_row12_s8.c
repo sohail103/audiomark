@@ -17,7 +17,6 @@
 
 #include "functions.h"
 #include "rvp_support_guard.h"
-#include <riscv_p_asm.h>
 
 extern const int32_t EXP_LUT[256];
 extern const int32_t RECIP_LUT[256];
