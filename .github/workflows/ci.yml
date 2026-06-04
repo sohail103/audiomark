@@ -24,7 +24,7 @@ jobs:
       - name: Print CPU and compiler info
         run: |
           cat /proc/cpuinfo
-          cc -v 2>&1
+          clang -v 2>&1
 
       - name: Configure CMake
         run: cmake -S . -B build -DPORT_DIR=ports/riscv -DCMAKE_C_COMPILER=clang
