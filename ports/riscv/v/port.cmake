@@ -1,5 +1,6 @@
 include_directories(
     ${PORT_DIR}/src
+    ${PORT_DIR}/src/nn
     ${PORT_DIR}/src/dsp/
     ${PORT_DIR}/..
     ${PORT_DIR}/../src

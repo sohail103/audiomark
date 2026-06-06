@@ -23,6 +23,7 @@
 #include "functions.h"
 #include "support_functions.h"
 #include "ee_api.h"
+#include "convolve_config.h"
 
 #include <stdint.h>
 
@@ -47,7 +48,7 @@ nn_convolve_s8(const nn_context                  *ctx,
                const nn_dims                     *output_dims,
                q7_t                              *output_data)
 {
-    q15_t *buffer_a = (q15_t *)ctx->buf;
+    q15_t *const im2col_buf = (q15_t *)ctx->buf;
 
     const int32_t  input_batches = input_dims->n;
     const uint16_t input_x       = input_dims->w;
@@ -59,10 +60,12 @@ nn_convolve_s8(const nn_context                  *ctx,
     const uint16_t output_y      = output_dims->h;
     const uint16_t output_ch     = output_dims->c;
 
-    const uint16_t pad_x    = conv_params->padding.w;
-    const uint16_t pad_y    = conv_params->padding.h;
-    const uint16_t stride_x = conv_params->stride.w;
-    const uint16_t stride_y = conv_params->stride.h;
+    const uint16_t pad_x      = conv_params->padding.w;
+    const uint16_t pad_y      = conv_params->padding.h;
+    const uint16_t stride_x   = conv_params->stride.w;
+    const uint16_t stride_y   = conv_params->stride.h;
+    const uint16_t dilation_x = conv_params->dilation.w;
+    const uint16_t dilation_y = conv_params->dilation.h;
 
     const int32_t  input_offset       = conv_params->input_offset;
     const int32_t  out_offset         = conv_params->output_offset;
@@ -71,28 +74,23 @@ nn_convolve_s8(const nn_context                  *ctx,
     const int32_t *output_mult        = quant_params->multiplier;
     const int32_t *output_shift       = quant_params->shift;
 
+    const uint16_t num_col_a = input_ch * kernel_y * kernel_x;
+
     for (int32_t i_batch = 0; i_batch < input_batches; i_batch++)
     {
-        const uint16_t dilation_x = conv_params->dilation.w;
-        const uint16_t dilation_y = conv_params->dilation.h;
+        q15_t *col_buf = im2col_buf;
+        q7_t  *out     = output_data;
 
-        int32_t i_out_y, i_out_x, i_ker_y, i_ker_x;
-
-        /* Generate two columns from the input tensor a GEMM computation */
-        q15_t *two_column_buf = buffer_a;
-        q7_t  *out            = output_data;
-
-        /* This part implements the im2col function */
-        for (i_out_y = 0; i_out_y < output_y; i_out_y++)
+        for (int32_t i_out_y = 0; i_out_y < output_y; i_out_y++)
         {
-            for (i_out_x = 0; i_out_x < output_x; i_out_x++)
+            for (int32_t i_out_x = 0; i_out_x < output_x; i_out_x++)
             {
                 const int32_t base_idx_y = stride_y * i_out_y - pad_y;
                 const int32_t base_idx_x = stride_x * i_out_x - pad_x;
 
-                for (i_ker_y = 0; i_ker_y < kernel_y; i_ker_y++)
+                for (int32_t i_ker_y = 0; i_ker_y < kernel_y; i_ker_y++)
                 {
-                    for (i_ker_x = 0; i_ker_x < kernel_x; i_ker_x++)
+                    for (int32_t i_ker_x = 0; i_ker_x < kernel_x; i_ker_x++)
                     {
                         const int32_t k_y = base_idx_y + dilation_y * i_ker_y;
                         const int32_t k_x = base_idx_x + dilation_x * i_ker_x;
@@ -100,89 +98,72 @@ nn_convolve_s8(const nn_context                  *ctx,
                         if (k_y < 0 || k_y >= input_y || k_x < 0
                             || k_x >= input_x)
                         {
-                            /* Filling 0 for out-of-bound paddings */
-                            th_memset((int8_t *)two_column_buf,
-                                      0,
-                                      sizeof(q15_t) * input_ch);
+                            th_memset(
+                                (int8_t *)col_buf, 0, sizeof(q15_t) * input_ch);
                         }
                         else
                         {
-                            /* Copying the pixel data to column */
                             nn_q7_to_q15_with_offset(
                                 input_data + (k_y * input_x + k_x) * input_ch,
-                                two_column_buf,
+                                col_buf,
                                 input_ch,
                                 input_offset);
                         }
-                        two_column_buf += input_ch;
+                        col_buf += input_ch;
                     }
                 }
 
-                /* Computation is filed for every 2 columns */
-                if (two_column_buf
-                    == buffer_a + 2 * input_ch * kernel_y * kernel_x)
+                if (col_buf == im2col_buf + NN_KERNEL_COLS * num_col_a)
                 {
                     out = nn_mat_mult_kernel_s8_s16(filter_data,
-                                                    buffer_a,
+                                                    im2col_buf,
                                                     output_ch,
                                                     output_shift,
                                                     output_mult,
                                                     out_offset,
                                                     out_activation_min,
                                                     out_activation_max,
-                                                    input_ch * kernel_y
-                                                        * kernel_x,
+                                                    num_col_a,
                                                     bias_data,
                                                     out);
 
-                    /* counter reset */
-                    two_column_buf = buffer_a;
+                    col_buf = im2col_buf;
                 }
             }
         }
 
-        /* left-over because odd number of output pixels */
-        if (two_column_buf != buffer_a)
+        if (col_buf != im2col_buf)
         {
-            const q7_t *ker_a = filter_data;
-            int32_t     i;
+            const int32_t leftover_pixels = (col_buf - im2col_buf) / num_col_a;
 
-            for (i = 0; i < output_ch; i++)
+            for (int32_t p = 0; p < leftover_pixels; p++)
             {
-                /* Load the accumulator with bias first */
-                q31_t sum = 0;
-                if (bias_data)
+                const q7_t  *ker_a = filter_data;
+                const q15_t *patch = im2col_buf + p * num_col_a;
+
+                for (int32_t i = 0; i < output_ch; i++)
                 {
-                    sum = bias_data[i];
+                    q31_t        sum       = bias_data ? bias_data[i] : 0;
+                    const q15_t *col       = patch;
+                    uint16_t     col_count = num_col_a;
+
+                    while (col_count--)
+                    {
+                        sum += (*ker_a++) * (*col++);
+                    }
+
+                    sum = nn_requantize(sum, output_mult[i], output_shift[i]);
+                    sum += out_offset;
+                    sum    = MAX(sum, out_activation_min);
+                    sum    = MIN(sum, out_activation_max);
+                    *out++ = (q7_t)sum;
                 }
-
-                /* Point to the beginning of the im2col buffer where the input
-                 * is available as a rearranged column */
-                const q15_t *ip_as_col = buffer_a;
-
-                uint16_t col_count = input_ch * kernel_y * kernel_x;
-
-                while (col_count)
-                {
-                    q7_t  ker_a1 = *ker_a++;
-                    q15_t ip_b1  = *ip_as_col++;
-                    sum += ker_a1 * ip_b1;
-                    col_count--;
-                }
-
-                sum = nn_requantize(sum, output_mult[i], output_shift[i]);
-                sum += out_offset;
-                sum    = MAX(sum, out_activation_min);
-                sum    = MIN(sum, out_activation_max);
-                *out++ = (q7_t)sum;
             }
         }
 
-        /* Advance to the next batch */
-        input_data += (input_x * input_y * input_ch);
-        output_data += (output_x * output_y * output_ch);
+        input_data += input_x * input_y * input_ch;
+        output_data += output_x * output_y * output_ch;
     }
 
-    /* Return to application */
     return 0;
 }

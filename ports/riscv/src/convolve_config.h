@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef BUFFER_UTILS_H
-#define BUFFER_UTILS_H
+#ifndef NN_CONVOLVE_CONFIG_H
+#define NN_CONVOLVE_CONFIG_H
 
-#include "convolve_config.h"
-
-#include <stdint.h>
-
-#define NN_CONV_S8_BUF_SIZE(in_ch, k_w, k_h) \
-    ((NN_KERNEL_COLS * (int32_t)(in_ch) * (k_w) * (k_h)) * sizeof(int16_t))
+/* Number of im2col columns buffered before dispatching to the matrix-multiply
+ * kernel. Set to match the kernel's row count (7 for RVV, 2 for scalar).
+ */
+#define NN_KERNEL_COLS 2
 
 #endif
