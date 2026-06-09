@@ -129,3 +129,72 @@ jobs:
           name: audiomark-vector-results
           path: audiomark_vector_output.txt
           retention-days: 30
+
+  build-test-benchmark-zve32x:
+    runs-on: ubuntu-24.04-riscv
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Clang
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y clang lld
+
+      - name: Print CPU and compiler info
+        run: |
+          cat /proc/cpuinfo
+          cc -v 2>&1
+
+      - name: Check for Zve32x extension and install QEMU if needed
+        run: |
+          ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
+          EXTENSIONS=${ISA#rv64}
+          if [[ "$EXTENSIONS" == *zve32x* ]]; then
+            echo 'RUN=' >> $GITHUB_ENV
+          else
+            echo 'RUN=qemu-riscv64 -cpu rv64,g=true,c=true,zve32x=true,vlen=128' >> $GITHUB_ENV
+            sudo apt-get update -qq
+            sudo apt-get install -y qemu-user
+          fi
+
+      - name: Configure CMake (Zve32x)
+        run: |
+          if [ -z "$RUN" ]; then
+            cmake -S . -B build-zve32x -DPORT_DIR=ports/riscv/v -DCMAKE_C_COMPILER=clang
+          else
+            cmake -S . -B build-zve32x -DPORT_DIR=ports/riscv/v -DCMAKE_C_COMPILER=clang -DCMAKE_C_FLAGS="-O2 -march=rv64gc_zve32x"
+          fi
+
+      - name: Build (Zve32x)
+        run: cmake --build build-zve32x --parallel
+
+      - name: Run unit tests
+        run: |
+          $RUN ./build-zve32x/test_abf_f32
+          $RUN ./build-zve32x/test_aec_f32
+          $RUN ./build-zve32x/test_anr_f32
+          $RUN ./build-zve32x/test_kws
+          $RUN ./build-zve32x/test_mfcc_f32
+
+      - name: Run AudioMark benchmark
+        timeout-minutes: 15
+        run: |
+          $RUN ./build-zve32x/audiomark 2>&1 | tee audiomark_zve32x_output.txt
+
+      - name: Report AudioMark score
+        if: always()
+        run: |
+          if [ -f audiomark_zve32x_output.txt ]; then
+            cat audiomark_zve32x_output.txt
+          else
+            echo "Benchmark did not run."
+          fi
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: audiomark-zve32x-results
+          path: audiomark_zve32x_output.txt
+          retention-days: 30
