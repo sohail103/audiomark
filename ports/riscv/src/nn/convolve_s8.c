@@ -134,31 +134,28 @@ nn_convolve_s8(const nn_context                  *ctx,
 
         if (col_buf != im2col_buf)
         {
-            const int32_t leftover_pixels
-                = (output_x * output_y) % NN_KERNEL_COLS;
-            const q15_t *patch = im2col_buf;
+            const q15_t       *patch   = im2col_buf;
+            const q15_t *const col_end = col_buf;
 
-            for (int32_t p = 0; p < leftover_pixels; p++, patch += num_col_a)
+            while (patch < col_end)
             {
                 const q7_t *ker_a = filter_data;
-
                 for (int32_t i = 0; i < output_ch; i++)
                 {
                     q31_t        sum       = bias_data ? bias_data[i] : 0;
                     const q15_t *col       = patch;
                     uint16_t     col_count = num_col_a;
-
                     while (col_count--)
                     {
                         sum += (*ker_a++) * (*col++);
                     }
-
                     sum = nn_requantize(sum, output_mult[i], output_shift[i]);
                     sum += out_offset;
                     sum    = MAX(sum, out_activation_min);
                     sum    = MIN(sum, out_activation_max);
                     *out++ = (q7_t)sum;
                 }
+                patch += num_col_a;
             }
         }
 
