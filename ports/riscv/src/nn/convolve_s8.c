@@ -134,12 +134,13 @@ nn_convolve_s8(const nn_context                  *ctx,
 
         if (col_buf != im2col_buf)
         {
-            const int32_t leftover_pixels = (col_buf - im2col_buf) / num_col_a;
+            const int32_t leftover_pixels
+                = (output_x * output_y) % NN_KERNEL_COLS;
+            const q15_t *patch = im2col_buf;
 
-            for (int32_t p = 0; p < leftover_pixels; p++)
+            for (int32_t p = 0; p < leftover_pixels; p++, patch += num_col_a)
             {
-                const q7_t  *ker_a = filter_data;
-                const q15_t *patch = im2col_buf + p * num_col_a;
+                const q7_t *ker_a = filter_data;
 
                 for (int32_t i = 0; i < output_ch; i++)
                 {
