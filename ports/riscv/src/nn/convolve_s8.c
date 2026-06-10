@@ -74,7 +74,10 @@ nn_convolve_s8(const nn_context                  *ctx,
     const int32_t *output_mult        = quant_params->multiplier;
     const int32_t *output_shift       = quant_params->shift;
 
-    const uint16_t num_col_a = input_ch * kernel_y * kernel_x;
+    /* Precomputed value */
+    q15_t *const col_buf_full
+        = im2col_buf
+          + (int32_t)NN_KERNEL_COLS * (input_ch * kernel_y * kernel_x);
 
     for (int32_t i_batch = 0; i_batch < input_batches; i_batch++)
     {
@@ -113,7 +116,7 @@ nn_convolve_s8(const nn_context                  *ctx,
                     }
                 }
 
-                if (col_buf == im2col_buf + NN_KERNEL_COLS * num_col_a)
+                if (col_buf == col_buf_full)
                 {
                     out = nn_mat_mult_kernel_s8_s16(filter_data,
                                                     im2col_buf,
@@ -123,7 +126,8 @@ nn_convolve_s8(const nn_context                  *ctx,
                                                     out_offset,
                                                     out_activation_min,
                                                     out_activation_max,
-                                                    num_col_a,
+                                                    input_ch * kernel_y
+                                                        * kernel_x,
                                                     bias_data,
                                                     out);
 
@@ -134,28 +138,33 @@ nn_convolve_s8(const nn_context                  *ctx,
 
         if (col_buf != im2col_buf)
         {
-            const q15_t       *patch   = im2col_buf;
-            const q15_t *const col_end = col_buf;
+            /* num_col_a declared locally — dead during the hot loop above */
+            const uint16_t num_col_a = input_ch * kernel_y * kernel_x;
+            const int32_t  leftover_pixels
+                = (output_x * output_y) % NN_KERNEL_COLS;
+            const q15_t *patch = im2col_buf;
 
-            while (patch < col_end)
+            for (int32_t p = 0; p < leftover_pixels; p++, patch += num_col_a)
             {
                 const q7_t *ker_a = filter_data;
+
                 for (int32_t i = 0; i < output_ch; i++)
                 {
                     q31_t        sum       = bias_data ? bias_data[i] : 0;
                     const q15_t *col       = patch;
                     uint16_t     col_count = num_col_a;
+
                     while (col_count--)
                     {
                         sum += (*ker_a++) * (*col++);
                     }
+
                     sum = nn_requantize(sum, output_mult[i], output_shift[i]);
                     sum += out_offset;
                     sum    = MAX(sum, out_activation_min);
                     sum    = MIN(sum, out_activation_max);
                     *out++ = (q7_t)sum;
                 }
-                patch += num_col_a;
             }
         }
 
