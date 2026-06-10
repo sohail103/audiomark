@@ -8,16 +8,33 @@ include_directories(
     ${PORT_DIR}/../src/dsp/
 )
 
+# probe for vector fp suppport - will fail for zve32x
+file(WRITE ${CMAKE_BINARY_DIR}/probe_rvv_fp.c
+"
+#include <riscv_vector.h>
+void probe(float *p, size_t n) {
+    size_t vl = __riscv_vsetvl_e32m1(n);
+    vfloat32m1_t v = __riscv_vle32_v_f32m1(p, vl);
+    v = __riscv_vfmul_vf_f32m1(v, 2.0f, vl);
+    __riscv_vse32_v_f32m1(p, v, vl);
+}
+")
+
+try_compile(RISCV_HAS_VECTOR_FP
+    ${CMAKE_BINARY_DIR}
+    SOURCES ${CMAKE_BINARY_DIR}/probe_rvv_fp.c
+    CMAKE_FLAGS "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+    COMPILE_DEFINITIONS "${CMAKE_C_FLAGS}"
+)
+
 add_definitions(-DUSE_RISCV_DSP)
 
-set(PORT_SOURCE 
-
+set(PORT_SOURCE
     ${PORT_DIR}/../th_api.c
-
     ${PORT_DIR}/../src/dsp/tables_f32.c
     ${PORT_DIR}/../src/dsp/tables_q31.c
-    ${PORT_DIR}/src/dsp/cfft_f32.c
-    ${PORT_DIR}/src/dsp/rfft_fast_f32.c
+    $<IF:$<BOOL:${RISCV_HAS_VECTOR_FP}>,${PORT_DIR}/src/dsp/cfft_f32.c,${PORT_DIR}/../src/dsp/cfft_f32.c>
+    $<IF:$<BOOL:${RISCV_HAS_VECTOR_FP}>,${PORT_DIR}/src/dsp/rfft_fast_f32.c,${PORT_DIR}/../src/dsp/rfft_fast_f32.c>
 
     ${PORT_DIR}/src/nn/avgpool_25x5x64_s8.c
     ${PORT_DIR}/../src/nn/convolve_s8.c
@@ -30,7 +47,7 @@ set(PORT_SOURCE
     ${PORT_DIR}/../src/nn/vec_mat_mult_t_s8.c
 
     ${PORT_DIR}/../src/absmax_f32.c
-    ${PORT_DIR}/src/add_f32.c
+    $<IF:$<BOOL:${RISCV_HAS_VECTOR_FP}>,${PORT_DIR}/src/add_f32.c,${PORT_DIR}/../src/add_f32.c>
     ${PORT_DIR}/../src/cfft_f32.c
     ${PORT_DIR}/../src/cfft_init_f32.c
     ${PORT_DIR}/../src/cmplx_conj_f32.c
@@ -38,15 +55,15 @@ set(PORT_SOURCE
     ${PORT_DIR}/../src/cmplx_mag_f32.c
     ${PORT_DIR}/../src/cmplx_mult_cmplx_f32.c
     ${PORT_DIR}/../src/dot_prod_f32.c
-    ${PORT_DIR}/src/f32_to_int16.c
-    ${PORT_DIR}/src/int16_to_f32.c
+    $<IF:$<BOOL:${RISCV_HAS_VECTOR_FP}>,${PORT_DIR}/src/f32_to_int16.c,${PORT_DIR}/../src/f32_to_int16.c>
+    $<IF:$<BOOL:${RISCV_HAS_VECTOR_FP}>,${PORT_DIR}/src/int16_to_f32.c,${PORT_DIR}/../src/int16_to_f32.c>
     ${PORT_DIR}/../src/mat_vec_mult_f32.c
-    ${PORT_DIR}/src/multiply_f32.c
+    $<IF:$<BOOL:${RISCV_HAS_VECTOR_FP}>,${PORT_DIR}/src/multiply_f32.c,${PORT_DIR}/../src/multiply_f32.c>
     ${PORT_DIR}/../src/nn_classify.c
     ${PORT_DIR}/../src/nn_init.c
-    ${PORT_DIR}/src/offset_f32.c
+    $<IF:$<BOOL:${RISCV_HAS_VECTOR_FP}>,${PORT_DIR}/src/offset_f32.c,${PORT_DIR}/../src/offset_f32.c>
     ${PORT_DIR}/../src/rfft_f32.c
     ${PORT_DIR}/../src/rfft_init_f32.c
-    ${PORT_DIR}/src/subtract_f32.c
+    $<IF:$<BOOL:${RISCV_HAS_VECTOR_FP}>,${PORT_DIR}/src/subtract_f32.c,${PORT_DIR}/../src/subtract_f32.c>
     ${PORT_DIR}/../src/vlog_f32.c
 )
