@@ -131,42 +131,85 @@ jobs:
           retention-days: 30
 
   build-test-benchmark-zve32x:
-    runs-on: ubuntu-24.04-riscv
+    runs-on: ubuntu-latest
+    env:
+      VERSION_QEMU: "9.2.4"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Install Clang
+      - name: Cache QEMU build
+        id: cache-qemu
+        uses: actions/cache@v5
+        with:
+          path: ~/qemu-install
+          key: qemu-${{ env.VERSION_QEMU }}-riscv64-linux
+
+      - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y clang lld
+          if [ "${{ steps.cache-qemu.outputs.cache-hit }}" != "true" ]; then
+            sudo apt-get install -y \
+              clang lld \
+              gcc-riscv64-linux-gnu \
+              libc6-dev-riscv64-cross \
+              libglib2.0-dev libpixman-1-dev \
+              ninja-build python3-venv
+          else
+            sudo apt-get install -y \
+              clang lld \
+              gcc-riscv64-linux-gnu \
+              libc6-dev-riscv64-cross
+          fi
+
+      - name: Build QEMU user-mode (riscv64) from source
+        if: steps.cache-qemu.outputs.cache-hit != 'true'
+        run: |
+          wget -q https://download.qemu.org/qemu-${{ env.VERSION_QEMU }}.tar.xz
+          tar xf qemu-${{ env.VERSION_QEMU }}.tar.xz
+          cd qemu-${{ env.VERSION_QEMU }}
+          ./configure \
+            --prefix=$HOME/qemu-install \
+            --target-list=riscv64-linux-user \
+            --disable-system \
+            --enable-linux-user \
+            --disable-docs \
+            --disable-werror
+          make -j$(nproc)
+          make install
+
+      - name: Check for RVV extension and set run command
+        run: |
+          ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
+          EXTENSIONS=${ISA#rv64}
+          echo "$HOME/qemu-install/bin" >> $GITHUB_PATH
+          if [[ "$EXTENSIONS" == *v* ]]; then
+            echo 'RUN=' >> $GITHUB_ENV
+          else
+            echo "RUN=$HOME/qemu-install/bin/qemu-riscv64 -L /usr/riscv64-linux-gnu -cpu rv64,g=true,c=true,zve32x=true,vlen=128" >> $GITHUB_ENV
+          fi
 
       - name: Print CPU and compiler info
         run: |
           cat /proc/cpuinfo
-          cc -v 2>&1
+          clang -v 2>&1
 
-      - name: Check for Zve32x extension and install QEMU if needed
+      - name: Configure CMake
         run: |
-          ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
-          EXTENSIONS=${ISA#rv64}
-          if [[ "$EXTENSIONS" == *zve32x* ]]; then
-            echo 'RUN=' >> $GITHUB_ENV
-          else
-            echo 'RUN=qemu-riscv64 -cpu rv64,g=true,c=true,zve32x=true,vlen=128' >> $GITHUB_ENV
-            sudo apt-get update -qq
-            sudo apt-get install -y qemu-user
-          fi
-
-      - name: Configure CMake (Zve32x)
-        run: |
+          SYSROOT=$(riscv64-linux-gnu-gcc -print-sysroot)
           if [ -z "$RUN" ]; then
-            cmake -S . -B build-zve32x -DPORT_DIR=ports/riscv/v -DCMAKE_C_COMPILER=clang
+            cmake -S . -B build-zve32x \
+              -DPORT_DIR=ports/riscv/v \
+              -DCMAKE_C_COMPILER=clang
           else
-            cmake -S . -B build-zve32x -DPORT_DIR=ports/riscv/v -DCMAKE_C_COMPILER=clang -DCMAKE_C_FLAGS="-O2 -march=rv64gc_zve32x"
+            cmake -S . -B build-zve32x \
+              -DPORT_DIR=ports/riscv/v \
+              -DCMAKE_C_COMPILER=clang \
+              -DCMAKE_C_FLAGS="--target=riscv64-linux-gnu -march=rv64gc_zve32x -O2 --sysroot=${SYSROOT}" \
+              -DCMAKE_EXE_LINKER_FLAGS="--target=riscv64-linux-gnu --sysroot=${SYSROOT} -fuse-ld=/usr/bin/riscv64-linux-gnu-ld"
           fi
 
-      - name: Build (Zve32x)
+      - name: Build
         run: cmake --build build-zve32x --parallel
 
       - name: Run unit tests
@@ -179,8 +222,7 @@ jobs:
 
       - name: Run AudioMark benchmark
         timeout-minutes: 15
-        run: |
-          $RUN ./build-zve32x/audiomark 2>&1 | tee audiomark_zve32x_output.txt
+        run: $RUN ./build-zve32x/audiomark 2>&1 | tee audiomark_zve32x_output.txt
 
       - name: Report AudioMark score
         if: always()
