@@ -20,7 +20,7 @@ set(PORT_SOURCE
 
     ${PORT_DIR}/src/nn/avgpool_25x5x64_s8.c
     ${PORT_DIR}/../src/nn/convolve_s8.c
-    ${PORT_DIR}/../src/nn/depthwise_conv_s8.c
+    ${PORT_DIR}/src/nn/depthwise_conv_s8.c
     ${PORT_DIR}/../src/nn/fully_connected_s8.c
     ${PORT_DIR}/../src/nn/mat_mult_kernel_s8_s16.c
     ${PORT_DIR}/../src/nn/q7_to_q15_with_offset.c
