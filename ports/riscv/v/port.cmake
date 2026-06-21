@@ -33,6 +33,7 @@ add_definitions(-DUSE_RISCV_DSP)
 
 if(RISCV_HAS_VECTOR_FP)
     set(F32_SOURCES
+        ${PORT_DIR}/src/absmax_f32.c
         ${PORT_DIR}/src/dsp/cfft_f32.c
         ${PORT_DIR}/src/dsp/rfft_fast_f32.c
         ${PORT_DIR}/src/add_f32.c
@@ -44,6 +45,7 @@ if(RISCV_HAS_VECTOR_FP)
     )
 else()
     set(F32_SOURCES
+        ${PORT_DIR}/../src/absmax_f32.c
         ${PORT_DIR}/../src/dsp/cfft_f32.c
         ${PORT_DIR}/../src/dsp/rfft_fast_f32.c
         ${PORT_DIR}/../src/add_f32.c
@@ -64,7 +66,6 @@ set(PORT_SOURCE
 
     # f32 sources
     ${F32_SOURCES}
-    ${PORT_DIR}/../src/absmax_f32.c
     ${PORT_DIR}/../src/cfft_f32.c
     ${PORT_DIR}/../src/cfft_init_f32.c
     ${PORT_DIR}/../src/cmplx_conj_f32.c
