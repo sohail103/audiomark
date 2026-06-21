@@ -18,6 +18,7 @@ void probe(float *p, size_t n) {
     v = __riscv_vfmul_vf_f32m1(v, 2.0f, vl);
     __riscv_vse32_v_f32m1(p, v, vl);
 }
+int main(void) {return 0;}
 ")
 
 try_compile(RISCV_HAS_VECTOR_FP
@@ -26,6 +27,10 @@ try_compile(RISCV_HAS_VECTOR_FP
     CMAKE_FLAGS "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
     COMPILE_DEFINITIONS "${CMAKE_C_FLAGS}"
 )
+
+message(STATUS "CMAKE_C_COMPILER = '${CMAKE_C_COMPILER}'")
+message(STATUS "CMAKE_C_FLAGS at probe time = '${CMAKE_C_FLAGS}'")
+message(STATUS "RISCV_HAS_VECTOR_FP = ${RISCV_HAS_VECTOR_FP}")
 
 add_definitions(-DUSE_RISCV_DSP)
 
