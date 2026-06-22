@@ -12,13 +12,10 @@ include_directories(
 file(WRITE ${CMAKE_BINARY_DIR}/probe_rvv_fp.c
 "
 #include <riscv_vector.h>
-void probe(float *p, size_t n) {
-    size_t vl = __riscv_vsetvl_e32m1(n);
-    vfloat32m1_t v = __riscv_vle32_v_f32m1(p, vl);
-    v = __riscv_vfmul_vf_f32m1(v, 2.0f, vl);
-    __riscv_vse32_v_f32m1(p, v, vl);
-}
-int main(void) {return 0;}
+#if !defined(__riscv_v_elen_fp) || __riscv_v_elen_fp < 32
+#error \"RVV floating-point support (__riscv_v_elen_fp >= 32) not available\"
+#endif
+int main(void) { return 0; }
 ")
 
 try_compile(RISCV_HAS_VECTOR_FP
