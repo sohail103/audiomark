@@ -45,6 +45,19 @@
  */
 #include "preprocess_opt_helium.c"
 
+#elif defined(__riscv) && defined(__riscv_vector)
+
+#if defined(__riscv_v_elen_fp) && __riscv_v_elen_fp >= 32
+/*
+ * RISCV with v1.0 Vector Intrinsics
+ */
+#include "preprocess_opt_rvv.c"
+#else
+/* Fallback to generic scalar code if vector fp not supported */
+#warning "Fallback to mdf_opt_generic.c"
+#include "preprocess_opt_generic.c"
+#endif
+
 #elif defined (OTHER_ARCH)
 /*
  * More architectures to be added
