@@ -32,6 +32,7 @@ message(STATUS "RISCV_HAS_VECTOR_FP = ${RISCV_HAS_VECTOR_FP}")
 add_definitions(-DUSE_RISCV_DSP)
 
 if(RISCV_HAS_VECTOR_FP)
+    add_compile_options(-include v/src/anr_opt_config.h)
     set(F32_SOURCES
         ${PORT_DIR}/src/dsp/cfft_f32.c
         ${PORT_DIR}/src/dsp/rfft_fast_f32.c
