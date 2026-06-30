@@ -37,31 +37,101 @@
 #if defined(FLOATING_POINT)
 
 #ifdef OVERRIDE_FB_COMPUTE_BANK32
-
 void filterbank_compute_bank32(FilterBank *bank, spx_word32_t *ps, spx_word32_t *mel)
 {
-   int i;
-   /* clear histoTmp */
-   for (i = 0; i < bank->nb_banks; i++)
-      mel[i] = 0;
+    /* Known constant */
+    const int NB_BANKS = 24;
 
-   int * pBankL = bank->bank_left;
-   int * pBankR = bank->bank_right;
-   spx_word16_t * pFiltL = bank->filter_left;
-   spx_word16_t * pFiltR = bank->filter_right;
-   spx_word32_t * pPs = ps;
+    /* Buffer size: 24 banks * up to 32 vector lanes */
+    /* VLEN = 512 gives 32 lanes at e32m2 */
+    const int MAX_LANES = 32;
+    float histoTmp[NB_BANKS * MAX_LANES];
 
-   for (i = 0; i < bank->len; i++)
-   {
-      spx_word32_t ps_val = *pPs++;
-      int idL = *pBankL++;
-      int idR = *pBankR++;
+    uint32_t  *pL = (uint32_t *) bank->bank_left;
+    uint32_t  *pR = (uint32_t *) bank->bank_right;
+    float *pfiltL = (float *) bank->filter_left;
+    float *pfiltR = (float *) bank->filter_right;
+    float *pPs = (float *) ps;
 
-      mel[idL] += MULT16_32_P15(*pFiltL++, ps_val);
-      mel[idR] += MULT16_32_P15(*pFiltR++, ps_val);
-   }
+    size_t len = bank->len;
+    size_t hw_vlmax = __riscv_vsetvlmax_e32m2();
+    /* if hw_vlmax is greater than max supported lanes, clamp it */
+    size_t active_lanes = (hw_vlmax > MAX_LANES) ? MAX_LANES : hw_vlmax;
+
+    int clear_len = NB_BANKS * active_lanes;
+    float *pClear = histoTmp;
+
+    vfloat32m2_t vZero = __riscv_vfmv_v_f_f32m2(0.0f, hw_vlmax);
+
+    while (clear_len > 0) {
+        size_t vl = __riscv_vsetvl_e32m2(clear_len);
+        __riscv_vse32_v_f32m2(pClear, vZero, vl);
+        pClear += vl;
+        clear_len -= vl;
+    }
+
+    size_t vl_lanes = __riscv_vsetvl_e32m2(active_lanes);
+    vuint32m2_t vVid = __riscv_vid_v_u32m2(vl_lanes);
+    vuint32m2_t vLaneOffsets = __riscv_vmul_vx_u32m2(vVid, NB_BANKS * sizeof(float), vl_lanes);
+
+    while (len > 0) {
+        /* Manually limit the requested length to our active_lanes cap */
+        size_t req_len = (len < active_lanes) ? len : active_lanes;
+        size_t vl = __riscv_vsetvl_e32m2(req_len);
+
+        vfloat32m2_t vPsVec = __riscv_vle32_v_f32m2(pPs, vl);
+
+        vuint32m2_t  vIdL = __riscv_vle32_v_u32m2(pL, vl);
+        vuint32m2_t vOffL = __riscv_vsll_vx_u32m2(vIdL, 2, vl);
+        vOffL = __riscv_vadd_vv_u32m2(vOffL, vLaneOffsets, vl);
+
+        vfloat32m2_t vInL   = __riscv_vluxei32_v_f32m2(histoTmp, vOffL, vl);
+        vfloat32m2_t vFiltL = __riscv_vle32_v_f32m2(pfiltL, vl);
+        vInL = __riscv_vfmacc_vv_f32m2(vInL, vFiltL, vPsVec, vl);
+        __riscv_vsuxei32_v_f32m2(histoTmp, vOffL, vInL, vl);
+
+        vuint32m2_t vIdR  = __riscv_vle32_v_u32m2(pR, vl);
+        vuint32m2_t vOffR = __riscv_vsll_vx_u32m2(vIdR, 2, vl);
+        vOffR = __riscv_vadd_vv_u32m2(vOffR, vLaneOffsets, vl);
+
+        vfloat32m2_t vInR = __riscv_vluxei32_v_f32m2(histoTmp, vOffR, vl);
+        vfloat32m2_t vFiltR = __riscv_vle32_v_f32m2(pfiltR, vl);
+        vInR = __riscv_vfmacc_vv_f32m2(vInR, vFiltR, vPsVec, vl);
+        __riscv_vsuxei32_v_f32m2(histoTmp, vOffR, vInR, vl);
+
+        /* Advance pointers */
+        pL += vl;
+        pR += vl;
+        pfiltL += vl;
+        pfiltR += vl;
+        pPs += vl;
+        len -= vl;
+    }
+
+    int banks_left = NB_BANKS;
+    float *pMelOut = mel;
+    float *pHistoBase = histoTmp;
+
+    while (banks_left > 0) {
+        size_t vl = __riscv_vsetvl_e32m2(banks_left);
+        vfloat32m2_t vMel = __riscv_vfmv_v_f_f32m2(0.0f, vl);
+        float *pLane = pHistoBase;
+
+        for (int lane = 0; lane < active_lanes; lane++) {
+            vfloat32m2_t vLaneData = __riscv_vle32_v_f32m2(pLane, vl);
+            vMel = __riscv_vfadd_vv_f32m2(vMel, vLaneData, vl);
+
+            /* Jump exactly by one bank block */
+            pLane += NB_BANKS; 
+        }
+
+        __riscv_vse32_v_f32m2(pMelOut, vMel, vl);
+
+        pMelOut += vl;
+        pHistoBase += vl;
+        banks_left -= vl;
+    }
 }
-
 #endif
 
 #ifdef OVERRIDE_FB_COMPUTE_PSD16
