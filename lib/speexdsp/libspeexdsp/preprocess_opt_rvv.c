@@ -224,8 +224,8 @@ VISIB_ATTR void update_noise_estimate(SpeexPreprocessState * st, spx_word16_t be
         vbool16_t vMask = __riscv_vmor_mm_b16(vP0, vP1, vl);
 
         /* Tmp = Noise + beta * (Ps - Noise) */
-        vfloat32m2_t vDiff = __riscv_vfsub_vv_f32m2(vPs, vNoise, vl);
-        vfloat32m2_t vTmp  = __riscv_vfmacc_vf_f32m2(vNoise, beta, vDiff, vl);
+        vfloat32m2_t vTmp = __riscv_vfmul_vf_f32m2(vNoise, beta_1, vl);
+        vTmp = __riscv_vfmacc_vf_f32m2(vTmp, beta, vPs, vl);
         /* select between max(0, noise*(1-beta) + ps*beta) */
         vTmp = __riscv_vfmax_vf_f32m2_mu(vMask, vNoise, vTmp, 0.0f, vl);
 
@@ -273,10 +273,8 @@ VISIB_ATTR void aposteriori_snr(SpeexPreprocessState * st)
         vTmp        = __riscv_vfadd_vv_f32m2(vEcho, vReverb, vl);
         vTotalNoise = __riscv_vfadd_vv_f32m2(vTotalNoise, vTmp, vl);
 
-        vfloat32m2_t vInvTotalNoise = __riscv_vfrdiv_vf_f32m2(vTotalNoise, 1.0f, vl);
-
         /* A posteriori SNR = ps/noise - 1 */
-        vTmpf32 = __riscv_vfmul_vv_f32m2(vPs, vInvTotalNoise, vl);
+        vTmpf32 = __riscv_vfdiv_vv_f32m2(vPs, vTotalNoise, vl); 
         vTmpf32 = __riscv_vfsub_vf_f32m2(vTmpf32, 1.0f, vl);
         vPost   = __riscv_vfmin_vf_f32m2(vTmpf32, QCONST32(100.f, SNR_SHIFT), vl);
 
@@ -292,7 +290,7 @@ VISIB_ATTR void aposteriori_snr(SpeexPreprocessState * st)
         vGamma  = __riscv_vfadd_vf_f32m2(vTmpf32, QCONST32(0.1f, 15), vl);
 
         /* A priori SNR update = gamma*max(0,post) + (1-gamma)*old/noise */
-        vTmpf32 = __riscv_vfmul_vv_f32m2(vOldPs, vInvTotalNoise, vl);
+        vTmpf32 = __riscv_vfdiv_vv_f32m2(vOldPs, vTotalNoise, vl);
         vTmp    = __riscv_vfrsub_vf_f32m2(vGamma, Q15_ONE, vl);
         vTmpf32 = __riscv_vfmul_vv_f32m2(vTmp, vTmpf32, vl);
 
