@@ -64,7 +64,7 @@
 #define __STATIC_FORCEINLINE  static __attribute__((always_inline)) inline
 
 #ifdef OVERRIDE_ANR_VEC_MUL
-static void vect_mult(const spx_word16_t * pSrcA, const spx_word16_t * pSrcB, spx_word16_t * pDst, uint32_t blockSize)
+VISIB_ATTR void vect_mult(const spx_word16_t * pSrcA, const spx_word16_t * pSrcB, spx_word16_t * pDst, uint32_t blockSize)
 {
     vfloat32m2_t vSrcA;
     vfloat32m2_t vSrcB;
@@ -89,7 +89,7 @@ static void vect_mult(const spx_word16_t * pSrcA, const spx_word16_t * pSrcB, sp
 #endif
 
 #ifdef OVERRIDE_ANR_VEC_CONV_FROM_INT16
-static void vect_conv_from_int16(const spx_int16_t * pSrc, spx_word16_t * pDst, uint32_t blockSize)
+VISIB_ATTR void vect_conv_from_int16(const spx_int16_t * pSrc, spx_word16_t * pDst, uint32_t blockSize)
 {
     size_t len = blockSize;
 
@@ -120,16 +120,15 @@ VISIB_ATTR void vect_ola(const spx_word16_t * pSrcA, const spx_word16_t * pSrcB,
 
         vfloat32m4_t vSrcA = __riscv_vle32_v_f32m4(pSrcA, vl);
         vfloat32m4_t vSrcB = __riscv_vle32_v_f32m4(pSrcB, vl);
-        vfloat32m4_t vTmp = __riscv_vfadd_vv_f32m4(vSrcA, vSrcB, vl);
-
-        vint16m2_t vConv = __riscv_vfncvt_x_f_w_i16m2_rm(vTmp, __RISCV_FRM_RMM, vl); 
+        vfloat32m4_t vTmp  = __riscv_vfadd_vv_f32m4(vSrcA, vSrcB, vl);
+        vint16m2_t   vConv = __riscv_vfncvt_x_f_w_i16m2_rm(vTmp, __RISCV_FRM_RMM, vl); 
 
         __riscv_vse16_v_i16m2(pDst, vConv, vl);
 
         pSrcA += vl;
         pSrcB += vl;
         pDst  += vl;
-        len     -= vl;
+        len   -= vl;
     }
 
 }
@@ -142,7 +141,7 @@ VISIB_ATTR void compute_gain_floor(int noise_suppress, int effective_echo_suppre
     float       noise_floor;
 
     noise_floor = expf(.2302585f * noise_suppress);
-    echo_floor = expf(.2302585f * effective_echo_suppress);
+    echo_floor  = expf(.2302585f * effective_echo_suppress);
 
     /* Compute the gain floor based on different floors for the background noise and residual echo */
     float      *pnoise = (float *) noise;
@@ -187,8 +186,8 @@ VISIB_ATTR void power_spectrum(spx_word16_t * ft, spx_word32_t * ps, int N)
     while(len > 0){
         size_t vl             = __riscv_vsetvl_e32m2(len);
         vfloat32m2x2_t vCmplx = __riscv_vlseg2e32_v_f32m2x2(pSrc, vl);
-        vfloat32m2_t vReal    = __riscv_vget_v_f32m2x2_f32m2(vCmplx, 0);
-        vfloat32m2_t vImg     = __riscv_vget_v_f32m2x2_f32m2(vCmplx, 1);
+        vfloat32m2_t   vReal  = __riscv_vget_v_f32m2x2_f32m2(vCmplx, 0);
+        vfloat32m2_t   vImg   = __riscv_vget_v_f32m2x2_f32m2(vCmplx, 1);
 
         vfloat32m2_t vSum = __riscv_vfmul_vv_f32m2(vReal, vReal, vl);
 
@@ -208,14 +207,14 @@ VISIB_ATTR void update_noise_estimate(SpeexPreprocessState * st, spx_word16_t be
 {
     int             len = st->ps_size;
     int32_t const  *pupdate_prob = (int32_t const *)st->update_prob;
-    float      *pnoise = st->noise;
-    float const *pps = st->ps;
+    float          *pnoise = st->noise;
+    float   const  *pps = st->ps;
 
     /* Update the noise estimate for the frequencies where it can be */
     while(len > 0){
         size_t vl = __riscv_vsetvl_e32m2(len);
 
-        vint32m2_t vProb    = __riscv_vle32_v_i32m2(pupdate_prob, vl);
+        vint32m2_t   vProb  = __riscv_vle32_v_i32m2(pupdate_prob, vl);
         vfloat32m2_t vNoise = __riscv_vle32_v_f32m2(pnoise, vl);
         vfloat32m2_t vPs    = __riscv_vle32_v_f32m2(pps, vl);
 
@@ -224,9 +223,9 @@ VISIB_ATTR void update_noise_estimate(SpeexPreprocessState * st, spx_word16_t be
         vbool16_t vP1   = __riscv_vmflt_vv_f32m2_b16(vPs, vNoise, vl);
         vbool16_t vMask = __riscv_vmor_mm_b16(vP0, vP1, vl);
 
-        vfloat32m2_t vTmp = __riscv_vfmul_vf_f32m2(vNoise, beta_1, vl);
-
-        vTmp = __riscv_vfmacc_vf_f32m2(vTmp, beta, vPs, vl);
+        /* Tmp = Noise + beta * (Ps - Noise) */
+        vfloat32m2_t vDiff = __riscv_vfsub_vv_f32m2(vPs, vNoise, vl);
+        vfloat32m2_t vTmp  = __riscv_vfmacc_vf_f32m2(vNoise, beta, vDiff, vl);
         /* select between max(0, noise*(1-beta) + ps*beta) */
         vTmp = __riscv_vfmax_vf_f32m2_mu(vMask, vNoise, vTmp, 0.0f, vl);
 
@@ -245,26 +244,24 @@ VISIB_ATTR void update_noise_estimate(SpeexPreprocessState * st, spx_word16_t be
 #ifdef OVERRIDE_ANR_APOSTERIORI_SNR
 VISIB_ATTR void aposteriori_snr(SpeexPreprocessState * st)
 {
-    int             N = st->ps_size;
-    int             M = st->nbands;
-    float      *ps = (float *) st->ps;;
-    float      *pNoise = (float *) st->noise;
+    int                  N = st->ps_size;
+    int                  M = st->nbands;
+    float      *pNoise     = (float *) st->noise;
     float      *pEchoNoise = (float *) st->echo_noise;
-    float      *pRevNoise = (float *) st->reverb_estimate;
-    float      *pPs = (float *) ps;
-    float      *ppost = (float *) st->post;
-    float      *pOldPs = (float *) st->old_ps;
-    float      *pPrior = (float *) st->prior;
-    float      *pPost = (float *) st->post;
+    float      *pRevNoise  = (float *) st->reverb_estimate;
+    float      *pPs        = (float *) st->ps;
+    float      *pOldPs     = (float *) st->old_ps;
+    float      *pPrior     = (float *) st->prior;
+    float      *pPost      = (float *) st->post;
 
     int len = N + M;
     while(len > 0){
         size_t vl = __riscv_vsetvl_e32m2(len);
-        vfloat32m2_t vNoise = __riscv_vle32_v_f32m2(pNoise, vl);
-        vfloat32m2_t vEcho  = __riscv_vle32_v_f32m2(pEchoNoise, vl);
+        vfloat32m2_t vNoise  = __riscv_vle32_v_f32m2(pNoise, vl);
+        vfloat32m2_t vEcho   = __riscv_vle32_v_f32m2(pEchoNoise, vl);
         vfloat32m2_t vReverb = __riscv_vle32_v_f32m2(pRevNoise, vl);
-        vfloat32m2_t vPs = __riscv_vle32_v_f32m2(pPs, vl);
-        vfloat32m2_t vOldPs = __riscv_vle32_v_f32m2(pOldPs, vl);
+        vfloat32m2_t vPs     = __riscv_vle32_v_f32m2(pPs, vl);
+        vfloat32m2_t vOldPs  = __riscv_vle32_v_f32m2(pOldPs, vl);
 
         vfloat32m2_t vTmpf32, vTmpf322;
         vfloat32m2_t vTotalNoise;
@@ -276,11 +273,12 @@ VISIB_ATTR void aposteriori_snr(SpeexPreprocessState * st)
         vTmp        = __riscv_vfadd_vv_f32m2(vEcho, vReverb, vl);
         vTotalNoise = __riscv_vfadd_vv_f32m2(vTotalNoise, vTmp, vl);
 
-        /* A posteriori SNR = ps/noise - 1 */
-        vTmpf32 = __riscv_vfdiv_vv_f32m2(vPs, vTotalNoise, vl);
-        vTmpf32 = __riscv_vfsub_vf_f32m2(vTmpf32, 1.0f, vl);
+        vfloat32m2_t vInvTotalNoise = __riscv_vfrdiv_vf_f32m2(vTotalNoise, 1.0f, vl);
 
-        vPost = __riscv_vfmin_vf_f32m2(vTmpf32, QCONST32(100.f, SNR_SHIFT), vl);
+        /* A posteriori SNR = ps/noise - 1 */
+        vTmpf32 = __riscv_vfmul_vv_f32m2(vPs, vInvTotalNoise, vl);
+        vTmpf32 = __riscv_vfsub_vf_f32m2(vTmpf32, 1.0f, vl);
+        vPost   = __riscv_vfmin_vf_f32m2(vTmpf32, QCONST32(100.f, SNR_SHIFT), vl);
 
         __riscv_vse32_v_f32m2(pPost, vPost, vl);
 
@@ -294,7 +292,7 @@ VISIB_ATTR void aposteriori_snr(SpeexPreprocessState * st)
         vGamma  = __riscv_vfadd_vf_f32m2(vTmpf32, QCONST32(0.1f, 15), vl);
 
         /* A priori SNR update = gamma*max(0,post) + (1-gamma)*old/noise */
-        vTmpf32 = __riscv_vfdiv_vv_f32m2(vOldPs, vTotalNoise, vl);
+        vTmpf32 = __riscv_vfmul_vv_f32m2(vOldPs, vInvTotalNoise, vl);
         vTmp    = __riscv_vfrsub_vf_f32m2(vGamma, Q15_ONE, vl);
         vTmpf32 = __riscv_vfmul_vv_f32m2(vTmp, vTmpf32, vl);
 
@@ -310,7 +308,6 @@ VISIB_ATTR void aposteriori_snr(SpeexPreprocessState * st)
         pNoise     += vl;
         pEchoNoise += vl;
         pRevNoise  += vl;
-        ppost      += vl;
         pOldPs     += vl;
 
         len        -= vl;
@@ -322,8 +319,6 @@ VISIB_ATTR void aposteriori_snr(SpeexPreprocessState * st)
 
 #endif
 
-/* INFO: Investigate if 1 x vle + 2 x flw + vslide up & down is faster
- * Or if 2 x vle is faster on Hardware */
 #ifdef OVERRIDE_ANR_UPDATE_ZETA
 VISIB_ATTR void preprocess_update_zeta(SpeexPreprocessState * st)
 {
@@ -350,7 +345,7 @@ VISIB_ATTR void preprocess_update_zeta(SpeexPreprocessState * st)
 
         vfloat32m2_t vPriorPrv = __riscv_vfslide1up_vf_f32m2(vPriorCur, pPriorPrv, vl);
         vfloat32m2_t vPriorNxt = __riscv_vfslide1down_vf_f32m2(vPriorCur, pPriorNxt, vl);
-        vfloat32m2_t zeta   = __riscv_vle32_v_f32m2(pZeta, vl);
+        vfloat32m2_t zeta      = __riscv_vle32_v_f32m2(pZeta, vl);
 
         zeta = __riscv_vfmul_vf_f32m2(zeta, QCONST32(.7f, 15), vl);
         zeta = __riscv_vfmacc_vf_f32m2(zeta, QCONST32(.15f, 15), vPriorCur, vl);
@@ -361,15 +356,15 @@ VISIB_ATTR void preprocess_update_zeta(SpeexPreprocessState * st)
 
         pPriorPrv = pPrior[vl];
 
-        pZeta += vl;
+        pZeta  += vl;
         pPrior += vl;
 
         blkCnt -= vl;
     }
 
-    pZeta = (float *) st->zeta;
+    pZeta  = (float *) st->zeta;
     pPrior = (float *) st->prior;
-    pZeta += (N - 1);
+    pZeta  += (N - 1);
     pPrior += (N - 1);
     blkCnt = M + 1;
 
@@ -382,7 +377,7 @@ VISIB_ATTR void preprocess_update_zeta(SpeexPreprocessState * st)
         zeta = __riscv_vfmacc_vf_f32m2(zeta, QCONST32(.3f, 15), priorcur, vl);
         __riscv_vse32_v_f32m2(pZeta, zeta, vl);
 
-        pZeta += vl;
+        pZeta  += vl;
         pPrior += vl;
         blkCnt -= vl;
     }
@@ -422,10 +417,11 @@ __STATIC_FORCEINLINE vfloat32m2_t vec_hypergeom_gain_f32(vfloat32m2_t xx, size_t
 
 
     vfloat32m2_t intg = __riscv_vfmul_vf_f32m2(xx, 2.0f, vl);
-    vuint32m2_t ind0 = __riscv_vfcvt_xu_f_v_u32m2_rm(intg, __RISCV_FRM_RDN, vl);
+    vuint32m2_t  ind0 = __riscv_vfcvt_xu_f_v_u32m2_rm(intg, __RISCV_FRM_RDN, vl);
+
     vfloat32m2_t intgFloor = __riscv_vfcvt_f_xu_v_f32m2(ind0, vl);
 
-    vfloat32m2_t inv = __riscv_vfrdiv_vf_f32m2(xx, 1.0f, vl);
+    vfloat32m2_t inv    = __riscv_vfrdiv_vf_f32m2(xx, 1.0f, vl);
     vfloat32m2_t outbig = __riscv_vfmul_vf_f32m2(inv, 0.1296f, vl);
     outbig = __riscv_vfadd_vf_f32m2(outbig, 1.0f, vl);
 
@@ -434,16 +430,15 @@ __STATIC_FORCEINLINE vfloat32m2_t vec_hypergeom_gain_f32(vfloat32m2_t xx, size_t
     invSqrt = __riscv_vfrdiv_vf_f32m2(invSqrt, 1.0f, vl);
     vfloat32m2_t frac = __riscv_vfsub_vv_f32m2(intg, intgFloor, vl);
 
-    vuint32m2_t offset0 = __riscv_vsll_vx_u32m2(ind0, 2, vl);
+    vuint32m2_t  offset0  = __riscv_vsll_vx_u32m2(ind0, 2, vl);
     vfloat32m2_t tabItem0 = __riscv_vluxei32_v_f32m2(table, offset0, vl);
 
-    vuint32m2_t ind1 = __riscv_vadd_vx_u32m2(ind0, 1, vl);
-    vuint32m2_t offset1 = __riscv_vsll_vx_u32m2(ind1, 2, vl);
+    vuint32m2_t  ind1     = __riscv_vadd_vx_u32m2(ind0, 1, vl);
+    vuint32m2_t  offset1  = __riscv_vsll_vx_u32m2(ind1, 2, vl);
     vfloat32m2_t tabItem1 = __riscv_vluxei32_v_f32m2(table, offset1, vl);
 
-    vfloat32m2_t oneMinusFrac = __riscv_vfrsub_vf_f32m2(frac, 1.0f, vl);
-    vfloat32m2_t outsmall = __riscv_vfmul_vv_f32m2(oneMinusFrac, tabItem0, vl);
-    outsmall = __riscv_vfmacc_vv_f32m2(outsmall, frac, tabItem1, vl);
+    vfloat32m2_t tabDiff  = __riscv_vfsub_vv_f32m2(tabItem1, tabItem0, vl);
+    vfloat32m2_t outsmall = __riscv_vfmacc_vv_f32m2(tabItem0, frac, tabDiff, vl);
 
     outsmall = __riscv_vfmul_vv_f32m2(outsmall, invSqrt, vl);
 
@@ -490,11 +485,10 @@ __STATIC_FORCEINLINE vfloat32m2_t vexpq_f32(vfloat32m2_t x, size_t vl)
 {
     /* Perform range reduction [-log(2),log(2)] */
     vfloat32m2_t scale = __riscv_vfmul_vf_f32m2(x, 1.4426950408f, vl);
-    vint32m2_t   mi32;
-    mi32 = __riscv_vfcvt_rtz_x_f_v_i32m2(scale, vl);
-    vfloat32m2_t mf32;
-    mf32 = __riscv_vfcvt_f_x_v_f32m2(mi32, vl);
-    vfloat32m2_t val = __riscv_vfnmsub_vf_f32m2(mf32, 0.6931471805f, x, vl);
+    vint32m2_t   mi32  = __riscv_vfcvt_rtz_x_f_v_i32m2(scale, vl);
+    vfloat32m2_t mf32  = __riscv_vfcvt_f_x_v_f32m2(mi32, vl);
+    vfloat32m2_t val   = __riscv_vfnmsub_vf_f32m2(mf32, 0.6931471805f, x, vl);
+
     /* Polynomial Approximation */
     vfloat32m2_t polyf32 = vtaylor_polyq_f32(val, vl);
 
@@ -544,17 +538,16 @@ VISIB_ATTR void update_gains_critical_bands(SpeexPreprocessState * st, spx_word1
         vfloat32m2_t vMM;
         vfloat32m2_t vPriorRatio;
 
-        vfloat32m2_t vPrior = __riscv_vle32_v_f32m2(pprior, vl);
-        vfloat32m2_t vPost  = __riscv_vle32_v_f32m2(ppost, vl);
-
-        vfloat32m2_t vTmp   = __riscv_vfadd_vf_f32m2(vPrior, 1.0f, vl);
-        vPriorRatio = __riscv_vfdiv_vv_f32m2(vPrior, vTmp, vl);
-        vTheta = __riscv_vfadd_vf_f32m2(vPost, 1.0f, vl);
-        vTheta = __riscv_vfmul_vv_f32m2(vPriorRatio, vTheta, vl);
-        vMM = vec_hypergeom_gain_f32(vTheta, vl);
+        vfloat32m2_t vPrior        = __riscv_vle32_v_f32m2(pprior, vl);
+        vfloat32m2_t vPost         = __riscv_vle32_v_f32m2(ppost, vl);
+        vfloat32m2_t vPriorPlusOne = __riscv_vfadd_vf_f32m2(vPrior, 1.0f, vl);
+        vPriorRatio = __riscv_vfdiv_vv_f32m2(vPrior, vPriorPlusOne, vl);
+        vTheta      = __riscv_vfadd_vf_f32m2(vPost, 1.0f, vl);
+        vTheta      = __riscv_vfmul_vv_f32m2(vPriorRatio, vTheta, vl);
+        vMM         = vec_hypergeom_gain_f32(vTheta, vl);
 
         /* Gain with bound */
-        vTmp = __riscv_vfmul_vv_f32m2(vPriorRatio, vMM, vl);
+        vfloat32m2_t vTmp  = __riscv_vfmul_vv_f32m2(vPriorRatio, vMM, vl);
         vfloat32m2_t vGain = __riscv_vfmin_vf_f32m2(vTmp, 1.0f, vl);
         __riscv_vse32_v_f32m2(pgain, vGain, vl);
 
@@ -563,40 +556,32 @@ VISIB_ATTR void update_gains_critical_bands(SpeexPreprocessState * st, spx_word1
         vfloat32m2_t vPs    = __riscv_vle32_v_f32m2(ps, vl);
         vOldPs = __riscv_vfmul_vf_f32m2(vOldPs, QCONST32(.2f, 15), vl);
 
-        vTmp = __riscv_vfmul_vv_f32m2(vGain, vGain, vl);
-        vTmp = __riscv_vfmul_vf_f32m2(vTmp, QCONST32(.8f, 15), vl);
-        vTmp = __riscv_vfmul_vv_f32m2(vTmp, vPs, vl);
+        vTmp   = __riscv_vfmul_vv_f32m2(vGain, vGain, vl);
+        vTmp   = __riscv_vfmul_vf_f32m2(vTmp, QCONST32(.8f, 15), vl);
+        vOldPs = __riscv_vfmacc_vv_f32m2(vOldPs, vTmp, vPs, vl);
 
-        vOldPs = __riscv_vfadd_vv_f32m2(vOldPs, vTmp, vl);
         __riscv_vse32_v_f32m2(pold_ps, vOldPs, vl);
 
         /* a priority probability of speech presence based on Bark sub-band alone */
         vTmp = __riscv_vle32_v_f32m2(pzeta, vl);
 
-        vfloat32m2_t vDen = __riscv_vfrdiv_vf_f32m2(vTmp, 1.0f, vl);
-        vDen = __riscv_vfmul_vf_f32m2(vDen, 0.15f, vl);
-        vDen = __riscv_vfadd_vf_f32m2(vDen, 1.0f, vl);
-        vTmp = __riscv_vfrdiv_vf_f32m2(vDen, 1.0f, vl);
+        vfloat32m2_t vDen = __riscv_vfadd_vf_f32m2(vTmp, 0.15f, vl);
+        vTmp = __riscv_vfdiv_vv_f32m2(vTmp, vDen, vl);
 
         vTmp = __riscv_vfmul_vf_f32m2(vTmp, QCONST32(.8f, 15), vl);
         vfloat32m2_t vPv = __riscv_vfadd_vf_f32m2(vTmp, QCONST32(.199f, 15), vl);
-
+        vfloat32m2_t vP  = __riscv_vfmul_vf_f32m2(vPv, Pframe, vl);
         /* Speech absence a priori probability (considering sub-band and frame) */
         /* potential loss of precision */
-        vfloat32m2_t vQv = __riscv_vfmul_vf_f32m2(vPv, Pframe, vl);
-        vQv = __riscv_vfrsub_vf_f32m2(vQv, Q15_ONE, vl);
-
+        vfloat32m2_t vQ = __riscv_vfrsub_vf_f32m2(vP, Q15_ONE, vl);
         vTmp = vexpq_f32(__riscv_vfneg_v_f32m2(vTheta, vl), vl);
+        vTmp = __riscv_vfmul_vv_f32m2(vTmp, vPriorPlusOne, vl);
 
-        vfloat32m2_t vTmp2 = __riscv_vfadd_vf_f32m2(vPrior, 1.0f, vl);
-        vTmp  = __riscv_vfmul_vv_f32m2(vTmp, vTmp2, vl);
         /* Prevent overflows in the next line */
-        vTmp  = __riscv_vfmin_vf_f32m2(vTmp,QCONST16(3., SNR_SHIFT), vl);
-        vTmp2 = __riscv_vfrsub_vf_f32m2(vQv, 1.0f, vl);
-        vTmp2 = __riscv_vfdiv_vv_f32m2(vQv, vTmp2, vl);
-        vTmp  = __riscv_vfmul_vv_f32m2(vTmp, vTmp2, vl);
-        vTmp  = __riscv_vfadd_vf_f32m2(vTmp, 1.0f, vl);
-        vTmp  = __riscv_vfrdiv_vf_f32m2(vTmp, 1.0f, vl);
+        vTmp = __riscv_vfmin_vf_f32m2(vTmp,QCONST16(3., SNR_SHIFT), vl);
+        vTmp = __riscv_vfmul_vv_f32m2(vTmp, vQ, vl);
+        vTmp = __riscv_vfadd_vv_f32m2(vTmp, vP, vl);
+        vTmp = __riscv_vfdiv_vv_f32m2(vP, vTmp, vl);
 
         __riscv_vse32_v_f32m2(pgain2, vTmp, vl);
 
@@ -608,7 +593,7 @@ VISIB_ATTR void update_gains_critical_bands(SpeexPreprocessState * st, spx_word1
         pold_ps += vl;
         ps      += vl;
 
-        len -= vl;
+        len     -= vl;
     }
 }
 
@@ -641,8 +626,8 @@ VISIB_ATTR void update_gains_linear(SpeexPreprocessState * st)
 
         vfloat32m2_t vPriorRatio = __riscv_vfadd_vf_f32m2(vPrior, 1.0f, vl);
         vPriorRatio = __riscv_vfdiv_vv_f32m2(vPrior, vPriorRatio, vl);
-        vTheta = __riscv_vfadd_vf_f32m2(vPost, 1.0f, vl);
-        vTheta = __riscv_vfmul_vv_f32m2(vPriorRatio, vTheta, vl);
+        vTheta      = __riscv_vfadd_vf_f32m2(vPost, 1.0f, vl);
+        vTheta      = __riscv_vfmul_vv_f32m2(vPriorRatio, vTheta, vl);
         /* Optimal Estimator for Loudness Domain */
         vMM = vec_hypergeom_gain_f32(vTheta, vl);
 
@@ -656,11 +641,11 @@ VISIB_ATTR void update_gains_linear(SpeexPreprocessState * st)
         /* Constrain the gain to be close to the Bark Scale Gain */
         vfloat32m2_t vecGain = __riscv_vle32_v_f32m2(pgain, vl);
         vecGain = __riscv_vfmul_vf_f32m2(vecGain, 3.0f, vl);
-        vGain = __riscv_vfmin_vv_f32m2(vGain, vecGain, vl);
+        vGain   = __riscv_vfmin_vv_f32m2(vGain, vecGain, vl);
 
         /* Save old Bark power spectrum */
         vfloat32m2_t vOldPs = __riscv_vle32_v_f32m2(pold_ps, vl);
-        vfloat32m2_t vPs = __riscv_vle32_v_f32m2(ps, vl);
+        vfloat32m2_t vPs    = __riscv_vle32_v_f32m2(ps, vl);
         vOldPs = __riscv_vfmul_vf_f32m2(vOldPs, QCONST32(.2f, 15), vl);
 
         vfloat32m2_t vTmp;
@@ -678,10 +663,11 @@ VISIB_ATTR void update_gains_linear(SpeexPreprocessState * st)
 
         /* Take into account speech probability of presence (loudness domain MMSE estimator) */
         /* gain2 = [p*sqrt(gain)+(1-p)*sqrt(gain _floor) ]^2 */
-        vecGain = __riscv_vfmul_vv_f32m2(vP, __riscv_vfsqrt_v_f32m2(vGain, vl), vl);
-        vTmp = __riscv_vfrsub_vf_f32m2(vP, Q15_ONE, vl);
-        vTmp = __riscv_vfmul_vv_f32m2(vTmp, __riscv_vfsqrt_v_f32m2(vGFloor, vl), vl);
-        vecGain = __riscv_vfadd_vv_f32m2(vecGain, vTmp, vl);
+        vfloat32m2_t vSqrtG      = __riscv_vfsqrt_v_f32m2(vGain, vl);
+        vfloat32m2_t vSqrtGFloor = __riscv_vfsqrt_v_f32m2(vGFloor, vl);
+        vfloat32m2_t vSqrtDiff   = __riscv_vfsub_vv_f32m2(vSqrtG, vSqrtGFloor, vl);
+
+        vecGain = __riscv_vfmacc_vv_f32m2(vSqrtGFloor, vP, vSqrtDiff, vl);
         vecGain = __riscv_vfmul_vv_f32m2(vecGain, vecGain, vl);
         __riscv_vse32_v_f32m2(pgain2, vecGain, vl);
 
@@ -713,19 +699,18 @@ VISIB_ATTR void apply_spectral_gain(SpeexPreprocessState * st)
     while (len > 0U) 
     {
         size_t vl = __riscv_vsetvl_e32m2(len);
-        vfloat32m2_t vGain = __riscv_vle32_v_f32m2(pSrcReal, vl);
-        vfloat32m2x2_t vCmplx = __riscv_vlseg2e32_v_f32m2x2(pCmplx, vl);
-        vfloat32m2_t vCmplxReal = __riscv_vget_v_f32m2x2_f32m2(vCmplx, 0);
-        vfloat32m2_t vCmplxImag = __riscv_vget_v_f32m2x2_f32m2(vCmplx, 1);
+        vfloat32m2_t   vGain      = __riscv_vle32_v_f32m2(pSrcReal, vl);
+        vfloat32m2x2_t vCmplx     = __riscv_vlseg2e32_v_f32m2x2(pCmplx, vl);
+        vfloat32m2_t   vCmplxReal = __riscv_vget_v_f32m2x2_f32m2(vCmplx, 0);
+        vfloat32m2_t   vCmplxImag = __riscv_vget_v_f32m2x2_f32m2(vCmplx, 1);
         vCmplxReal = __riscv_vfmul_vv_f32m2(vCmplxReal, vGain, vl);
         vCmplxImag = __riscv_vfmul_vv_f32m2(vCmplxImag, vGain, vl);
-        vCmplx = __riscv_vset_v_f32m2_f32m2x2(vCmplx, 0, vCmplxReal);
-        vCmplx = __riscv_vset_v_f32m2_f32m2x2(vCmplx, 1, vCmplxImag);
-        __riscv_vsseg2e32_v_f32m2x2(pCmplx, vCmplx, vl);
+        vfloat32m2x2_t vCmplxOut = __riscv_vcreate_v_f32m2x2(vCmplxReal, vCmplxImag);
+        __riscv_vsseg2e32_v_f32m2x2(pCmplx, vCmplxOut, vl);
 
         pSrcReal += vl;
-        pCmplx += vl * 2;
-        len -= vl;
+        pCmplx   += vl * 2;
+        len      -= vl;
     }
 
     st->ft[0] = MULT16_16_P15(st->gain2[0], st->ft[0]);
@@ -752,27 +737,31 @@ VISIB_ATTR void update_noise_prob(SpeexPreprocessState * st)
     float psPrv = pPsBase[0];
     float psNxt;
 
+    size_t vlmax = __riscv_vsetvlmax_e32m2();
+    vint32m2_t vIZero = __riscv_vmv_v_x_i32m2(0, vlmax);
+    vfloat32m2_t vFZero = __riscv_vfmv_v_f_f32m2(.0f, vlmax);
+
     while(blockSize > 0){
 
         size_t vl = __riscv_vsetvl_e32m2(blockSize);
 
-        vfloat32m2_t vecS = __riscv_vle32_v_f32m2(pS, vl);
+        vfloat32m2_t vecS  = __riscv_vle32_v_f32m2(pS, vl);
         vfloat32m2_t vecPS = __riscv_vle32_v_f32m2(pPsBase + 1, vl);
 
         psNxt = pPsBase[1 + vl];
         vfloat32m2_t vecPSM1 = __riscv_vfslide1up_vf_f32m2(vecPS, psPrv, vl);
         vfloat32m2_t vecPSP1 = __riscv_vfslide1down_vf_f32m2(vecPS, psNxt, vl);
 
-        vfloat32m2_t vecTmp = __riscv_vfmul_vf_f32m2(vecS, c0, vl);
-        vecTmp = __riscv_vfmacc_vf_f32m2(vecTmp, c1, vecPSM1, vl);
+        vfloat32m2_t vecTmp     = __riscv_vfmul_vf_f32m2(vecS, c0, vl);
         vecTmp = __riscv_vfmacc_vf_f32m2(vecTmp, c2, vecPS, vl);
-        vecTmp = __riscv_vfmacc_vf_f32m2(vecTmp, c3, vecPSP1, vl);
+        vfloat32m2_t vecPsSides = __riscv_vfadd_vv_f32m2(vecPSM1, vecPSP1, vl);
+        vecTmp = __riscv_vfmacc_vf_f32m2(vecTmp, c1, vecPsSides, vl);
 
         __riscv_vse32_v_f32m2(pS, vecTmp, vl);
 
         psPrv = pPsBase[vl];
 
-        pS    += vl;
+        pS        += vl;
         pPsBase   += vl;
         blockSize -= vl;
     }
@@ -781,19 +770,17 @@ VISIB_ATTR void update_noise_prob(SpeexPreprocessState * st)
     st->S[N - 1] = MULT16_32_Q15(QCONST16(.8f, 15), st->S[N - 1]) + MULT16_32_Q15(QCONST16(.2f, 15), st->ps[N - 1]);
 
 
-
     if (st->nb_adapt == 1) {
         float *pSmin = st->Smin;
         float *pStmp = st->Stmp;
         size_t len = N;
         while (len > 0) {
             size_t vl = __riscv_vsetvl_e32m2(len);
-            vfloat32m2_t vZero = __riscv_vfmv_v_f_f32m2(0.0f, vl);
-            __riscv_vse32_v_f32m2(pSmin, vZero, vl);
-            __riscv_vse32_v_f32m2(pStmp, vZero, vl);
+            __riscv_vse32_v_f32m2(pSmin, vFZero, vl);
+            __riscv_vse32_v_f32m2(pStmp, vFZero, vl);
             pSmin += vl;
             pStmp += vl;
-            len -= vl;
+            len   -= vl;
         }
     }
 
@@ -816,15 +803,15 @@ VISIB_ATTR void update_noise_prob(SpeexPreprocessState * st)
         size_t len = N;
         while(len > 0){
             size_t vl = __riscv_vsetvl_e32m2(len);
-            vfloat32m2_t vS = __riscv_vle32_v_f32m2(pS, vl);
+            vfloat32m2_t vS    = __riscv_vle32_v_f32m2(pS, vl);
             vfloat32m2_t vSmin = __riscv_vle32_v_f32m2(pStmp, vl);
             vSmin = __riscv_vfmin_vv_f32m2(vSmin, vS, vl);
             __riscv_vse32_v_f32m2(pSmin, vSmin, vl);
             __riscv_vse32_v_f32m2(pStmp, vS, vl);
-            pS += vl;
+            pS    += vl;
             pSmin += vl;
             pStmp += vl;
-            len -= vl;
+            len   -= vl;
         }
     } else {
         float      *pSmin = st->Smin;
@@ -833,17 +820,18 @@ VISIB_ATTR void update_noise_prob(SpeexPreprocessState * st)
         size_t len = N;
         while(len > 0){
             size_t vl = __riscv_vsetvl_e32m2(len);
-            vfloat32m2_t vS = __riscv_vle32_v_f32m2(pS, vl);
+
+            vfloat32m2_t vS    = __riscv_vle32_v_f32m2(pS, vl);
             vfloat32m2_t vSmin = __riscv_vle32_v_f32m2(pSmin, vl);
             vSmin = __riscv_vfmin_vv_f32m2(vSmin, vS, vl);
             __riscv_vse32_v_f32m2(pSmin, vSmin, vl);
             vfloat32m2_t vStmp = __riscv_vle32_v_f32m2(pStmp, vl);
             vStmp = __riscv_vfmin_vv_f32m2(vStmp, vS, vl);
             __riscv_vse32_v_f32m2(pStmp, vStmp, vl);
-            pS += vl;
+            pS    += vl;
             pSmin += vl;
             pStmp += vl;
-            len -= vl;
+            len   -= vl;
         }
 
     }
@@ -856,18 +844,17 @@ VISIB_ATTR void update_noise_prob(SpeexPreprocessState * st)
     size_t len = N;
     while(len > 0){
         size_t vl = __riscv_vsetvl_e32m2(len);
-        vfloat32m2_t vecS = __riscv_vle32_v_f32m2(pS, vl);
+        vfloat32m2_t vecS    = __riscv_vle32_v_f32m2(pS, vl);
         vfloat32m2_t vecSmin = __riscv_vle32_v_f32m2(pSMin, vl);
         vecS = __riscv_vfmul_vf_f32m2(vecS, c, vl);
         vbool16_t vMask = __riscv_vmfgt_vv_f32m2_b16(vecS, vecSmin, vl);
-        vint32m2_t vecProb = __riscv_vmv_v_x_i32m2(0, vl);
 
-        vecProb = __riscv_vmerge_vxm_i32m2(vecProb, 1, vMask, vl);
+        vint32m2_t vecProb = __riscv_vmerge_vxm_i32m2(vIZero, 1, vMask, vl);
         __riscv_vse32_v_i32m2(pProb, vecProb, vl);
         pProb += vl;
         pS    += vl;
         pSMin += vl;
-        len -= vl;
+        len   -= vl;
     }
 
 }
