@@ -54,7 +54,6 @@
 #include "preprocess_opt_rvv.c"
 #else
 /* Fallback to generic scalar code if vector fp not supported */
-#warning "Fallback to mdf_opt_generic.c"
 #include "preprocess_opt_generic.c"
 #endif
 
