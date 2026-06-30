@@ -42,8 +42,16 @@ void filterbank_compute_bank32(FilterBank *bank, spx_word32_t *ps, spx_word32_t 
 {
    int i;
    /* clear histoTmp */
-   for (i = 0; i < bank->nb_banks; i++)
-      mel[i] = 0;
+   size_t len = bank->nb_banks;
+   spx_word32_t *pMel = mel;
+   size_t vlmax = __riscv_vsetvlmax_e32m2();
+   vfloat32m2_t vZero = __riscv_vfmv_v_f_f32m2(0.0f, vlmax);
+   while(len > 0){
+       size_t vl = __riscv_vsetvl_e32m2(len);
+       __riscv_vse32_v_f32m2(pMel, vZero, vl);
+       pMel += vl;
+       len  -= vl;
+   }
 
    int * pBankL = bank->bank_left;
    int * pBankR = bank->bank_right;
