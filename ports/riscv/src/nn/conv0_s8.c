@@ -125,17 +125,17 @@ nn_conv0_s8(const nn_context                  *ctx,
 
         for (int32_t p = 0; p < leftover_pixels; p++, patch += num_col_a)
         {
-            const q7_t *ker_a = filter_data;
-
             for (int32_t i = 0; i < OUTPUT_CH; i++)
             {
                 q31_t        sum       = bias_data ? bias_data[i] : 0;
                 const q15_t *col       = patch;
+                const q7_t  *ker_a     = filter_data + i; /* k=0, channel i, transposed layout */
                 uint16_t     col_count = num_col_a;
 
                 while (col_count--)
                 {
-                    sum += (*ker_a++) * (*col++);
+                    sum += (*ker_a) * (*col++);
+                    ker_a += OUTPUT_CH; /* step to next k */
                 }
 
                 sum = nn_requantize(sum, output_mult[i], output_shift[i]);

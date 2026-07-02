@@ -28,7 +28,7 @@ extern const int8_t  ds_cnn_s_layer_12_fc_weights[768];
 extern const int32_t ds_cnn_s_layer_1_conv2d_bias[64];
 extern const int32_t ds_cnn_s_layer_1_conv2d_output_mult[64];
 extern const int32_t ds_cnn_s_layer_1_conv2d_output_shift[64];
-extern const int8_t  ds_cnn_s_layer_1_conv2d_weights[2560];
+extern const int8_t  ds_cnn_s_layer_1_conv2d_weights_rvv[2560];
 extern const int32_t ds_cnn_s_layer_2_dw_conv2d_bias[64];
 extern const int32_t ds_cnn_s_layer_2_dw_conv2d_output_mult[64];
 extern const int32_t ds_cnn_s_layer_2_dw_conv2d_output_shift[64];
@@ -36,7 +36,7 @@ extern const int8_t  ds_cnn_s_layer_2_dw_conv2d_weights[576];
 extern const int32_t ds_cnn_s_layer_3_conv2d_bias[64];
 extern const int32_t ds_cnn_s_layer_3_conv2d_output_mult[64];
 extern const int32_t ds_cnn_s_layer_3_conv2d_output_shift[64];
-extern const int8_t  ds_cnn_s_layer_3_conv2d_weights[4096];
+extern const int8_t  ds_cnn_s_layer_3_conv2d_weights_rvv[4096];
 extern const int32_t ds_cnn_s_layer_4_dw_conv2d_bias[64];
 extern const int32_t ds_cnn_s_layer_4_dw_conv2d_output_mult[64];
 extern const int32_t ds_cnn_s_layer_4_dw_conv2d_output_shift[64];
@@ -44,7 +44,7 @@ extern const int8_t  ds_cnn_s_layer_4_dw_conv2d_weights[576];
 extern const int32_t ds_cnn_s_layer_5_conv2d_bias[64];
 extern const int32_t ds_cnn_s_layer_5_conv2d_output_mult[64];
 extern const int32_t ds_cnn_s_layer_5_conv2d_output_shift[64];
-extern const int8_t  ds_cnn_s_layer_5_conv2d_weights[4096];
+extern const int8_t  ds_cnn_s_layer_5_conv2d_weights_rvv[4096];
 extern const int32_t ds_cnn_s_layer_6_dw_conv2d_bias[64];
 extern const int32_t ds_cnn_s_layer_6_dw_conv2d_output_mult[64];
 extern const int32_t ds_cnn_s_layer_6_dw_conv2d_output_shift[64];
@@ -52,7 +52,7 @@ extern const int8_t  ds_cnn_s_layer_6_dw_conv2d_weights[576];
 extern const int32_t ds_cnn_s_layer_7_conv2d_bias[64];
 extern const int32_t ds_cnn_s_layer_7_conv2d_output_mult[64];
 extern const int32_t ds_cnn_s_layer_7_conv2d_output_shift[64];
-extern const int8_t  ds_cnn_s_layer_7_conv2d_weights[4096];
+extern const int8_t  ds_cnn_s_layer_7_conv2d_weights_rvv[4096];
 extern const int32_t ds_cnn_s_layer_8_dw_conv2d_bias[64];
 extern const int32_t ds_cnn_s_layer_8_dw_conv2d_output_mult[64];
 extern const int32_t ds_cnn_s_layer_8_dw_conv2d_output_shift[64];
@@ -60,7 +60,7 @@ extern const int8_t  ds_cnn_s_layer_8_dw_conv2d_weights[576];
 extern const int32_t ds_cnn_s_layer_9_conv2d_bias[64];
 extern const int32_t ds_cnn_s_layer_9_conv2d_output_mult[64];
 extern const int32_t ds_cnn_s_layer_9_conv2d_output_shift[64];
-extern const int8_t  ds_cnn_s_layer_9_conv2d_weights[4096];
+extern const int8_t  ds_cnn_s_layer_9_conv2d_weights_rvv[4096];
 
 #define MAX_DIM_SIZE_BYTE_0 (CONV_0_OUTPUT_W * CONV_0_OUTPUT_H * CONV_0_OUT_CH)
 #define MAX_DIM_SIZE_BYTE_1 \
@@ -135,7 +135,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     int32_t status = nn_conv0_s8(&ctx,
                                  &quant_params,
                                  in_data,
-                                 ds_cnn_s_layer_1_conv2d_weights,
+                                 ds_cnn_s_layer_1_conv2d_weights_rvv,
                                  ds_cnn_s_layer_1_conv2d_bias,
                                  in_out_buf_0);
 
@@ -204,7 +204,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     status |= nn_conv1x1_s8(&ctx,
                             &quant_params,
                             in_out_buf_1,
-                            ds_cnn_s_layer_3_conv2d_weights,
+                            ds_cnn_s_layer_3_conv2d_weights_rvv,
                             ds_cnn_s_layer_3_conv2d_bias,
                             in_out_buf_0);
 
@@ -235,7 +235,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     status |= nn_conv1x1_s8(&ctx,
                             &quant_params,
                             in_out_buf_1,
-                            ds_cnn_s_layer_5_conv2d_weights,
+                            ds_cnn_s_layer_5_conv2d_weights_rvv,
                             ds_cnn_s_layer_5_conv2d_bias,
                             in_out_buf_0);
 
@@ -265,7 +265,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     status |= nn_conv1x1_s8(&ctx,
                             &quant_params,
                             in_out_buf_1,
-                            ds_cnn_s_layer_7_conv2d_weights,
+                            ds_cnn_s_layer_7_conv2d_weights_rvv,
                             ds_cnn_s_layer_7_conv2d_bias,
                             in_out_buf_0);
 
@@ -295,7 +295,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     status |= nn_conv1x1_s8(&ctx,
                             &quant_params,
                             in_out_buf_1,
-                            ds_cnn_s_layer_9_conv2d_weights,
+                            ds_cnn_s_layer_9_conv2d_weights_rvv,
                             ds_cnn_s_layer_9_conv2d_bias,
                             in_out_buf_0);
 

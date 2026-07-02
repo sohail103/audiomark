@@ -87,20 +87,19 @@ nn_conv1x1_s8(const nn_context                  *ctx,
     {
         const int32_t leftover_pixels = (OUTPUT_X * OUTPUT_Y) % NN_KERNEL_COLS;
         const q15_t  *patch           = im2col_buf;
-
         for (int32_t p = 0; p < leftover_pixels; p++, patch += INPUT_CH)
         {
-            const q7_t *ker_a = filter_data;
-
             for (int32_t i = 0; i < OUTPUT_CH; i++)
             {
-                q31_t        sum       = bias_data ? bias_data[i] : 0;
-                const q15_t *col       = patch;
-                uint16_t     col_count = INPUT_CH;
-
+                q31_t        sum = bias_data ? bias_data[i] : 0;
+                const q15_t *col = patch;
+                const q7_t  *ker_a
+                    = filter_data + i; /* k=0, channel i, transposed layout */
+                uint16_t col_count = INPUT_CH;
                 while (col_count--)
                 {
-                    sum += (*ker_a++) * (*col++);
+                    sum += (*ker_a) * (*col++);
+                    ker_a += OUTPUT_CH;
                 }
 
                 sum = nn_requantize(sum, output_mult[i], output_shift[i]);
