@@ -87,15 +87,17 @@ set(PORT_SOURCE
 
     # nn sources
     ${PORT_DIR}/src/nn/avgpool_25x5x64_s8.c
-    ${PORT_DIR}/../src/nn/conv0_s8.c
-    ${PORT_DIR}/../src/nn/conv1x1_s8.c
+    ${PORT_DIR}/src/nn/conv0_s8.c
+    ${PORT_DIR}/src/nn/conv1x1_s8.c
     ${PORT_DIR}/src/nn/depthwise_conv_s8.c
     ${PORT_DIR}/../src/nn/fully_connected_s8.c
     ${PORT_DIR}/src/nn/mat_mult_kernel_s8_s16.c
+    ${PORT_DIR}/src/nn/mat_mult_kernel_s8_s8.c
+    ${PORT_DIR}/src/nn/mat_mult_core_1x1_s8.c
     ${PORT_DIR}/src/nn/q7_to_q15_with_offset.c
     ${PORT_DIR}/../src/nn/softmax_row12_s8.c
     ${PORT_DIR}/../src/nn/softmax_luts.c
     ${PORT_DIR}/../src/nn/vec_mat_mult_t_s8.c
-    ${PORT_DIR}/../src/nn_classify.c
+    ${PORT_DIR}/src/nn_classify.c
     ${PORT_DIR}/../src/nn_init.c
 )
