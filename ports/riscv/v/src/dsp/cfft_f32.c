@@ -98,37 +98,36 @@ riscv_bitreversal_32_inpl(uint32_t       *pSrc,
                           const uint16_t  bitRevLen,
                           const uint16_t *pBitRevTab)
 {
-    uint64_t *base      = (uint64_t *)pSrc;
     int32_t   remaining = bitRevLen >> 1;
 
     /* load first iteration's offsets before entering loop */
-    size_t        vl  = __riscv_vsetvl_e64m4(remaining);
-    vuint16m1x2_t seg = __riscv_vlseg2e16_v_u16m1x2(pBitRevTab, vl);
-    vuint16m1_t   oa  = __riscv_vget_v_u16m1x2_u16m1(seg, 0);
-    vuint16m1_t   ob  = __riscv_vget_v_u16m1x2_u16m1(seg, 1);
+    size_t        vl  = __riscv_vsetvl_e32m4(remaining);
+    vuint16m2x2_t seg = __riscv_vlseg2e16_v_u16m2x2(pBitRevTab, vl);
+    vuint16m2_t   oa  = __riscv_vget_v_u16m2x2_u16m2(seg, 0);
+    vuint16m2_t   ob  = __riscv_vget_v_u16m2x2_u16m2(seg, 1);
     pBitRevTab += vl * 2;
     remaining -= vl;
 
     while (remaining > 0)
     {
-        vuint64m4_t va = __riscv_vluxei16_v_u64m4(base, oa, vl);
-        vuint64m4_t vb = __riscv_vluxei16_v_u64m4(base, ob, vl);
-        __riscv_vsuxei16_v_u64m4(base, oa, vb, vl);
-        __riscv_vsuxei16_v_u64m4(base, ob, va, vl);
+        vuint32m4x2_t va = __riscv_vluxseg2ei16_v_u32m4x2(pSrc, oa, vl);
+        vuint32m4x2_t vb = __riscv_vluxseg2ei16_v_u32m4x2(pSrc, ob, vl);
+        __riscv_vsuxseg2ei16_v_u32m4x2(pSrc, oa, vb, vl);
+        __riscv_vsuxseg2ei16_v_u32m4x2(pSrc, ob, va, vl);
 
-        vl  = __riscv_vsetvl_e64m4(remaining);
-        seg = __riscv_vlseg2e16_v_u16m1x2(pBitRevTab, vl);
-        oa  = __riscv_vget_v_u16m1x2_u16m1(seg, 0);
-        ob  = __riscv_vget_v_u16m1x2_u16m1(seg, 1);
+        vl  = __riscv_vsetvl_e32m4(remaining);
+        seg = __riscv_vlseg2e16_v_u16m2x2(pBitRevTab, vl);
+        oa  = __riscv_vget_v_u16m2x2_u16m2(seg, 0);
+        ob  = __riscv_vget_v_u16m2x2_u16m2(seg, 1);
         pBitRevTab += vl * 2;
         remaining -= vl;
     }
 
     /* process last primed offsets */
-    vuint64m4_t va = __riscv_vluxei16_v_u64m4(base, oa, vl);
-    vuint64m4_t vb = __riscv_vluxei16_v_u64m4(base, ob, vl);
-    __riscv_vsuxei16_v_u64m4(base, oa, vb, vl);
-    __riscv_vsuxei16_v_u64m4(base, ob, va, vl);
+    vuint32m4x2_t va = __riscv_vluxseg2ei16_v_u32m4x2(pSrc, oa, vl);
+    vuint32m4x2_t vb = __riscv_vluxseg2ei16_v_u32m4x2(pSrc, ob, vl);
+    __riscv_vsuxseg2ei16_v_u32m4x2(pSrc, oa, vb, vl);
+    __riscv_vsuxseg2ei16_v_u32m4x2(pSrc, ob, va, vl);
 }
 
 static float32_t
