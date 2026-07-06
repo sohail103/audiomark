@@ -178,12 +178,12 @@ jobs:
           make -j$(nproc)
           make install
 
-      - name: Check for RVV extension and set run command
+      - name: Check for zve32x extension and set run command
         run: |
           ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
           EXTENSIONS=${ISA#rv64}
           echo "$HOME/qemu-install/bin" >> $GITHUB_PATH
-          if [[ "$EXTENSIONS" == *v* ]]; then
+          if [[ "$EXTENSIONS" == *v* ]] || [[ "$EXTENSIONS" == *zve32x* ]]; then
             echo 'RUN=' >> $GITHUB_ENV
           else
             echo "RUN=$HOME/qemu-install/bin/qemu-riscv64 -L /usr/riscv64-linux-gnu -cpu rv64,g=true,c=true,zve32x=true,vlen=128" >> $GITHUB_ENV
@@ -289,12 +289,12 @@ jobs:
           make -j$(nproc)
           make install
 
-      - name: Check for RVV extension and set run command
+      - name: Check for zve32f extension and set run command
         run: |
           ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
           EXTENSIONS=${ISA#rv64}
           echo "$HOME/qemu-install/bin" >> $GITHUB_PATH
-          if [[ "$EXTENSIONS" == *v* ]]; then
+          if [[ "$EXTENSIONS" == *v* ]] || [[ "$EXTENSIONS" == *zve32f* ]]; then
             echo 'RUN=' >> $GITHUB_ENV
           else
             echo "RUN=$HOME/qemu-install/bin/qemu-riscv64 -L /usr/riscv64-linux-gnu -cpu rv64,g=true,c=true,zve32f=true,vlen=128" >> $GITHUB_ENV
@@ -400,12 +400,12 @@ jobs:
           make -j$(nproc)
           make install
 
-      - name: Check for RVV extension and set run command
+      - name: Check for zve64x extension and set run command
         run: |
           ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
           EXTENSIONS=${ISA#rv64}
           echo "$HOME/qemu-install/bin" >> $GITHUB_PATH
-          if [[ "$EXTENSIONS" == *v* ]]; then
+          if [[ "$EXTENSIONS" == *v* ]] || [[ "$EXTENSIONS" == *zve64x* ]]; then
             echo 'RUN=' >> $GITHUB_ENV
           else
             echo "RUN=$HOME/qemu-install/bin/qemu-riscv64 -L /usr/riscv64-linux-gnu -cpu rv64,g=true,c=true,zve64x=true,vlen=128" >> $GITHUB_ENV
@@ -511,12 +511,12 @@ jobs:
           make -j$(nproc)
           make install
 
-      - name: Check for RVV extension and set run command
+      - name: Check for zve64f extension and set run command
         run: |
           ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
           EXTENSIONS=${ISA#rv64}
           echo "$HOME/qemu-install/bin" >> $GITHUB_PATH
-          if [[ "$EXTENSIONS" == *v* ]]; then
+          if [[ "$EXTENSIONS" == *v* ]] || [[ "$EXTENSIONS" == *zve64f* ]]; then
             echo 'RUN=' >> $GITHUB_ENV
           else
             echo "RUN=$HOME/qemu-install/bin/qemu-riscv64 -L /usr/riscv64-linux-gnu -cpu rv64,g=true,c=true,zve64f=true,vlen=128" >> $GITHUB_ENV
