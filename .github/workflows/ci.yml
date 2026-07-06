@@ -19,15 +19,15 @@ jobs:
       - name: Install Clang
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y clang lld
+          sudo apt-get install -y clang-19 lld-19
 
       - name: Print CPU and compiler info
         run: |
           cat /proc/cpuinfo
-          clang -v 2>&1
+          clang-19 -v 2>&1
 
       - name: Configure CMake
-        run: cmake -S . -B build -DPORT_DIR=ports/riscv -DCMAKE_C_COMPILER=clang
+        run: cmake -S . -B build -DPORT_DIR=ports/riscv -DCMAKE_C_COMPILER=clang-19
 
       - name: Build
         run: cmake --build build --parallel
@@ -70,7 +70,7 @@ jobs:
       - name: Install Clang
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y clang lld
+          sudo apt-get install -y clang-19 lld-19
 
       - name: Print CPU and compiler info
         run: |
@@ -92,9 +92,9 @@ jobs:
       - name: Configure CMake (RVV)
         run: |
           if [ -z "$RUN" ]; then
-            cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v -DCMAKE_C_COMPILER=clang
+            cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v -DCMAKE_C_COMPILER=clang-19
           else
-            cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v -DCMAKE_C_COMPILER=clang -DCMAKE_C_FLAGS="-O2 -march=rv64gcv"
+            cmake -S . -B build-vector -DPORT_DIR=ports/riscv/v -DCMAKE_C_COMPILER=clang-19 -DCMAKE_C_FLAGS="-O2 -march=rv64gcv"
           fi
 
       - name: Build (RVV)
@@ -150,14 +150,14 @@ jobs:
           sudo apt-get update -qq
           if [ "${{ steps.cache-qemu.outputs.cache-hit }}" != "true" ]; then
             sudo apt-get install -y \
-              clang lld \
+              clang-19 lld-19 \
               gcc-riscv64-linux-gnu \
               libc6-dev-riscv64-cross \
               libglib2.0-dev libpixman-1-dev \
               ninja-build python3-venv
           else
             sudo apt-get install -y \
-              clang lld \
+              clang-19 lld-19 \
               gcc-riscv64-linux-gnu \
               libc6-dev-riscv64-cross
           fi
@@ -178,12 +178,12 @@ jobs:
           make -j$(nproc)
           make install
 
-      - name: Check for RVV extension and set run command
+      - name: Check for zve32x extension and set run command
         run: |
           ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
           EXTENSIONS=${ISA#rv64}
           echo "$HOME/qemu-install/bin" >> $GITHUB_PATH
-          if [[ "$EXTENSIONS" == *v* ]]; then
+          if [[ "$EXTENSIONS" == *v* ]] || [[ "$EXTENSIONS" == *zve32x* ]]; then
             echo 'RUN=' >> $GITHUB_ENV
           else
             echo "RUN=$HOME/qemu-install/bin/qemu-riscv64 -L /usr/riscv64-linux-gnu -cpu rv64,g=true,c=true,zve32x=true,vlen=128" >> $GITHUB_ENV
@@ -192,7 +192,7 @@ jobs:
       - name: Print CPU and compiler info
         run: |
           cat /proc/cpuinfo
-          clang -v 2>&1
+          clang-19 -v 2>&1
 
       - name: Configure CMake
         run: |
@@ -200,11 +200,11 @@ jobs:
           if [ -z "$RUN" ]; then
             cmake -S . -B build-zve32x \
               -DPORT_DIR=ports/riscv/v \
-              -DCMAKE_C_COMPILER=clang
+              -DCMAKE_C_COMPILER=clang-19
           else
             cmake -S . -B build-zve32x \
               -DPORT_DIR=ports/riscv/v \
-              -DCMAKE_C_COMPILER=clang \
+              -DCMAKE_C_COMPILER=clang-19 \
               -DCMAKE_C_FLAGS="--target=riscv64-linux-gnu -march=rv64gc_zve32x -O2 --sysroot=${SYSROOT}" \
               -DCMAKE_EXE_LINKER_FLAGS="--target=riscv64-linux-gnu --sysroot=${SYSROOT} -fuse-ld=/usr/bin/riscv64-linux-gnu-ld"
           fi
@@ -239,4 +239,337 @@ jobs:
         with:
           name: audiomark-zve32x-results
           path: audiomark_zve32x_output.txt
+          retention-days: 30
+
+  build-test-benchmark-zve32f:
+    runs-on: ubuntu-latest
+    env:
+      VERSION_QEMU: "9.2.4"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Cache QEMU build
+        id: cache-qemu
+        uses: actions/cache@v5
+        with:
+          path: ~/qemu-install
+          key: qemu-${{ env.VERSION_QEMU }}-riscv64-linux
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          if [ "${{ steps.cache-qemu.outputs.cache-hit }}" != "true" ]; then
+            sudo apt-get install -y \
+              clang-19 lld-19 \
+              gcc-riscv64-linux-gnu \
+              libc6-dev-riscv64-cross \
+              libglib2.0-dev libpixman-1-dev \
+              ninja-build python3-venv
+          else
+            sudo apt-get install -y \
+              clang-19 lld-19 \
+              gcc-riscv64-linux-gnu \
+              libc6-dev-riscv64-cross
+          fi
+
+      - name: Build QEMU user-mode (riscv64) from source
+        if: steps.cache-qemu.outputs.cache-hit != 'true'
+        run: |
+          wget -q https://download.qemu.org/qemu-${{ env.VERSION_QEMU }}.tar.xz
+          tar xf qemu-${{ env.VERSION_QEMU }}.tar.xz
+          cd qemu-${{ env.VERSION_QEMU }}
+          ./configure \
+            --prefix=$HOME/qemu-install \
+            --target-list=riscv64-linux-user \
+            --disable-system \
+            --enable-linux-user \
+            --disable-docs \
+            --disable-werror
+          make -j$(nproc)
+          make install
+
+      - name: Check for zve32f extension and set run command
+        run: |
+          ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
+          EXTENSIONS=${ISA#rv64}
+          echo "$HOME/qemu-install/bin" >> $GITHUB_PATH
+          if [[ "$EXTENSIONS" == *v* ]] || [[ "$EXTENSIONS" == *zve32f* ]]; then
+            echo 'RUN=' >> $GITHUB_ENV
+          else
+            echo "RUN=$HOME/qemu-install/bin/qemu-riscv64 -L /usr/riscv64-linux-gnu -cpu rv64,g=true,c=true,zve32f=true,vlen=128" >> $GITHUB_ENV
+          fi
+
+      - name: Print CPU and compiler info
+        run: |
+          cat /proc/cpuinfo
+          clang-19 -v 2>&1
+
+      - name: Configure CMake
+        run: |
+          SYSROOT=$(riscv64-linux-gnu-gcc -print-sysroot)
+          if [ -z "$RUN" ]; then
+            cmake -S . -B build-zve32f \
+              -DPORT_DIR=ports/riscv/v \
+              -DCMAKE_C_COMPILER=clang-19
+          else
+            cmake -S . -B build-zve32f \
+              -DPORT_DIR=ports/riscv/v \
+              -DCMAKE_C_COMPILER=clang-19 \
+              -DCMAKE_C_FLAGS="--target=riscv64-linux-gnu -march=rv64gc_zve32f -O2 --sysroot=${SYSROOT}" \
+              -DCMAKE_EXE_LINKER_FLAGS="--target=riscv64-linux-gnu --sysroot=${SYSROOT} -fuse-ld=/usr/bin/riscv64-linux-gnu-ld"
+          fi
+
+      - name: Build
+        run: cmake --build build-zve32f --parallel
+
+      - name: Run unit tests
+        run: |
+          $RUN ./build-zve32f/test_abf_f32
+          $RUN ./build-zve32f/test_aec_f32
+          $RUN ./build-zve32f/test_anr_f32
+          $RUN ./build-zve32f/test_kws
+          $RUN ./build-zve32f/test_mfcc_f32
+
+      - name: Run AudioMark benchmark
+        timeout-minutes: 15
+        run: $RUN ./build-zve32f/audiomark 2>&1 | tee audiomark_zve32f_output.txt
+
+      - name: Report AudioMark score
+        if: always()
+        run: |
+          if [ -f audiomark_zve32f_output.txt ]; then
+            cat audiomark_zve32f_output.txt
+          else
+            echo "Benchmark did not run."
+          fi
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: audiomark-zve32f-results
+          path: audiomark_zve32f_output.txt
+          retention-days: 30
+
+  build-test-benchmark-zve64x:
+    runs-on: ubuntu-latest
+    env:
+      VERSION_QEMU: "9.2.4"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Cache QEMU build
+        id: cache-qemu
+        uses: actions/cache@v5
+        with:
+          path: ~/qemu-install
+          key: qemu-${{ env.VERSION_QEMU }}-riscv64-linux
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          if [ "${{ steps.cache-qemu.outputs.cache-hit }}" != "true" ]; then
+            sudo apt-get install -y \
+              clang-19 lld-19 \
+              gcc-riscv64-linux-gnu \
+              libc6-dev-riscv64-cross \
+              libglib2.0-dev libpixman-1-dev \
+              ninja-build python3-venv
+          else
+            sudo apt-get install -y \
+              clang-19 lld-19 \
+              gcc-riscv64-linux-gnu \
+              libc6-dev-riscv64-cross
+          fi
+
+      - name: Build QEMU user-mode (riscv64) from source
+        if: steps.cache-qemu.outputs.cache-hit != 'true'
+        run: |
+          wget -q https://download.qemu.org/qemu-${{ env.VERSION_QEMU }}.tar.xz
+          tar xf qemu-${{ env.VERSION_QEMU }}.tar.xz
+          cd qemu-${{ env.VERSION_QEMU }}
+          ./configure \
+            --prefix=$HOME/qemu-install \
+            --target-list=riscv64-linux-user \
+            --disable-system \
+            --enable-linux-user \
+            --disable-docs \
+            --disable-werror
+          make -j$(nproc)
+          make install
+
+      - name: Check for zve64x extension and set run command
+        run: |
+          ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
+          EXTENSIONS=${ISA#rv64}
+          echo "$HOME/qemu-install/bin" >> $GITHUB_PATH
+          if [[ "$EXTENSIONS" == *v* ]] || [[ "$EXTENSIONS" == *zve64x* ]]; then
+            echo 'RUN=' >> $GITHUB_ENV
+          else
+            echo "RUN=$HOME/qemu-install/bin/qemu-riscv64 -L /usr/riscv64-linux-gnu -cpu rv64,g=true,c=true,zve64x=true,vlen=128" >> $GITHUB_ENV
+          fi
+
+      - name: Print CPU and compiler info
+        run: |
+          cat /proc/cpuinfo
+          clang-19 -v 2>&1
+
+      - name: Configure CMake
+        run: |
+          SYSROOT=$(riscv64-linux-gnu-gcc -print-sysroot)
+          if [ -z "$RUN" ]; then
+            cmake -S . -B build-zve64x \
+              -DPORT_DIR=ports/riscv/v \
+              -DCMAKE_C_COMPILER=clang-19
+          else
+            cmake -S . -B build-zve64x \
+              -DPORT_DIR=ports/riscv/v \
+              -DCMAKE_C_COMPILER=clang-19 \
+              -DCMAKE_C_FLAGS="--target=riscv64-linux-gnu -march=rv64gc_zve64x -O2 --sysroot=${SYSROOT}" \
+              -DCMAKE_EXE_LINKER_FLAGS="--target=riscv64-linux-gnu --sysroot=${SYSROOT} -fuse-ld=/usr/bin/riscv64-linux-gnu-ld"
+          fi
+
+      - name: Build
+        run: cmake --build build-zve64x --parallel
+
+      - name: Run unit tests
+        run: |
+          $RUN ./build-zve64x/test_abf_f32
+          $RUN ./build-zve64x/test_aec_f32
+          $RUN ./build-zve64x/test_anr_f32
+          $RUN ./build-zve64x/test_kws
+          $RUN ./build-zve64x/test_mfcc_f32
+
+      - name: Run AudioMark benchmark
+        timeout-minutes: 15
+        run: $RUN ./build-zve64x/audiomark 2>&1 | tee audiomark_zve64x_output.txt
+
+      - name: Report AudioMark score
+        if: always()
+        run: |
+          if [ -f audiomark_zve64x_output.txt ]; then
+            cat audiomark_zve64x_output.txt
+          else
+            echo "Benchmark did not run."
+          fi
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: audiomark-zve64x-results
+          path: audiomark_zve64x_output.txt
+          retention-days: 30
+
+  build-test-benchmark-zve64f:
+    runs-on: ubuntu-latest
+    env:
+      VERSION_QEMU: "9.2.4"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Cache QEMU build
+        id: cache-qemu
+        uses: actions/cache@v5
+        with:
+          path: ~/qemu-install
+          key: qemu-${{ env.VERSION_QEMU }}-riscv64-linux
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          if [ "${{ steps.cache-qemu.outputs.cache-hit }}" != "true" ]; then
+            sudo apt-get install -y \
+              clang-19 lld-19 \
+              gcc-riscv64-linux-gnu \
+              libc6-dev-riscv64-cross \
+              libglib2.0-dev libpixman-1-dev \
+              ninja-build python3-venv
+          else
+            sudo apt-get install -y \
+              clang-19 lld-19 \
+              gcc-riscv64-linux-gnu \
+              libc6-dev-riscv64-cross
+          fi
+
+      - name: Build QEMU user-mode (riscv64) from source
+        if: steps.cache-qemu.outputs.cache-hit != 'true'
+        run: |
+          wget -q https://download.qemu.org/qemu-${{ env.VERSION_QEMU }}.tar.xz
+          tar xf qemu-${{ env.VERSION_QEMU }}.tar.xz
+          cd qemu-${{ env.VERSION_QEMU }}
+          ./configure \
+            --prefix=$HOME/qemu-install \
+            --target-list=riscv64-linux-user \
+            --disable-system \
+            --enable-linux-user \
+            --disable-docs \
+            --disable-werror
+          make -j$(nproc)
+          make install
+
+      - name: Check for zve64f extension and set run command
+        run: |
+          ISA=$(grep "^isa" /proc/cpuinfo | head -n1 | cut -d: -f2 | tr -d '[:space:]')
+          EXTENSIONS=${ISA#rv64}
+          echo "$HOME/qemu-install/bin" >> $GITHUB_PATH
+          if [[ "$EXTENSIONS" == *v* ]] || [[ "$EXTENSIONS" == *zve64f* ]]; then
+            echo 'RUN=' >> $GITHUB_ENV
+          else
+            echo "RUN=$HOME/qemu-install/bin/qemu-riscv64 -L /usr/riscv64-linux-gnu -cpu rv64,g=true,c=true,zve64f=true,vlen=128" >> $GITHUB_ENV
+          fi
+
+      - name: Print CPU and compiler info
+        run: |
+          cat /proc/cpuinfo
+          clang-19 -v 2>&1
+
+      - name: Configure CMake
+        run: |
+          SYSROOT=$(riscv64-linux-gnu-gcc -print-sysroot)
+          if [ -z "$RUN" ]; then
+            cmake -S . -B build-zve64f \
+              -DPORT_DIR=ports/riscv/v \
+              -DCMAKE_C_COMPILER=clang-19
+          else
+            cmake -S . -B build-zve64f \
+              -DPORT_DIR=ports/riscv/v \
+              -DCMAKE_C_COMPILER=clang-19 \
+              -DCMAKE_C_FLAGS="--target=riscv64-linux-gnu -march=rv64gc_zve64f -O2 --sysroot=${SYSROOT}" \
+              -DCMAKE_EXE_LINKER_FLAGS="--target=riscv64-linux-gnu --sysroot=${SYSROOT} -fuse-ld=/usr/bin/riscv64-linux-gnu-ld"
+          fi
+
+      - name: Build
+        run: cmake --build build-zve64f --parallel
+
+      - name: Run unit tests
+        run: |
+          $RUN ./build-zve64f/test_abf_f32
+          $RUN ./build-zve64f/test_aec_f32
+          $RUN ./build-zve64f/test_anr_f32
+          $RUN ./build-zve64f/test_kws
+          $RUN ./build-zve64f/test_mfcc_f32
+
+      - name: Run AudioMark benchmark
+        timeout-minutes: 15
+        run: $RUN ./build-zve64f/audiomark 2>&1 | tee audiomark_zve64f_output.txt
+
+      - name: Report AudioMark score
+        if: always()
+        run: |
+          if [ -f audiomark_zve64f_output.txt ]; then
+            cat audiomark_zve64f_output.txt
+          else
+            echo "Benchmark did not run."
+          fi
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: audiomark-zve64f-results
+          path: audiomark_zve64f_output.txt
           retention-days: 30
