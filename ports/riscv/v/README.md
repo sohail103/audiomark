@@ -10,7 +10,7 @@ operate across the standard vector extension as well as embedded Zve profiles.
 
 Reference intrinsics specification:
 
-https://github.com/riscv-non-isa/rvv-intrinsic-doc
+https://docs.riscv.org/reference/vector-c-intrinsics/_attachments/v-intrinsic-spec.pdf
 
 ---
 
@@ -42,7 +42,7 @@ RVV 1.0 programming model.
 
 ## Vector Floating-Point Support
 
-Some kernels make use of RVV floating-point instructions.
+Some kernels make use of RVV single-precision floating-point instructions.
 
 During CMake configuration, compiler support for vector floating-point intrinsics is
 detected automatically.
