@@ -21,7 +21,7 @@
  */
 
 #include "rvv_support_guard.h"
-#include "support_functions.h"
+#include "rvv_support_functions.h"
 
 /* Same shape as nn_mat_mult_kernel_s8_s16: LMUL4 i32 accumulators x7 rows,
  * LMUL2 i16 widened weight vector, 7 scalar activations broadcast per k.

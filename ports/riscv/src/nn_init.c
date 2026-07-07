@@ -22,13 +22,9 @@
 
 #define BUF_CONV0 \
     NN_CONV0_S8_BUF_SIZE(CONV_0_IN_CH, CONV_0_FILTER_W, CONV_0_FILTER_H)
-
 #define BUF_CONV2 NN_CONV1X1_S8_BUF_SIZE(CONV_2_OUT_CH)
-
 #define BUF_CONV4 NN_CONV1X1_S8_BUF_SIZE(CONV_4_OUT_CH)
-
 #define BUF_CONV6 NN_CONV1X1_S8_BUF_SIZE(CONV_6_OUT_CH)
-
 #define BUF_CONV8 NN_CONV1X1_S8_BUF_SIZE(CONV_8_OUT_CH)
 
 #define MAX_BUF_SIZE \
@@ -36,7 +32,8 @@
 
 /* Test for a complete int8 DS_CNN_S keyword spotting network from
  * https://github.com/ARM-software/ML-zoo & Tag: 22.02 */
-nn_context     ctx;
+nn_context ctx;
+
 static uint8_t scratch_buffer[MAX_BUF_SIZE] __attribute__((aligned(8)));
 
 void

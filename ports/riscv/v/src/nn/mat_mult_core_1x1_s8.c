@@ -21,7 +21,7 @@
  */
 
 #include "rvv_support_guard.h"
-#include "support_functions.h"
+#include "rvv_support_functions.h"
 
 /* Leftover-position tail for 1x1 conv */
 q7_t *

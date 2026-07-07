@@ -87,6 +87,7 @@ set(PORT_SOURCE
 
     # nn sources
     ${PORT_DIR}/src/nn/avgpool_25x5x64_s8.c
+    ${PORT_DIR}/src/nn/rvv_nn_tables.c
     ${PORT_DIR}/src/nn/conv0_s8.c
     ${PORT_DIR}/src/nn/conv1x1_s8.c
     ${PORT_DIR}/src/nn/depthwise_conv_s8.c

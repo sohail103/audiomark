@@ -23,7 +23,7 @@
 #include "rvv_support_guard.h"
 #include "ee_api.h"
 #include "functions.h"
-#include "support_functions.h"
+#include "rvv_support_functions.h"
 #include "convolve_config.h"
 
 #include <stdint.h>

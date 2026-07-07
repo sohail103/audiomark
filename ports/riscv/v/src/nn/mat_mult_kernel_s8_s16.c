@@ -15,7 +15,7 @@
  */
 
 #include "rvv_support_guard.h"
-#include "support_functions.h"
+#include "rvv_support_functions.h"
 
 q7_t *
 nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,

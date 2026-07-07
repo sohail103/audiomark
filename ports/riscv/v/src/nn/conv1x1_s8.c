@@ -22,7 +22,7 @@
 
 #include "rvv_support_guard.h"
 #include "functions.h"
-#include "support_functions.h"
+#include "rvv_support_functions.h"
 #include "convolve_config.h"
 
 /* Folds input_offset * sum_k(weight[k][oc]) into bias, once per call.

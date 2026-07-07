@@ -19,7 +19,7 @@
 #include "rvv_support_guard.h"
 
 #include "functions.h"
-#include "support_functions.h"
+#include "rvv_support_functions.h"
 
 #include <stdint.h>
 #include <stdbool.h>
