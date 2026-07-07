@@ -23,9 +23,7 @@
 #include "rvv_support_guard.h"
 #include "support_functions.h"
 
-/* Leftover-position tail for 1x1 conv. Same channel-vectorized MAC as the
- * 7-row kernel, just one row — so LMUL8 fits without spilling since there's
- * only one live accumulator instead of seven. */
+/* Leftover-position tail for 1x1 conv */
 q7_t *
 nn_mat_mult_core_1x1_s8(const q7_t          *input_a,
                         const q7_t          *act_row,

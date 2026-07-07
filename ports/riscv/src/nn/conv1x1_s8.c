@@ -1,7 +1,5 @@
-// Modifications copyright (C) 2023 Chair of Electronic Design Automation, TUM
 /*
- * SPDX-FileCopyrightText: Copyright 2022-2023 Arm Limited and/or its affiliates
- * <open-source-office@arm.com>
+ * Copyright (C) 2010-2022 Arm Limited or its affiliates.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,48 +15,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Modifications copyright (C) 2021-2023 Chair of Electronic Design Automation,
+ * TUM
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
-#include "rvv_support_guard.h"
 #include "functions.h"
 #include "support_functions.h"
 #include "convolve_config.h"
 
-/* Folds input_offset * sum_k(weight[k][oc]) into bias, once per call.
- * weights_rvv is k-major/oc-minor, so this is unit-stride per k. */
+#include <stddef.h>
+
 static void
 nn_fold_input_offset_s8(int32_t       *corrected_bias,
                         const int32_t *bias_data,
-                        const q7_t    *weights_rvv,
+                        const q7_t    *filter_data,
                         int32_t        input_ch,
                         int32_t        output_ch,
                         int32_t        input_offset)
 {
-    int32_t oc_off = 0;
-    while (oc_off < output_ch)
+    for (int32_t oc = 0; oc < output_ch; oc++)
     {
-        size_t vl = __riscv_vsetvl_e32m4(output_ch - oc_off);
-
-        vint32m4_t vacc = bias_data
-                              ? __riscv_vle32_v_i32m4(bias_data + oc_off, vl)
-                              : __riscv_vmv_v_x_i32m4(0, vl);
-        vint32m4_t vsum = __riscv_vmv_v_x_i32m4(0, vl);
+        const q7_t *w   = filter_data + (size_t)oc * input_ch;
+        q31_t       sum = 0;
 
         for (int32_t k = 0; k < input_ch; k++)
         {
-            /* unit stride: oc is the fast-varying dim in weights_rvv */
-            vint8m1_t w8 = __riscv_vle8_v_i8m1(
-                weights_rvv + (size_t)k * output_ch + oc_off, vl);
-            vint32m4_t w32 = __riscv_vsext_vf4_i32m4(w8, vl);
-            vsum           = __riscv_vadd_vv_i32m4(vsum, w32, vl);
+            sum += w[k];
         }
 
-        vsum = __riscv_vmul_vx_i32m4(vsum, input_offset, vl);
-        vacc = __riscv_vadd_vv_i32m4(vacc, vsum, vl);
-        __riscv_vse32_v_i32m4(corrected_bias + oc_off, vacc, vl);
-
-        oc_off += (int32_t)vl;
+        corrected_bias[oc]
+            = (bias_data ? bias_data[oc] : 0) + sum * input_offset;
     }
 }
 
@@ -110,7 +97,6 @@ nn_conv1x1_s8(const nn_context                  *ctx,
                                        output_data);
     }
 
-    /* leftover spatial positions */
     for (; i_items < col_len; i_items++)
     {
         output_data

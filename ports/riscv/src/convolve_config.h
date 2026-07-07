@@ -18,8 +18,14 @@
 #define NN_CONVOLVE_CONFIG_H
 
 /* Number of im2col columns buffered before dispatching to the matrix-multiply
- * kernel. Set to match the kernel's row count (7 for RVV, 2 for scalar).
+ * kernel. Set to match the kernel's row count.
  */
 #define NN_KERNEL_COLS 2
+
+#define DS_CNN_S_LAYER_1_CONV2D_WEIGHTS ds_cnn_s_layer_1_conv2d_weights
+#define DS_CNN_S_LAYER_3_CONV2D_WEIGHTS ds_cnn_s_layer_3_conv2d_weights
+#define DS_CNN_S_LAYER_5_CONV2D_WEIGHTS ds_cnn_s_layer_5_conv2d_weights
+#define DS_CNN_S_LAYER_7_CONV2D_WEIGHTS ds_cnn_s_layer_7_conv2d_weights
+#define DS_CNN_S_LAYER_9_CONV2D_WEIGHTS ds_cnn_s_layer_9_conv2d_weights
 
 #endif

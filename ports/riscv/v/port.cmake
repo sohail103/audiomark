@@ -98,6 +98,6 @@ set(PORT_SOURCE
     ${PORT_DIR}/../src/nn/softmax_row12_s8.c
     ${PORT_DIR}/../src/nn/softmax_luts.c
     ${PORT_DIR}/../src/nn/vec_mat_mult_t_s8.c
-    ${PORT_DIR}/src/nn_classify.c
+    ${PORT_DIR}/../src/nn_classify.c
     ${PORT_DIR}/../src/nn_init.c
 )

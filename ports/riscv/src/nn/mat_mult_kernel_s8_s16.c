@@ -25,7 +25,7 @@
 
 /*
  * Matrix-multiplication function for convolution with per-channel
- * requantization. Used by nn_convolve_s8().
+ * requantization.
  */
 q7_t *
 nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
