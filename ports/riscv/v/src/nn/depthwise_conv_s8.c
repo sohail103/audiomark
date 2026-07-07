@@ -109,6 +109,68 @@ rvv_pack_activation_s8(vint32m4_t result,
     __riscv_vse8_v_i8m1(out, r8, vl);
 }
 
+/* m2 LMUL implementation of rvv_requantize/rvv_pack_activation_s8, used only by
+ * the interior hot loop in nn_depthwise_conv_3x3_s8 */
+static inline vint32m2_t
+rvv_requantize_m2(vint32m2_t acc,
+                  vint32m2_t v_mult,
+                  vint32m2_t v_ls,
+                  vint32m2_t v_rs,
+                  size_t     vl)
+{
+    vint32m2_t pre = __riscv_vsll_vv_i32m2(
+        acc, __riscv_vreinterpret_v_i32m2_u32m2(v_ls), vl);
+    vint32m2_t high = __riscv_vsmul_vv_i32m2(pre, v_mult, __RISCV_VXRM_RNU, vl);
+
+    vint32m2_t rmask = __riscv_vnot_v_i32m2(
+        __riscv_vsll_vv_i32m2(__riscv_vmv_v_x_i32m2(-1, vl),
+                              __riscv_vreinterpret_v_i32m2_u32m2(v_rs),
+                              vl),
+        vl);
+
+    vint32m2_t rem = __riscv_vand_vv_i32m2(high, rmask, vl);
+
+    vint32m2_t thresh
+        = __riscv_vreinterpret_v_u32m2_i32m2(__riscv_vsrl_vx_u32m2(
+            __riscv_vreinterpret_v_i32m2_u32m2(rmask), 1, vl));
+
+    vbool16_t neg_mask = __riscv_vmslt_vx_i32m2_b16(high, 0, vl);
+    thresh = __riscv_vadd_vx_i32m2_tum(neg_mask, thresh, thresh, 1, vl);
+
+    vbool16_t round_up = __riscv_vmsgtu_vv_u32m2_b16(
+        __riscv_vreinterpret_v_i32m2_u32m2(rem),
+        __riscv_vreinterpret_v_i32m2_u32m2(thresh),
+        vl);
+
+    vint32m2_t result = __riscv_vsra_vv_i32m2(
+        high, __riscv_vreinterpret_v_i32m2_u32m2(v_rs), vl);
+
+    vint32m2_t result_p1 = __riscv_vadd_vx_i32m2(result, 1, vl);
+    result = __riscv_vmerge_vvm_i32m2(result, result_p1, round_up, vl);
+
+    return result;
+}
+
+static inline void
+rvv_pack_activation_s8_m2(vint32m2_t result,
+                          int32_t    output_offset,
+                          int32_t    act_min,
+                          int32_t    act_max,
+                          int8_t    *out,
+                          size_t     vl)
+{
+    result = __riscv_vadd_vx_i32m2(result, output_offset, vl);
+    result = __riscv_vmax_vx_i32m2(result, act_min, vl);
+    result = __riscv_vmin_vx_i32m2(result, act_max, vl);
+
+    /* INFO: as the shifting amount is 0 and it doesn't deal with rounding of
+       fractional values, the __RISCV_VXRM enum is arbitary */
+    vint16m1_t r16 = __riscv_vnclip_wx_i16m1(result, 0, __RISCV_VXRM_RNU, vl);
+    vint8mf2_t r8  = __riscv_vnclip_wx_i8mf2(r16, 0, __RISCV_VXRM_RNU, vl);
+
+    __riscv_vse8_v_i8mf2(out, r8, vl);
+}
+
 /* Calculates the final value for a single output pixel across all of its
  * channels. */
 static void
@@ -365,46 +427,48 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
         int32_t ch = 0;
         while (ch < input_ch)
         {
-            size_t vl = __riscv_vsetvl_e32m4((size_t)(input_ch - ch));
+            /* Dropped to LMUL m4->m2 to eliminate the 9 vl2r.v/vs2r.v spill
+             * reloads per iteration in this loop*/
+            size_t vl = __riscv_vsetvl_e32m2((size_t)(input_ch - ch));
 
-            vint32m4_t v_bias  = __riscv_vle32_v_i32m4(bias + ch, vl);
-            vint32m4_t v_mult  = __riscv_vle32_v_i32m4(output_mult + ch, vl);
-            vint32m4_t v_shift = __riscv_vle32_v_i32m4(output_shift + ch, vl);
-            vint32m4_t v_ls    = __riscv_vmax_vx_i32m4(v_shift, 0, vl);
-            vint32m4_t v_rs    = __riscv_vneg_v_i32m4(
-                __riscv_vmin_vx_i32m4(v_shift, 0, vl), vl);
+            vint32m2_t v_bias  = __riscv_vle32_v_i32m2(bias + ch, vl);
+            vint32m2_t v_mult  = __riscv_vle32_v_i32m2(output_mult + ch, vl);
+            vint32m2_t v_shift = __riscv_vle32_v_i32m2(output_shift + ch, vl);
+            vint32m2_t v_ls    = __riscv_vmax_vx_i32m2(v_shift, 0, vl);
+            vint32m2_t v_rs    = __riscv_vneg_v_i32m2(
+                __riscv_vmin_vx_i32m2(v_shift, 0, vl), vl);
 
 /* Loads and sign-extends an 8-bit kernel tap into a 16-bit vector. */
 #define LOAD_K_TAP(row, col)                                                \
-    __riscv_vsext_vf2_i16m2(                                                \
-        __riscv_vle8_v_i8m1(                                                \
+    __riscv_vsext_vf2_i16m1(                                                \
+        __riscv_vle8_v_i8mf2(                                               \
             kernel + (row) * ker_row_stride + (col) * col_stride + ch, vl), \
         vl)
 
-            vint16m2_t k00 = LOAD_K_TAP(0, 0);
-            vint16m2_t k01 = LOAD_K_TAP(0, 1);
-            vint16m2_t k02 = LOAD_K_TAP(0, 2);
+            vint16m1_t k00 = LOAD_K_TAP(0, 0);
+            vint16m1_t k01 = LOAD_K_TAP(0, 1);
+            vint16m1_t k02 = LOAD_K_TAP(0, 2);
 
-            vint16m2_t k10 = LOAD_K_TAP(1, 0);
-            vint16m2_t k11 = LOAD_K_TAP(1, 1);
-            vint16m2_t k12 = LOAD_K_TAP(1, 2);
+            vint16m1_t k10 = LOAD_K_TAP(1, 0);
+            vint16m1_t k11 = LOAD_K_TAP(1, 1);
+            vint16m1_t k12 = LOAD_K_TAP(1, 2);
 
-            vint16m2_t k20 = LOAD_K_TAP(2, 0);
-            vint16m2_t k21 = LOAD_K_TAP(2, 1);
-            vint16m2_t k22 = LOAD_K_TAP(2, 2);
+            vint16m1_t k20 = LOAD_K_TAP(2, 0);
+            vint16m1_t k21 = LOAD_K_TAP(2, 1);
+            vint16m1_t k22 = LOAD_K_TAP(2, 2);
 
 #undef LOAD_K_TAP
 
-            vint16m2_t k_sum = __riscv_vadd_vv_i16m2(k00, k01, vl);
-            k_sum            = __riscv_vadd_vv_i16m2(k_sum, k02, vl);
-            k_sum            = __riscv_vadd_vv_i16m2(k_sum, k10, vl);
-            k_sum            = __riscv_vadd_vv_i16m2(k_sum, k11, vl);
-            k_sum            = __riscv_vadd_vv_i16m2(k_sum, k12, vl);
-            k_sum            = __riscv_vadd_vv_i16m2(k_sum, k20, vl);
-            k_sum            = __riscv_vadd_vv_i16m2(k_sum, k21, vl);
-            k_sum            = __riscv_vadd_vv_i16m2(k_sum, k22, vl);
+            vint16m1_t k_sum = __riscv_vadd_vv_i16m1(k00, k01, vl);
+            k_sum            = __riscv_vadd_vv_i16m1(k_sum, k02, vl);
+            k_sum            = __riscv_vadd_vv_i16m1(k_sum, k10, vl);
+            k_sum            = __riscv_vadd_vv_i16m1(k_sum, k11, vl);
+            k_sum            = __riscv_vadd_vv_i16m1(k_sum, k12, vl);
+            k_sum            = __riscv_vadd_vv_i16m1(k_sum, k20, vl);
+            k_sum            = __riscv_vadd_vv_i16m1(k_sum, k21, vl);
+            k_sum            = __riscv_vadd_vv_i16m1(k_sum, k22, vl);
 
-            vint32m4_t v_bias_folded = __riscv_vwmacc_vx_i32m4(
+            vint32m2_t v_bias_folded = __riscv_vwmacc_vx_i32m2(
                 v_bias, (int16_t)input_offset, k_sum, vl);
 
             const int8_t *ip_h = ip_base + ch;
@@ -418,19 +482,19 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
 
                 for (int32_t out_w = int_w0; out_w < int_w1; ++out_w)
                 {
-                    vint32m4_t acc = v_bias_folded;
+                    vint32m2_t acc = v_bias_folded;
 
                     const int8_t *in0 = ip_w;
                     const int8_t *in1 = ip_w + inp_row_stride;
                     const int8_t *in2 = ip_w + 2 * inp_row_stride;
 
 /* Loads an 8-bit input tap and accumulates the 32-bit MAC result. */
-#define ACC_TAP(in_ptr, col_idx, k_reg)                                      \
-    acc = __riscv_vwmacc_vv_i32m4(                                           \
-        acc,                                                                 \
-        __riscv_vsext_vf2_i16m2(                                             \
-            __riscv_vle8_v_i8m1((in_ptr) + (col_idx) * col_stride, vl), vl), \
-        (k_reg),                                                             \
+#define ACC_TAP(in_ptr, col_idx, k_reg)                                       \
+    acc = __riscv_vwmacc_vv_i32m2(                                            \
+        acc,                                                                  \
+        __riscv_vsext_vf2_i16m1(                                              \
+            __riscv_vle8_v_i8mf2((in_ptr) + (col_idx) * col_stride, vl), vl), \
+        (k_reg),                                                              \
         vl)
 
                     ACC_TAP(in0, 0, k00);
@@ -447,14 +511,14 @@ nn_depthwise_conv_3x3_s8(const nn_dw_conv_params           *dw_conv_params,
 
 #undef ACC_TAP
 
-                    vint32m4_t res
-                        = rvv_requantize(acc, v_mult, v_ls, v_rs, vl);
-                    rvv_pack_activation_s8(res,
-                                           output_offset,
-                                           output_activation_min,
-                                           output_activation_max,
-                                           output + out_pixel_idx,
-                                           vl);
+                    vint32m2_t res
+                        = rvv_requantize_m2(acc, v_mult, v_ls, v_rs, vl);
+                    rvv_pack_activation_s8_m2(res,
+                                              output_offset,
+                                              output_activation_min,
+                                              output_activation_max,
+                                              output + out_pixel_idx,
+                                              vl);
 
                     ip_w += input_x_step;
                     out_pixel_idx += input_ch;
