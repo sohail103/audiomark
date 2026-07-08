@@ -27,84 +27,83 @@
 
 #include <stdint.h>
 
+#define INPUT_X    10
+#define INPUT_Y    49
+#define INPUT_CH   1
+#define KERNEL_X   4
+#define KERNEL_Y   10
+#define OUTPUT_X   5
+#define OUTPUT_Y   25
+#define OUTPUT_CH  64
+#define STRIDE_X   2
+#define STRIDE_Y   2
+#define PAD_X      1
+#define PAD_Y      4
+#define DILATION_X 1
+#define DILATION_Y 1
+
+#define INPUT_OFFSET (-100)
+#define OUT_OFFSET   (-128)
+#define OUT_ACT_MIN  (-128)
+#define OUT_ACT_MAX  127
+
 /*
  * Basic s8 convolution function.
  */
 
 int32_t
 nn_conv0_s8(const nn_context                  *ctx,
-            const nn_conv_params              *conv_params,
             const nn_per_channel_quant_params *quant_params,
-            const nn_dims                     *input_dims,
             const q7_t                        *input_data,
-            const nn_dims                     *filter_dims,
             const q7_t                        *filter_data,
-            const nn_dims                     *bias_dims,
             const int32_t                     *bias_data,
-            const nn_dims                     *output_dims,
             q7_t                              *output_data)
 {
     q15_t *const im2col_buf = (q15_t *)ctx->buf;
 
-    const uint16_t input_x   = input_dims->w;
-    const uint16_t input_y   = input_dims->h;
-    const uint16_t input_ch  = input_dims->c;
-    const uint16_t kernel_x  = filter_dims->w;
-    const uint16_t kernel_y  = filter_dims->h;
-    const uint16_t output_x  = output_dims->w;
-    const uint16_t output_y  = output_dims->h;
-    const uint16_t output_ch = output_dims->c;
-
-    const uint16_t pad_x      = conv_params->padding.w;
-    const uint16_t pad_y      = conv_params->padding.h;
-    const uint16_t stride_x   = conv_params->stride.w;
-    const uint16_t stride_y   = conv_params->stride.h;
-    const uint16_t dilation_x = conv_params->dilation.w;
-    const uint16_t dilation_y = conv_params->dilation.h;
-
-    const int32_t  input_offset       = conv_params->input_offset;
-    const int32_t  out_offset         = conv_params->output_offset;
-    const int32_t  out_activation_min = conv_params->activation.min;
-    const int32_t  out_activation_max = conv_params->activation.max;
-    const int32_t *output_mult        = quant_params->multiplier;
-    const int32_t *output_shift       = quant_params->shift;
+    const int32_t *output_mult  = quant_params->multiplier;
+    const int32_t *output_shift = quant_params->shift;
 
     /* Precomputed value */
     q15_t *const col_buf_full
         = im2col_buf
-          + (int32_t)NN_KERNEL_COLS * (input_ch * kernel_y * kernel_x);
+          + (int32_t)NN_KERNEL_COLS * (INPUT_CH * KERNEL_Y * KERNEL_X);
 
     q15_t *col_buf = im2col_buf;
     q7_t  *out     = output_data;
 
-    for (int32_t i_out_y = 0; i_out_y < output_y; i_out_y++)
+#pragma GCC unroll 1
+    for (int32_t i_out_y = 0; i_out_y < OUTPUT_Y; i_out_y++)
     {
-        for (int32_t i_out_x = 0; i_out_x < output_x; i_out_x++)
+#pragma GCC unroll 1
+        for (int32_t i_out_x = 0; i_out_x < OUTPUT_X; i_out_x++)
         {
-            const int32_t base_idx_y = stride_y * i_out_y - pad_y;
-            const int32_t base_idx_x = stride_x * i_out_x - pad_x;
+            const int32_t base_idx_y = STRIDE_Y * i_out_y - PAD_Y;
+            const int32_t base_idx_x = STRIDE_X * i_out_x - PAD_X;
 
-            for (int32_t i_ker_y = 0; i_ker_y < kernel_y; i_ker_y++)
+#pragma GCC unroll 1
+            for (int32_t i_ker_y = 0; i_ker_y < KERNEL_Y; i_ker_y++)
             {
-                for (int32_t i_ker_x = 0; i_ker_x < kernel_x; i_ker_x++)
+#pragma GCC unroll 1
+                for (int32_t i_ker_x = 0; i_ker_x < KERNEL_X; i_ker_x++)
                 {
-                    const int32_t k_y = base_idx_y + dilation_y * i_ker_y;
-                    const int32_t k_x = base_idx_x + dilation_x * i_ker_x;
+                    const int32_t k_y = base_idx_y + DILATION_Y * i_ker_y;
+                    const int32_t k_x = base_idx_x + DILATION_X * i_ker_x;
 
-                    if (k_y < 0 || k_y >= input_y || k_x < 0 || k_x >= input_x)
+                    if (k_y < 0 || k_y >= INPUT_Y || k_x < 0 || k_x >= INPUT_X)
                     {
                         th_memset(
-                            (int8_t *)col_buf, 0, sizeof(q15_t) * input_ch);
+                            (int8_t *)col_buf, 0, sizeof(q15_t) * INPUT_CH);
                     }
                     else
                     {
                         nn_q7_to_q15_with_offset(
-                            input_data + (k_y * input_x + k_x) * input_ch,
+                            input_data + (k_y * INPUT_X + k_x) * INPUT_CH,
                             col_buf,
-                            input_ch,
-                            input_offset);
+                            INPUT_CH,
+                            INPUT_OFFSET);
                     }
-                    col_buf += input_ch;
+                    col_buf += INPUT_CH;
                 }
             }
 
@@ -112,13 +111,13 @@ nn_conv0_s8(const nn_context                  *ctx,
             {
                 out = nn_mat_mult_kernel_s8_s16(filter_data,
                                                 im2col_buf,
-                                                output_ch,
+                                                OUTPUT_CH,
                                                 output_shift,
                                                 output_mult,
-                                                out_offset,
-                                                out_activation_min,
-                                                out_activation_max,
-                                                input_ch * kernel_y * kernel_x,
+                                                OUT_OFFSET,
+                                                OUT_ACT_MIN,
+                                                OUT_ACT_MAX,
+                                                INPUT_CH * KERNEL_Y * KERNEL_X,
                                                 bias_data,
                                                 out);
 
@@ -130,36 +129,39 @@ nn_conv0_s8(const nn_context                  *ctx,
     if (col_buf != im2col_buf)
     {
         /* num_col_a declared locally — dead during the hot loop above */
-        const uint16_t num_col_a       = input_ch * kernel_y * kernel_x;
-        const int32_t  leftover_pixels = (output_x * output_y) % NN_KERNEL_COLS;
+        const uint16_t num_col_a       = INPUT_CH * KERNEL_Y * KERNEL_X;
+        const int32_t  leftover_pixels = (OUTPUT_X * OUTPUT_Y) % NN_KERNEL_COLS;
         const q15_t   *patch           = im2col_buf;
 
+#pragma GCC unroll 1
         for (int32_t p = 0; p < leftover_pixels; p++, patch += num_col_a)
         {
             const q7_t *ker_a = filter_data;
 
-            for (int32_t i = 0; i < output_ch; i++)
+#pragma GCC unroll 1
+            for (int32_t i = 0; i < OUTPUT_CH; i++)
             {
                 q31_t        sum       = bias_data ? bias_data[i] : 0;
                 const q15_t *col       = patch;
                 uint16_t     col_count = num_col_a;
 
+#pragma GCC unroll 1
                 while (col_count--)
                 {
                     sum += (*ker_a++) * (*col++);
                 }
 
                 sum = nn_requantize(sum, output_mult[i], output_shift[i]);
-                sum += out_offset;
-                sum    = MAX(sum, out_activation_min);
-                sum    = MIN(sum, out_activation_max);
+                sum += OUT_OFFSET;
+                sum    = MAX(sum, OUT_ACT_MIN);
+                sum    = MIN(sum, OUT_ACT_MAX);
                 *out++ = (q7_t)sum;
             }
         }
     }
 
-    input_data += input_x * input_y * input_ch;
-    output_data += output_x * output_y * output_ch;
+    input_data += INPUT_X * INPUT_Y * INPUT_CH;
+    output_data += OUTPUT_X * OUTPUT_Y * OUTPUT_CH;
 
     return 0;
 }

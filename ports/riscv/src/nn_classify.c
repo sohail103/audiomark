@@ -135,15 +135,10 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     bias_dims.c    = CONV_0_OUT_CH;
 
     int32_t status = nn_conv0_s8(&ctx,
-                                 &conv_params,
                                  &quant_params,
-                                 &in_out_dim_0,
                                  in_data,
-                                 &conv_filter_dims,
                                  DS_CNN_S_LAYER_1_CONV2D_WEIGHTS,
-                                 &bias_dims,
                                  ds_cnn_s_layer_1_conv2d_bias,
-                                 &in_out_dim_1,
                                  in_out_buf_0);
 
     /*************************** Depthwise Separable Block 1 ****************/
