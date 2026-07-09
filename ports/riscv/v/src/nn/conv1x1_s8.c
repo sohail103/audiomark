@@ -25,31 +25,36 @@
 #include "rvv_support_functions.h"
 #include "convolve_config.h"
 
-/* Folds input_offset * sum_k(weight[k][oc]) into bias, once per call.
- * weights_rvv is k-major/oc-minor, so this is unit-stride per k. */
+#define INPUT_W     5
+#define INPUT_H     25
+#define INPUT_N     1
+#define INPUT_CH    64
+#define OUTPUT_CH   64
+#define OUT_OFFSET  (-128)
+#define OUT_ACT_MIN (-128)
+#define OUT_ACT_MAX 127
+#define COL_LEN     (INPUT_W * INPUT_H * INPUT_N)
+
 static void
 nn_fold_input_offset_s8(int32_t       *corrected_bias,
                         const int32_t *bias_data,
                         const q7_t    *weights_rvv,
-                        int32_t        input_ch,
-                        int32_t        output_ch,
                         int32_t        input_offset)
 {
     int32_t oc_off = 0;
-    while (oc_off < output_ch)
+    while (oc_off < OUTPUT_CH)
     {
-        size_t vl = __riscv_vsetvl_e32m4(output_ch - oc_off);
+        size_t vl = __riscv_vsetvl_e32m4(OUTPUT_CH - oc_off);
 
         vint32m4_t vacc = bias_data
                               ? __riscv_vle32_v_i32m4(bias_data + oc_off, vl)
                               : __riscv_vmv_v_x_i32m4(0, vl);
         vint32m4_t vsum = __riscv_vmv_v_x_i32m4(0, vl);
 
-        for (int32_t k = 0; k < input_ch; k++)
+        for (int32_t k = 0; k < INPUT_CH; k++)
         {
-            /* unit stride: oc is the fast-varying dim in weights_rvv */
             vint8m1_t w8 = __riscv_vle8_v_i8m1(
-                weights_rvv + (size_t)k * output_ch + oc_off, vl);
+                weights_rvv + (size_t)k * OUTPUT_CH + oc_off, vl);
             vint32m4_t w32 = __riscv_vsext_vf4_i32m4(w8, vl);
             vsum           = __riscv_vadd_vv_i32m4(vsum, w32, vl);
         }
@@ -66,63 +71,48 @@ int32_t
 nn_conv1x1_s8(const nn_context                  *ctx,
               const nn_conv_params              *conv_params,
               const nn_per_channel_quant_params *quant_params,
-              const nn_dims                     *input_dims,
               const q7_t                        *input_data,
-              const nn_dims                     *filter_dims,
               const q7_t                        *filter_data,
-              const nn_dims                     *bias_dims,
               const int32_t                     *bias_data,
-              const nn_dims                     *output_dims,
               q7_t                              *output_data)
 {
-    const int32_t  col_len    = input_dims->w * input_dims->h * input_dims->n;
-    const int32_t  output_ch  = output_dims->c;
-    const int32_t  input_ch   = input_dims->c;
-    const int32_t  out_offset = conv_params->output_offset;
-    const int32_t  act_min    = conv_params->activation.min;
-    const int32_t  act_max    = conv_params->activation.max;
-    const int32_t *out_mult   = quant_params->multiplier;
-    const int32_t *out_shift  = quant_params->shift;
+    const int32_t *out_mult  = quant_params->multiplier;
+    const int32_t *out_shift = quant_params->shift;
 
     int32_t *corrected_bias = (int32_t *)ctx->buf;
 
-    nn_fold_input_offset_s8(corrected_bias,
-                            bias_data,
-                            filter_data,
-                            input_ch,
-                            output_ch,
-                            conv_params->input_offset);
+    nn_fold_input_offset_s8(
+        corrected_bias, bias_data, filter_data, conv_params->input_offset);
 
     int32_t i_items = 0;
-    for (; i_items <= col_len - NN_KERNEL_COLS; i_items += NN_KERNEL_COLS)
+    for (; i_items <= COL_LEN - NN_KERNEL_COLS; i_items += NN_KERNEL_COLS)
     {
         output_data
             = nn_mat_mult_kernel_s8_s8(filter_data,
-                                       input_data + (size_t)i_items * input_ch,
-                                       output_ch,
+                                       input_data + (size_t)i_items * INPUT_CH,
+                                       OUTPUT_CH,
                                        out_shift,
                                        out_mult,
-                                       out_offset,
-                                       act_min,
-                                       act_max,
-                                       input_ch,
+                                       OUT_OFFSET,
+                                       OUT_ACT_MIN,
+                                       OUT_ACT_MAX,
+                                       INPUT_CH,
                                        corrected_bias,
                                        output_data);
     }
 
-    /* leftover spatial positions */
-    for (; i_items < col_len; i_items++)
+    for (; i_items < COL_LEN; i_items++)
     {
         output_data
             = nn_mat_mult_core_1x1_s8(filter_data,
-                                      input_data + (size_t)i_items * input_ch,
-                                      output_ch,
+                                      input_data + (size_t)i_items * INPUT_CH,
+                                      OUTPUT_CH,
                                       out_shift,
                                       out_mult,
-                                      out_offset,
-                                      act_min,
-                                      act_max,
-                                      input_ch,
+                                      OUT_OFFSET,
+                                      OUT_ACT_MIN,
+                                      OUT_ACT_MAX,
+                                      INPUT_CH,
                                       corrected_bias,
                                       output_data);
     }

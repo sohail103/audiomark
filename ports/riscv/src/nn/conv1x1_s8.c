@@ -26,20 +26,28 @@
 
 #include <stddef.h>
 
+#define INPUT_W     5
+#define INPUT_H     25
+#define INPUT_N     1
+#define INPUT_CH    64
+#define OUTPUT_CH   64
+#define OUT_OFFSET  (-128)
+#define OUT_ACT_MIN (-128)
+#define OUT_ACT_MAX 127
+#define COL_LEN     (INPUT_W * INPUT_H * INPUT_N)
+
 static void
 nn_fold_input_offset_s8(int32_t       *corrected_bias,
                         const int32_t *bias_data,
                         const q7_t    *filter_data,
-                        int32_t        input_ch,
-                        int32_t        output_ch,
                         int32_t        input_offset)
 {
-    for (int32_t oc = 0; oc < output_ch; oc++)
+    for (int32_t oc = 0; oc < OUTPUT_CH; oc++)
     {
-        const q7_t *w   = filter_data + (size_t)oc * input_ch;
+        const q7_t *w   = filter_data + (size_t)oc * INPUT_CH;
         q31_t       sum = 0;
 
-        for (int32_t k = 0; k < input_ch; k++)
+        for (int32_t k = 0; k < INPUT_CH; k++)
         {
             sum += w[k];
         }
@@ -53,62 +61,48 @@ int32_t
 nn_conv1x1_s8(const nn_context                  *ctx,
               const nn_conv_params              *conv_params,
               const nn_per_channel_quant_params *quant_params,
-              const nn_dims                     *input_dims,
               const q7_t                        *input_data,
-              const nn_dims                     *filter_dims,
               const q7_t                        *filter_data,
-              const nn_dims                     *bias_dims,
               const int32_t                     *bias_data,
-              const nn_dims                     *output_dims,
               q7_t                              *output_data)
 {
-    const int32_t  col_len    = input_dims->w * input_dims->h * input_dims->n;
-    const int32_t  output_ch  = output_dims->c;
-    const int32_t  input_ch   = input_dims->c;
-    const int32_t  out_offset = conv_params->output_offset;
-    const int32_t  act_min    = conv_params->activation.min;
-    const int32_t  act_max    = conv_params->activation.max;
-    const int32_t *out_mult   = quant_params->multiplier;
-    const int32_t *out_shift  = quant_params->shift;
+    const int32_t *out_mult  = quant_params->multiplier;
+    const int32_t *out_shift = quant_params->shift;
 
     int32_t *corrected_bias = (int32_t *)ctx->buf;
 
-    nn_fold_input_offset_s8(corrected_bias,
-                            bias_data,
-                            filter_data,
-                            input_ch,
-                            output_ch,
-                            conv_params->input_offset);
+    nn_fold_input_offset_s8(
+        corrected_bias, bias_data, filter_data, conv_params->input_offset);
 
     int32_t i_items = 0;
-    for (; i_items <= col_len - NN_KERNEL_COLS; i_items += NN_KERNEL_COLS)
+    for (; i_items <= COL_LEN - NN_KERNEL_COLS; i_items += NN_KERNEL_COLS)
     {
         output_data
             = nn_mat_mult_kernel_s8_s8(filter_data,
-                                       input_data + (size_t)i_items * input_ch,
-                                       output_ch,
+                                       input_data + (size_t)i_items * INPUT_CH,
+                                       OUTPUT_CH,
                                        out_shift,
                                        out_mult,
-                                       out_offset,
-                                       act_min,
-                                       act_max,
-                                       input_ch,
+                                       OUT_OFFSET,
+                                       OUT_ACT_MIN,
+                                       OUT_ACT_MAX,
+                                       INPUT_CH,
                                        corrected_bias,
                                        output_data);
     }
 
-    for (; i_items < col_len; i_items++)
+    for (; i_items < COL_LEN; i_items++)
     {
         output_data
             = nn_mat_mult_core_1x1_s8(filter_data,
-                                      input_data + (size_t)i_items * input_ch,
-                                      output_ch,
+                                      input_data + (size_t)i_items * INPUT_CH,
+                                      OUTPUT_CH,
                                       out_shift,
                                       out_mult,
-                                      out_offset,
-                                      act_min,
-                                      act_max,
-                                      input_ch,
+                                      OUT_OFFSET,
+                                      OUT_ACT_MIN,
+                                      OUT_ACT_MAX,
+                                      INPUT_CH,
                                       corrected_bias,
                                       output_data);
     }

@@ -206,13 +206,9 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     status |= nn_conv1x1_s8(&ctx,
                             &conv_params,
                             &quant_params,
-                            &in_out_dim_0,
                             in_out_buf_1,
-                            &conv_filter_dims,
                             DS_CNN_S_LAYER_3_CONV2D_WEIGHTS,
-                            &bias_dims,
                             ds_cnn_s_layer_3_conv2d_bias,
-                            &in_out_dim_1,
                             in_out_buf_0);
 
     /*************************** Depthwise Separable Block 2 ****************/
@@ -242,13 +238,9 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     status |= nn_conv1x1_s8(&ctx,
                             &conv_params,
                             &quant_params,
-                            &in_out_dim_0,
                             in_out_buf_1,
-                            &conv_filter_dims,
                             DS_CNN_S_LAYER_5_CONV2D_WEIGHTS,
-                            &bias_dims,
                             ds_cnn_s_layer_5_conv2d_bias,
-                            &in_out_dim_1,
                             in_out_buf_0);
 
     /*************************** Depthwise Separable Block 3 ****************/
@@ -277,13 +269,9 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     status |= nn_conv1x1_s8(&ctx,
                             &conv_params,
                             &quant_params,
-                            &in_out_dim_0,
                             in_out_buf_1,
-                            &conv_filter_dims,
                             DS_CNN_S_LAYER_7_CONV2D_WEIGHTS,
-                            &bias_dims,
                             ds_cnn_s_layer_7_conv2d_bias,
-                            &in_out_dim_1,
                             in_out_buf_0);
 
     /*************************** Depthwise Separable Block 4 ****************/
@@ -312,13 +300,9 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     status |= nn_conv1x1_s8(&ctx,
                             &conv_params,
                             &quant_params,
-                            &in_out_dim_0,
                             in_out_buf_1,
-                            &conv_filter_dims,
                             DS_CNN_S_LAYER_9_CONV2D_WEIGHTS,
-                            &bias_dims,
                             ds_cnn_s_layer_9_conv2d_bias,
-                            &in_out_dim_1,
                             in_out_buf_0);
 
     /***************************** Average Pool *************** */
