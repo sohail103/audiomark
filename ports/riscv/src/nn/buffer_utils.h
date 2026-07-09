@@ -21,7 +21,9 @@
 
 #include <stdint.h>
 
-#define NN_CONV_S8_BUF_SIZE(in_ch, k_w, k_h) \
+#define NN_CONV0_S8_BUF_SIZE(in_ch, k_w, k_h) \
     ((NN_KERNEL_COLS * (int32_t)(in_ch) * (k_w) * (k_h)) * sizeof(int16_t))
+
+#define NN_CONV1X1_S8_BUF_SIZE(out_ch) ((int32_t)(out_ch) * sizeof(int32_t))
 
 #endif

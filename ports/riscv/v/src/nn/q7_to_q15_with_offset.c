@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "support_functions.h"
+#include "rvv_support_functions.h"
 #include "rvv_support_guard.h"
 #include <stddef.h>
 
@@ -26,14 +26,14 @@ nn_q7_to_q15_with_offset(const int8_t *src,
 {
     size_t remaining;
 
-    remaining = block_size;
-    size_t vlmax = __riscv_vsetvlmax_e16m4();
+    remaining          = block_size;
+    size_t     vlmax   = __riscv_vsetvlmax_e16m4();
     vint16m4_t vOffset = __riscv_vmv_v_x_i16m4(offset, vlmax);
 
     while (remaining > 0)
     {
-        size_t vl = __riscv_vsetvl_e8m2(remaining);
-        vint8m2_t vSrc = __riscv_vle8_v_i8m2(src, vl);
+        size_t     vl   = __riscv_vsetvl_e8m2(remaining);
+        vint8m2_t  vSrc = __riscv_vle8_v_i8m2(src, vl);
         vint16m4_t vDst = __riscv_vwadd_wv(vOffset, vSrc, vl);
         __riscv_vse16_v_i16m4(dst, vDst, vl);
 
