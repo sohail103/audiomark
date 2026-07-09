@@ -46,24 +46,24 @@
 #define OUT_ACT_MAX  127
 
 int32_t
-nn_conv0_s8(const nn_context                  *ctx,
-            const nn_per_channel_quant_params *quant_params,
-            const q7_t                        *input_data,
-            const q7_t                        *filter_data,
-            const int32_t                     *bias_data,
-            q7_t                              *output_data)
+nn_conv0_s8(const nn_context *restrict ctx,
+            const nn_per_channel_quant_params *restrict quant_params,
+            const q7_t *restrict input_data,
+            const q7_t *restrict filter_data,
+            const int32_t *restrict bias_data,
+            q7_t *restrict output_data)
 {
-    q15_t *const im2col_buf = (q15_t *)ctx->buf;
+    q15_t *restrict const im2col_buf = (q15_t *)ctx->buf;
 
-    const int32_t *output_mult  = quant_params->multiplier;
-    const int32_t *output_shift = quant_params->shift;
+    const int32_t *restrict output_mult  = quant_params->multiplier;
+    const int32_t *restrict output_shift = quant_params->shift;
 
-    q15_t *const col_buf_full
+    q15_t *restrict const col_buf_full
         = im2col_buf
           + (int32_t)NN_KERNEL_COLS * (INPUT_CH * KERNEL_Y * KERNEL_X);
 
-    q15_t *col_buf = im2col_buf;
-    q7_t  *out     = output_data;
+    q15_t *restrict col_buf = im2col_buf;
+    q7_t *restrict out      = output_data;
 
     for (int32_t i_out_y = 0; i_out_y < OUTPUT_Y; i_out_y++)
     {
@@ -121,15 +121,15 @@ nn_conv0_s8(const nn_context                  *ctx,
         // num_col_a declared locally — dead during the hot loop above
         const uint16_t num_col_a       = INPUT_CH * KERNEL_Y * KERNEL_X;
         const int32_t  leftover_pixels = (OUTPUT_X * OUTPUT_Y) % NN_KERNEL_COLS;
-        const q15_t   *patch           = im2col_buf;
+        const q15_t *restrict patch    = im2col_buf;
 
         for (int32_t p = 0; p < leftover_pixels; p++, patch += num_col_a)
         {
             for (int32_t i = 0; i < OUTPUT_CH; i++)
             {
-                q31_t        sum = bias_data ? bias_data[i] : 0;
-                const q15_t *col = patch;
-                const q7_t  *ker_a
+                q31_t sum                 = bias_data ? bias_data[i] : 0;
+                const q15_t *restrict col = patch;
+                const q7_t *restrict ker_a
                     = filter_data + i; /* k=0, channel i, transposed layout */
                 uint16_t col_count = num_col_a;
 
