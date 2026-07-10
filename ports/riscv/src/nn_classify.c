@@ -134,12 +134,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     in_out_dim_1.c = CONV_0_OUT_CH;
     bias_dims.c    = CONV_0_OUT_CH;
 
-    int32_t status = nn_conv0_s8(&ctx,
-                                 &quant_params,
-                                 in_data,
-                                 DS_CNN_S_LAYER_1_CONV2D_WEIGHTS,
-                                 ds_cnn_s_layer_1_conv2d_bias,
-                                 in_out_buf_0);
+    int32_t status = NN_CONV0_S8(1);
 
     /*************************** Depthwise Separable Block 1 ****************/
     /* Layer 1 - DW Conv
@@ -203,13 +198,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_3_conv2d_output_mult;
     quant_params.shift      = (int32_t *)ds_cnn_s_layer_3_conv2d_output_shift;
 
-    status |= nn_conv1x1_s8(&ctx,
-                            &conv_params,
-                            &quant_params,
-                            in_out_buf_1,
-                            DS_CNN_S_LAYER_3_CONV2D_WEIGHTS,
-                            ds_cnn_s_layer_3_conv2d_bias,
-                            in_out_buf_0);
+    status |= NN_CONV1X1_S8(3);
 
     /*************************** Depthwise Separable Block 2 ****************/
     /* Layer specific */
@@ -235,13 +224,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_5_conv2d_output_mult;
     quant_params.shift      = (int32_t *)ds_cnn_s_layer_5_conv2d_output_shift;
 
-    status |= nn_conv1x1_s8(&ctx,
-                            &conv_params,
-                            &quant_params,
-                            in_out_buf_1,
-                            DS_CNN_S_LAYER_5_CONV2D_WEIGHTS,
-                            ds_cnn_s_layer_5_conv2d_bias,
-                            in_out_buf_0);
+    status |= NN_CONV1X1_S8(5);
 
     /*************************** Depthwise Separable Block 3 ****************/
     /* Layer specific */
@@ -266,13 +249,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier   = (int32_t *)ds_cnn_s_layer_7_conv2d_output_mult;
     quant_params.shift        = (int32_t *)ds_cnn_s_layer_7_conv2d_output_shift;
 
-    status |= nn_conv1x1_s8(&ctx,
-                            &conv_params,
-                            &quant_params,
-                            in_out_buf_1,
-                            DS_CNN_S_LAYER_7_CONV2D_WEIGHTS,
-                            ds_cnn_s_layer_7_conv2d_bias,
-                            in_out_buf_0);
+    status |= NN_CONV1X1_S8(7);
 
     /*************************** Depthwise Separable Block 4 ****************/
     /* Layer specific */
@@ -297,13 +274,7 @@ th_nn_classify(const input_tensor_t in_data, output_tensor_t out_data)
     quant_params.multiplier = (int32_t *)ds_cnn_s_layer_9_conv2d_output_mult;
     quant_params.shift      = (int32_t *)ds_cnn_s_layer_9_conv2d_output_shift;
 
-    status |= nn_conv1x1_s8(&ctx,
-                            &conv_params,
-                            &quant_params,
-                            in_out_buf_1,
-                            DS_CNN_S_LAYER_9_CONV2D_WEIGHTS,
-                            ds_cnn_s_layer_9_conv2d_bias,
-                            in_out_buf_0);
+    status |= NN_CONV1X1_S8(9);
 
     /***************************** Average Pool *************** */
 

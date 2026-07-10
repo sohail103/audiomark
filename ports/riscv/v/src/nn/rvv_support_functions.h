@@ -26,6 +26,30 @@
 #include "rvv_support_guard.h"
 #include "support_functions.h"
 
+q7_t *nn_mat_mult_core_1x1_s8(const q7_t          *input_a,
+                              const q7_t          *act_row,
+                              const uint16_t       output_ch,
+                              const int32_t       *out_shift,
+                              const int32_t       *out_mult,
+                              const int32_t        out_offset,
+                              const int16_t        activation_min,
+                              const int16_t        activation_max,
+                              const uint16_t       num_col_a,
+                              const int32_t *const bias,
+                              q7_t                *out);
+
+q7_t *nn_mat_mult_kernel_s8_s8(const q7_t          *input_a,
+                               const q7_t          *input_b,
+                               const uint16_t       output_ch,
+                               const int32_t       *out_shift,
+                               const int32_t       *out_mult,
+                               const int32_t        out_offset,
+                               const int16_t        activation_min,
+                               const int16_t        activation_max,
+                               const uint16_t       num_col_a,
+                               const int32_t *const output_bias,
+                               q7_t                *out_0);
+
 static inline vint32m4_t
 nn_requantize_vint32m4(const vint32m4_t val,
                        const q31_t      multiplier,

@@ -28,4 +28,21 @@
 #define DS_CNN_S_LAYER_7_CONV2D_WEIGHTS ds_cnn_s_layer_7_conv2d_weights_rvv
 #define DS_CNN_S_LAYER_9_CONV2D_WEIGHTS ds_cnn_s_layer_9_conv2d_weights_rvv
 
+#define NN_CONV0_S8(n)                               \
+    nn_conv0_s8(&ctx,                                \
+                &quant_params,                       \
+                in_data,                             \
+                DS_CNN_S_LAYER_##n##_CONV2D_WEIGHTS, \
+                ds_cnn_s_layer_##n##_conv2d_bias,    \
+                in_out_buf_0)
+
+#define NN_CONV1X1_S8(n)                               \
+    nn_conv1x1_s8(&ctx,                                \
+                  &conv_params,                        \
+                  &quant_params,                       \
+                  in_out_buf_1,                        \
+                  DS_CNN_S_LAYER_##n##_CONV2D_WEIGHTS, \
+                  ds_cnn_s_layer_##n##_conv2d_bias,    \
+                  in_out_buf_0)
+
 #endif

@@ -28,4 +28,30 @@
 #define DS_CNN_S_LAYER_7_CONV2D_WEIGHTS ds_cnn_s_layer_7_conv2d_weights
 #define DS_CNN_S_LAYER_9_CONV2D_WEIGHTS ds_cnn_s_layer_9_conv2d_weights
 
+#define NN_CONV0_S8(n)                                  \
+    nn_convolve_s8(&ctx,                                \
+                   &conv_params,                        \
+                   &quant_params,                       \
+                   &in_out_dim_0,                       \
+                   in_data,                             \
+                   &conv_filter_dims,                   \
+                   ds_cnn_s_layer_##n##_conv2d_weights, \
+                   &bias_dims,                          \
+                   ds_cnn_s_layer_##n##_conv2d_bias,    \
+                   &in_out_dim_1,                       \
+                   in_out_buf_0)
+
+#define NN_CONV1X1_S8(n)                                \
+    nn_convolve_s8(&ctx,                                \
+                   &conv_params,                        \
+                   &quant_params,                       \
+                   &in_out_dim_0,                       \
+                   in_out_buf_1,                        \
+                   &conv_filter_dims,                   \
+                   ds_cnn_s_layer_##n##_conv2d_weights, \
+                   &bias_dims,                          \
+                   ds_cnn_s_layer_##n##_conv2d_bias,    \
+                   &in_out_dim_1,                       \
+                   in_out_buf_0)
+
 #endif
