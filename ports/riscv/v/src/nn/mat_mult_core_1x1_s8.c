@@ -23,37 +23,36 @@
 #include "rvv_support_guard.h"
 #include "rvv_support_functions.h"
 
-/* Leftover-position tail for 1x1 conv */
+#define OUTPUT_CH  64
+#define OUT_OFFSET (-128)
+#define ACT_MIN    (-128)
+#define ACT_MAX    127
+#define NUM_COL_A  64
+
 q7_t *
-nn_mat_mult_core_1x1_s8(const q7_t          *input_a,
-                        const q7_t          *act_row,
-                        const uint16_t       output_ch,
-                        const int32_t       *out_shift,
-                        const int32_t       *out_mult,
-                        const int32_t        out_offset,
-                        const int16_t        activation_min,
-                        const int16_t        activation_max,
-                        const uint16_t       num_col_a,
-                        const int32_t *const bias,
-                        q7_t                *out)
+nn_mat_mult_core_1x1_s8(const q7_t *restrict input_a,
+                        const q7_t *restrict act_row,
+                        const int32_t *restrict out_shift,
+                        const int32_t *restrict out_mult,
+                        const int32_t *const restrict bias,
+                        q7_t *restrict out)
 {
     const q7_t    *ip_a      = input_a;
     const int32_t *bias_ptr  = bias;
     const int32_t *mult_ptr  = out_mult;
     const int32_t *shift_ptr = out_shift;
-    size_t         remaining = output_ch;
+    size_t         remaining = OUTPUT_CH;
 
     while (remaining > 0)
     {
-        size_t vl = __riscv_vsetvl_e32m8(remaining);
-
+        size_t     vl   = __riscv_vsetvl_e32m8(remaining);
         vint32m8_t vacc = __riscv_vle32_v_i32m8(bias_ptr, vl);
         bias_ptr += vl;
 
-        for (uint16_t k = 0; k < num_col_a; k++)
+        for (uint16_t k = 0; k < NUM_COL_A; k++)
         {
             vint8m2_t va8 = __riscv_vle8_v_i8m2(
-                (const int8_t *)(ip_a + (size_t)k * output_ch), vl);
+                (const int8_t *)(ip_a + (size_t)k * OUTPUT_CH), vl);
             vint16m4_t va16 = __riscv_vsext_vf2_i16m4(va8, vl);
             int16_t    b    = (int16_t)act_row[k];
             vacc            = __riscv_vwmacc_vx_i32m8(vacc, b, va16, vl);
@@ -66,17 +65,15 @@ nn_mat_mult_core_1x1_s8(const q7_t          *input_a,
             = __riscv_vmax_vx_i32m8(__riscv_vneg_v_i32m8(vshift, vl), 0, vl);
         vuint32m8_t vleft_u  = __riscv_vreinterpret_v_i32m8_u32m8(vleft_s);
         vuint32m8_t vright_u = __riscv_vreinterpret_v_i32m8_u32m8(vright_s);
-
-        vacc = __riscv_vsll_vv_i32m8(vacc, vleft_u, vl);
+        vacc                 = __riscv_vsll_vv_i32m8(vacc, vleft_u, vl);
         vint32m8_t vres
             = __riscv_vsmul_vv_i32m8(vacc, vmult, __RISCV_VXRM_RNU, vl);
         vres = __riscv_vssra_vv_i32m8(vres, vright_u, __RISCV_VXRM_RNU, vl);
-        vres = __riscv_vadd_vx_i32m8(vres, out_offset, vl);
-
+        vres = __riscv_vadd_vx_i32m8(vres, OUT_OFFSET, vl);
         vint16m4_t vout16
             = __riscv_vnclip_wx_i16m4(vres, 0, __RISCV_VXRM_RNU, vl);
-        vout16 = __riscv_vmax_vx_i16m4(vout16, activation_min, vl);
-        vout16 = __riscv_vmin_vx_i16m4(vout16, activation_max, vl);
+        vout16 = __riscv_vmax_vx_i16m4(vout16, ACT_MIN, vl);
+        vout16 = __riscv_vmin_vx_i16m4(vout16, ACT_MAX, vl);
         vint8m2_t vout8
             = __riscv_vnclip_wx_i8m2(vout16, 0, __RISCV_VXRM_RNU, vl);
         __riscv_vse8_v_i8m2((int8_t *)out, vout8, vl);

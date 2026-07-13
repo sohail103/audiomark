@@ -1,7 +1,5 @@
-// Modifications copyright (C) 2023 Chair of Electronic Design Automation, TUM
 /*
- * SPDX-FileCopyrightText: Copyright 2022-2023 Arm Limited and/or its affiliates
- * <open-source-office@arm.com>
+ * Copyright (C) 2010-2021 Arm Limited or its affiliates.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,6 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Modifications copyright (C) 2021-2022 Chair of Electronic Design Automation,
+ * TUM
  * Modifications copyright (C) 2026 Sohail Raj Satapathy
  */
 
@@ -36,21 +36,19 @@
 #define COL_LEN     (INPUT_W * INPUT_H * INPUT_N)
 
 static void
-nn_fold_input_offset_s8(int32_t       *corrected_bias,
-                        const int32_t *bias_data,
-                        const q7_t    *weights_rvv,
-                        int32_t        input_offset)
+nn_fold_input_offset_s8(int32_t *restrict corrected_bias,
+                        const int32_t *restrict bias_data,
+                        const q7_t *restrict weights_rvv,
+                        int32_t input_offset)
 {
     int32_t oc_off = 0;
     while (oc_off < OUTPUT_CH)
     {
-        size_t vl = __riscv_vsetvl_e32m4(OUTPUT_CH - oc_off);
-
+        size_t     vl   = __riscv_vsetvl_e32m4(OUTPUT_CH - oc_off);
         vint32m4_t vacc = bias_data
                               ? __riscv_vle32_v_i32m4(bias_data + oc_off, vl)
                               : __riscv_vmv_v_x_i32m4(0, vl);
         vint32m4_t vsum = __riscv_vmv_v_x_i32m4(0, vl);
-
         for (int32_t k = 0; k < INPUT_CH; k++)
         {
             vint8m1_t w8 = __riscv_vle8_v_i8m1(
@@ -58,28 +56,25 @@ nn_fold_input_offset_s8(int32_t       *corrected_bias,
             vint32m4_t w32 = __riscv_vsext_vf4_i32m4(w8, vl);
             vsum           = __riscv_vadd_vv_i32m4(vsum, w32, vl);
         }
-
         vsum = __riscv_vmul_vx_i32m4(vsum, input_offset, vl);
         vacc = __riscv_vadd_vv_i32m4(vacc, vsum, vl);
         __riscv_vse32_v_i32m4(corrected_bias + oc_off, vacc, vl);
-
         oc_off += (int32_t)vl;
     }
 }
 
 int32_t
-nn_conv1x1_s8(const nn_context                  *ctx,
-              const nn_conv_params              *conv_params,
-              const nn_per_channel_quant_params *quant_params,
-              const q7_t                        *input_data,
-              const q7_t                        *filter_data,
-              const int32_t                     *bias_data,
-              q7_t                              *output_data)
+nn_conv1x1_s8(const nn_context *restrict ctx,
+              const nn_conv_params *restrict conv_params,
+              const nn_per_channel_quant_params *restrict quant_params,
+              const q7_t *restrict input_data,
+              const q7_t *restrict filter_data,
+              const int32_t *restrict bias_data,
+              q7_t *restrict output_data)
 {
-    const int32_t *out_mult  = quant_params->multiplier;
-    const int32_t *out_shift = quant_params->shift;
-
-    int32_t *corrected_bias = (int32_t *)ctx->buf;
+    const int32_t *restrict out_mult  = quant_params->multiplier;
+    const int32_t *restrict out_shift = quant_params->shift;
+    int32_t *restrict corrected_bias  = (int32_t *)ctx->buf;
 
     nn_fold_input_offset_s8(
         corrected_bias, bias_data, filter_data, conv_params->input_offset);
@@ -90,13 +85,8 @@ nn_conv1x1_s8(const nn_context                  *ctx,
         output_data
             = nn_mat_mult_kernel_s8_s8(filter_data,
                                        input_data + (size_t)i_items * INPUT_CH,
-                                       OUTPUT_CH,
                                        out_shift,
                                        out_mult,
-                                       OUT_OFFSET,
-                                       OUT_ACT_MIN,
-                                       OUT_ACT_MAX,
-                                       INPUT_CH,
                                        corrected_bias,
                                        output_data);
     }
@@ -106,13 +96,8 @@ nn_conv1x1_s8(const nn_context                  *ctx,
         output_data
             = nn_mat_mult_core_1x1_s8(filter_data,
                                       input_data + (size_t)i_items * INPUT_CH,
-                                      OUTPUT_CH,
                                       out_shift,
                                       out_mult,
-                                      OUT_OFFSET,
-                                      OUT_ACT_MIN,
-                                      OUT_ACT_MAX,
-                                      INPUT_CH,
                                       corrected_bias,
                                       output_data);
     }
