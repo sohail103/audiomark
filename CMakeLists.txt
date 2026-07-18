@@ -4,9 +4,15 @@ project(audiomark
 	LANGUAGES C
 	VERSION 1.0.0)
 
+enable_testing()
+
 if(NOT CMAKE_C_FLAGS)
   set(CMAKE_C_FLAGS "-O2" CACHE STRING "DEFAULT C FLAGS")
 endif()
+
+# Windows command line limit workaround
+set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS ON)
+set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON)
 
 include_directories(lib/speexdsp)
 include_directories(lib/speexdsp/include)
@@ -147,12 +153,14 @@ else()
 	target_link_libraries(test_kws m)
 endif()
 
-add_custom_target(test
+add_test(NAME test_abf_f32 COMMAND test_abf_f32)
+add_test(NAME test_aec_f32 COMMAND test_aec_f32)
+add_test(NAME test_anr_f32 COMMAND test_anr_f32)
+add_test(NAME test_kws COMMAND test_kws)
+add_test(NAME test_mfcc_f32 COMMAND test_mfcc_f32)
+
+add_custom_target(run_unit_tests
 	COMMENT "Running unit tests..."
-	COMMAND ./test_abf_f32
-	COMMAND ./test_aec_f32
-	COMMAND ./test_anr_f32
-	COMMAND ./test_kws
-	COMMAND ./test_mfcc_f32
+	COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
 	DEPENDS test_mfcc_f32 test_kws test_abf_f32 test_aec_f32 test_anr_f32
 )
