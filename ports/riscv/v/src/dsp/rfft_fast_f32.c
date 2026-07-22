@@ -22,9 +22,10 @@
 #include "dsp.h"
 #include "dsp_f32.h"
 #include "rvv_support_guard.h"
+#include "ee_api.h"
 
 riscv_status
-riscv_rfft_fast_init_f32(riscv_rfft_fast_instance_f32 *S, uint16_t fftLenReal)
+riscv_rfft_fast_init_f32(riscv_rfft_fast_instance_f32 *__EE_RESTRICT S, uint16_t fftLenReal)
 {
     riscv_status status = RISCV_MATH_SUCCESS;
 
@@ -51,9 +52,9 @@ riscv_rfft_fast_init_f32(riscv_rfft_fast_instance_f32 *S, uint16_t fftLenReal)
 }
 
 void
-stage_rfft_f32(const riscv_rfft_fast_instance_f32 *S,
-               float32_t                          *p,
-               float32_t                          *pOut)
+stage_rfft_f32(const riscv_rfft_fast_instance_f32 *__EE_RESTRICT S,
+               float32_t                          *__EE_RESTRICT p,
+               float32_t                          *__EE_RESTRICT pOut)
 {
     int32_t          k      = (S->Sint).fftLen - 1;
     const float32_t *pCoeff = S->pTwiddleRFFT;
@@ -200,10 +201,10 @@ merge_rfft_f32(const riscv_rfft_fast_instance_f32 *S,
 }
 
 void
-riscv_rfft_fast_f32(const riscv_rfft_fast_instance_f32 *S,
-                    float32_t                          *p,
-                    float32_t                          *pOut,
-                    uint8_t                             ifftFlag)
+riscv_rfft_fast_f32(const riscv_rfft_fast_instance_f32 *__EE_RESTRICT S,
+                    float32_t                          *__EE_RESTRICT p,
+                    float32_t                          *__EE_RESTRICT pOut,
+                    uint8_t                                           ifftFlag)
 {
     const riscv_cfft_instance_f32 *Sint = &(S->Sint);
 

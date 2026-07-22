@@ -18,7 +18,9 @@
 #include "ee_api.h"
 
 void
-th_f32_to_int16(const ee_f32_t *p_src, int16_t *p_dst, uint32_t len)
+th_f32_to_int16(const ee_f32_t *__EE_RESTRICT p_src,
+                int16_t        *__EE_RESTRICT p_dst,
+                uint32_t                      len)
 {
     for (uint32_t i = 0; i < len; i++)
     {

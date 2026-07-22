@@ -18,7 +18,9 @@
 #include "ee_api.h"
 
 void
-th_cmplx_conj_f32(const ee_f32_t *p_a, ee_f32_t *p_c, uint32_t len)
+th_cmplx_conj_f32(const ee_f32_t *__EE_RESTRICT p_a,
+                  ee_f32_t       *__EE_RESTRICT p_c,
+                  uint32_t                      len)
 {
     for (uint32_t i = 0; i < len; i++)
     {

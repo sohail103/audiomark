@@ -16,6 +16,7 @@
 
 #include "math_types.h"
 #include "functions.h"
+#include "ee_api.h"
 
 #include <stdint.h>
 
@@ -34,7 +35,8 @@
 #define ROUND_SYM(s) ((s) >= 0 ? ((s) + HALF) / COUNT : ((s) - HALF) / COUNT)
 
 int32_t
-nn_avgpool_25x5x64_s8(const q7_t *input_data, q7_t *output_data)
+nn_avgpool_25x5x64_s8(const q7_t *__EE_RESTRICT input_data,
+                      q7_t *__EE_RESTRICT       output_data)
 {
     for (uint8_t c = 0; c < CHANNELS; c += 16)
     {

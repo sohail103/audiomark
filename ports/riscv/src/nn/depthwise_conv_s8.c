@@ -16,6 +16,7 @@
 
 #include "functions.h"
 #include "support_functions.h"
+#include "ee_api.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -40,14 +41,14 @@
 #define INPUT_X_STEP   (STRIDE_W * COL_STRIDE)
 
 static inline void
-acc_col_4ch(int32_t *restrict b0,
-            int32_t *restrict b1,
-            int32_t *restrict b2,
-            int32_t *restrict b3,
-            const int8_t *restrict ip,
-            const int8_t *restrict kp,
-            int32_t kh_start,
-            int32_t kh_end)
+acc_col_4ch(int32_t *__EE_RESTRICT      b0,
+            int32_t *__EE_RESTRICT      b1,
+            int32_t *__EE_RESTRICT      b2,
+            int32_t *__EE_RESTRICT      b3,
+            const int8_t *__EE_RESTRICT ip,
+            const int8_t *__EE_RESTRICT kp,
+            int32_t                     kh_start,
+            int32_t                     kh_end)
 {
     int32_t start = kh_start < 0 ? 0 : kh_start;
     int32_t end   = kh_end > KERNEL_DIM ? KERNEL_DIM : kh_end;
@@ -96,11 +97,11 @@ acc_col_4ch(int32_t *restrict b0,
 }
 
 static inline void
-acc_col_1ch(int32_t *restrict b0,
-            const int8_t *restrict ip,
-            const int8_t *restrict kp,
-            int32_t kh_start,
-            int32_t kh_end)
+acc_col_1ch(int32_t *__EE_RESTRICT      b0,
+            const int8_t *__EE_RESTRICT ip,
+            const int8_t *__EE_RESTRICT kp,
+            int32_t                     kh_start,
+            int32_t                     kh_end)
 {
     int32_t start = kh_start < 0 ? 0 : kh_start;
     int32_t end   = kh_end > KERNEL_DIM ? KERNEL_DIM : kh_end;
@@ -138,15 +139,15 @@ acc_col_1ch(int32_t *restrict b0,
 }
 
 int32_t
-nn_depthwise_conv_3x3_s8(
-    const nn_per_channel_quant_params *restrict quant_params,
-    const q7_t *restrict input,
-    const q7_t *restrict kernel,
-    const int32_t *restrict bias,
-    q7_t *restrict output)
+nn_depthwise_conv_3x3_s8(const nn_per_channel_quant_params *__EE_RESTRICT
+                                                      quant_params,
+                         const q7_t *__EE_RESTRICT    input,
+                         const q7_t *__EE_RESTRICT    kernel,
+                         const int32_t *__EE_RESTRICT bias,
+                         q7_t *__EE_RESTRICT          output)
 {
-    const int32_t *restrict output_mult  = quant_params->multiplier;
-    const int32_t *restrict output_shift = quant_params->shift;
+    const int32_t *__EE_RESTRICT output_mult  = quant_params->multiplier;
+    const int32_t *__EE_RESTRICT output_shift = quant_params->shift;
 
     int32_t int_h0 = 0;
     while (int_h0 < OUTPUT_H && (int_h0 * STRIDE_H - PAD_H) < 0)

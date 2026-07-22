@@ -18,7 +18,9 @@
 #include "ee_api.h"
 
 void
-th_mat_vec_mult_f32(ee_matrix_f32_t *p_a, ee_f32_t *p_b, ee_f32_t *p_c)
+th_mat_vec_mult_f32(ee_matrix_f32_t *__EE_RESTRICT p_a,
+                    ee_f32_t        *__EE_RESTRICT p_b,
+                    ee_f32_t        *__EE_RESTRICT p_c)
 {
     uint32_t rows = p_a->numRows;
     uint32_t cols = p_a->numCols;

@@ -22,15 +22,16 @@
 
 #include "functions.h"
 #include "support_functions.h"
+#include "ee_api.h"
 
 /*
  * s8 vector(lhs) by matrix (transposed) multiplication
  */
 int32_t
-nn_vec_mat_mult_t_s8(const q7_t   *lhs,
-                     const q7_t   *rhs,
-                     const q31_t  *bias,
-                     q7_t         *dst,
+nn_vec_mat_mult_t_s8(const q7_t   *__EE_RESTRICT lhs,
+                     const q7_t   *__EE_RESTRICT rhs,
+                     const q31_t  *__EE_RESTRICT bias,
+                     q7_t         *__EE_RESTRICT dst,
                      const int32_t lhs_offset,
                      const int32_t dst_offset,
                      const int32_t dst_multiplier,

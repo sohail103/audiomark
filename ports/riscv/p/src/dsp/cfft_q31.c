@@ -21,9 +21,10 @@
 #include "dsp.h"
 #include "dsp_q31.h"
 #include "rvp_support_guard.h"
+#include "ee_api.h"
 
 riscv_status
-riscv_cfft_init_q31(riscv_cfft_instance_q31 *p_instance, uint16_t fftLength)
+riscv_cfft_init_q31(riscv_cfft_instance_q31 *__EE_RESTRICT p_instance, uint16_t fftLength)
 {
     riscv_status status = RISCV_MATH_SUCCESS;
     p_instance->fftLen  = fftLength;
@@ -92,9 +93,9 @@ riscv_cfft_init_q31(riscv_cfft_instance_q31 *p_instance, uint16_t fftLength)
 }
 
 void
-riscv_bitreversal_32_inpl(uint32_t       *pSrc,
-                          const uint16_t  bitRevLen,
-                          const uint16_t *pBitRevTab)
+riscv_bitreversal_32_inpl(uint32_t       *__EE_RESTRICT pSrc,
+                          const uint16_t                bitRevLen,
+                          const uint16_t *__EE_RESTRICT pBitRevTab)
 {
     q31_t   *src      = (q31_t *)pSrc;
     uint32_t blkCnt   = bitRevLen / 4;
@@ -138,9 +139,9 @@ riscv_bitreversal_32_inpl(uint32_t       *pSrc,
 }
 
 void
-riscv_radix4_butterfly_inverse_q31(const riscv_cfft_instance_q31 *S,
-                                   q31_t                         *pSrc,
-                                   uint32_t                       fftLen)
+riscv_radix4_butterfly_inverse_q31(const riscv_cfft_instance_q31 *__EE_RESTRICT S,
+                                   q31_t                         *__EE_RESTRICT pSrc,
+                                   uint32_t                                      fftLen)
 {
     q31x2_t  vecTmp0, vecTmp1;
     q31x2_t  vecSum0, vecDiff0, vecSum1, vecDiff1;
@@ -325,9 +326,9 @@ riscv_radix4_butterfly_inverse_q31(const riscv_cfft_instance_q31 *S,
 }
 
 void
-riscv_radix4_butterfly_q31(const riscv_cfft_instance_q31 *S,
-                           q31_t                         *pSrc,
-                           uint32_t                       fftLen)
+riscv_radix4_butterfly_q31(const riscv_cfft_instance_q31 *__EE_RESTRICT S,
+                           q31_t                         *__EE_RESTRICT pSrc,
+                           uint32_t                                    fftLen)
 {
     q31x2_t  vecTmp0, vecTmp1;
     q31x2_t  vecSum0, vecDiff0, vecSum1, vecDiff1;
@@ -512,9 +513,9 @@ riscv_radix4_butterfly_q31(const riscv_cfft_instance_q31 *S,
 }
 
 void
-riscv_cfft_radix4by2_inverse_q31(const riscv_cfft_instance_q31 *p_instance,
-                                 q31_t                         *pSrc,
-                                 uint32_t                       fftLen)
+riscv_cfft_radix4by2_inverse_q31(const riscv_cfft_instance_q31 *__EE_RESTRICT p_instance,
+                                 q31_t                         *__EE_RESTRICT pSrc,
+                                 uint32_t                                      fftLen)
 {
 
     uint32_t     n2;
@@ -564,9 +565,9 @@ riscv_cfft_radix4by2_inverse_q31(const riscv_cfft_instance_q31 *p_instance,
 }
 
 void
-riscv_cfft_radix4by2_q31(const riscv_cfft_instance_q31 *p_instance,
-                         q31_t                         *pSrc,
-                         uint32_t                       fftLen)
+riscv_cfft_radix4by2_q31(const riscv_cfft_instance_q31 *__EE_RESTRICT p_instance,
+                         q31_t                         *__EE_RESTRICT pSrc,
+                         uint32_t                                    fftLen)
 {
     uint32_t     n2;
     q31_t       *pIn0;
@@ -613,10 +614,10 @@ riscv_cfft_radix4by2_q31(const riscv_cfft_instance_q31 *p_instance,
 }
 
 void
-riscv_cfft_q31(const riscv_cfft_instance_q31 *p_instance,
-               q31_t                         *q_buf,
-               uint8_t                        ifftFlag,
-               uint8_t                        bitReverseFlagR)
+riscv_cfft_q31(const riscv_cfft_instance_q31 *__EE_RESTRICT p_instance,
+               q31_t                         *__EE_RESTRICT q_buf,
+               uint8_t                                      ifftFlag,
+               uint8_t                                      bitReverseFlagR)
 {
     uint32_t fftLen = p_instance->fftLen;
 

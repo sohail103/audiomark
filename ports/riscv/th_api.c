@@ -69,7 +69,7 @@ th_free(void *mem, int req)
 }
 
 void *
-th_memcpy(void *restrict dst, const void *restrict src, size_t n)
+th_memcpy(void *__EE_RESTRICT dst, const void *__EE_RESTRICT src, size_t n)
 {
     return memcpy(dst, src, n);
 }

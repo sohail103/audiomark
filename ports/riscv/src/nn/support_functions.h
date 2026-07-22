@@ -25,6 +25,7 @@
 
 #include "math_types.h"
 #include "types.h"
+#include "ee_api.h"
 
 #define LEFT_SHIFT(_shift)            (_shift > 0 ? _shift : 0)
 #define MASK_IF_ZERO(x)               (x) == 0 ? ~0 : 0
@@ -62,15 +63,15 @@ union nn_long_long
     struct nn_double word;
 };
 
-void nn_q7_to_q15_with_offset(const int8_t *src,
-                              int16_t      *dst,
-                              int32_t       block_size,
-                              int16_t       offset);
+void nn_q7_to_q15_with_offset(const int8_t *__EE_RESTRICT src,
+                              int16_t      *__EE_RESTRICT dst,
+                              int32_t                      block_size,
+                              int16_t                      offset);
 
-int32_t nn_vec_mat_mult_t_s8(const int8_t  *lhs,
-                             const int8_t  *rhs,
-                             const int32_t *bias,
-                             int8_t        *dst,
+int32_t nn_vec_mat_mult_t_s8(const int8_t  *__EE_RESTRICT lhs,
+                             const int8_t  *__EE_RESTRICT rhs,
+                             const int32_t *__EE_RESTRICT bias,
+                             int8_t        *__EE_RESTRICT dst,
                              const int32_t  lhs_offset,
                              const int32_t  dst_offset,
                              const int32_t  dst_multiplier,
@@ -81,17 +82,18 @@ int32_t nn_vec_mat_mult_t_s8(const int8_t  *lhs,
                              const int32_t  activation_max,
                              const int32_t  address_offset);
 
-q7_t *nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
-                                const q15_t         *input_b,
-                                const uint16_t       output_ch,
-                                const int32_t       *out_shift,
-                                const int32_t       *out_mult,
-                                const int32_t        out_offset,
-                                const int16_t        activation_min,
-                                const int16_t        activation_max,
-                                const uint16_t       num_col_a,
-                                const int32_t *const output_bias,
-                                q7_t                *out_0);
+q7_t *nn_mat_mult_kernel_s8_s16(
+    const q7_t *__EE_RESTRICT          input_a,
+    const q15_t *__EE_RESTRICT         input_b,
+    const uint16_t                     output_ch,
+    const int32_t *__EE_RESTRICT       out_shift,
+    const int32_t *__EE_RESTRICT       out_mult,
+    const int32_t                      out_offset,
+    const int16_t                      activation_min,
+    const int16_t                      activation_max,
+    const uint16_t                     num_col_a,
+    const int32_t *const __EE_RESTRICT output_bias,
+    q7_t *__EE_RESTRICT                out_0);
 
 #define RIGHT_SHIFT(_shift) (_shift > 0 ? 0 : -_shift)
 

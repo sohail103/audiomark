@@ -21,6 +21,7 @@
  */
 
 #include "rvv_support_guard.h"
+#include "ee_api.h"
 #include "functions.h"
 #include "rvv_support_functions.h"
 #include "convolve_config.h"
@@ -36,10 +37,10 @@
 #define COL_LEN     (INPUT_W * INPUT_H * INPUT_N)
 
 static void
-nn_fold_input_offset_s8(int32_t *restrict corrected_bias,
-                        const int32_t *restrict bias_data,
-                        const q7_t *restrict weights_rvv,
-                        int32_t input_offset)
+nn_fold_input_offset_s8(int32_t *__EE_RESTRICT       corrected_bias,
+                        const int32_t *__EE_RESTRICT bias_data,
+                        const q7_t *__EE_RESTRICT    weights_rvv,
+                        int32_t                      input_offset)
 {
     int32_t oc_off = 0;
     while (oc_off < OUTPUT_CH)
@@ -64,17 +65,17 @@ nn_fold_input_offset_s8(int32_t *restrict corrected_bias,
 }
 
 int32_t
-nn_conv1x1_s8(const nn_context *restrict ctx,
-              const nn_conv_params *restrict conv_params,
-              const nn_per_channel_quant_params *restrict quant_params,
-              const q7_t *restrict input_data,
-              const q7_t *restrict filter_data,
-              const int32_t *restrict bias_data,
-              q7_t *restrict output_data)
+nn_conv1x1_s8(const nn_context *__EE_RESTRICT                  ctx,
+              const nn_conv_params *__EE_RESTRICT              conv_params,
+              const nn_per_channel_quant_params *__EE_RESTRICT quant_params,
+              const q7_t *__EE_RESTRICT                        input_data,
+              const q7_t *__EE_RESTRICT                        filter_data,
+              const int32_t *__EE_RESTRICT                     bias_data,
+              q7_t *__EE_RESTRICT                              output_data)
 {
-    const int32_t *restrict out_mult  = quant_params->multiplier;
-    const int32_t *restrict out_shift = quant_params->shift;
-    int32_t *restrict corrected_bias  = (int32_t *)ctx->buf;
+    const int32_t *__EE_RESTRICT out_mult       = quant_params->multiplier;
+    const int32_t *__EE_RESTRICT out_shift      = quant_params->shift;
+    int32_t *__EE_RESTRICT       corrected_bias = (int32_t *)ctx->buf;
 
     nn_fold_input_offset_s8(
         corrected_bias, bias_data, filter_data, conv_params->input_offset);

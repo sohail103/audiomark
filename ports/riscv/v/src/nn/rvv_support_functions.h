@@ -25,20 +25,21 @@
 
 #include "rvv_support_guard.h"
 #include "support_functions.h"
+#include "ee_api.h"
 
-q7_t *nn_mat_mult_core_1x1_s8(const q7_t *restrict input_a,
-                              const q7_t *restrict act_row,
-                              const int32_t *restrict out_shift,
-                              const int32_t *restrict out_mult,
-                              const int32_t *const restrict bias,
-                              q7_t *restrict out);
+q7_t *nn_mat_mult_core_1x1_s8(const q7_t *__EE_RESTRICT          input_a,
+                              const q7_t *__EE_RESTRICT          act_row,
+                              const int32_t *__EE_RESTRICT       out_shift,
+                              const int32_t *__EE_RESTRICT       out_mult,
+                              const int32_t *const __EE_RESTRICT bias,
+                              q7_t *__EE_RESTRICT                out);
 
-q7_t *nn_mat_mult_kernel_s8_s8(const q7_t *restrict input_a,
-                               const q7_t *restrict input_b,
-                               const int32_t *restrict out_shift,
-                               const int32_t *restrict out_mult,
-                               const int32_t *const restrict output_bias,
-                               q7_t *restrict out_0);
+q7_t *nn_mat_mult_kernel_s8_s8(const q7_t *__EE_RESTRICT          input_a,
+                               const q7_t *__EE_RESTRICT          input_b,
+                               const int32_t *__EE_RESTRICT       out_shift,
+                               const int32_t *__EE_RESTRICT       out_mult,
+                               const int32_t *const __EE_RESTRICT output_bias,
+                               q7_t *__EE_RESTRICT                out_0);
 
 static inline vint32m4_t
 nn_requantize_vint32m4(const vint32m4_t val,

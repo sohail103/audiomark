@@ -32,19 +32,19 @@
  */
 
 int32_t
-nn_convolve_s8(const nn_context *restrict ctx,
-               const nn_conv_params *restrict conv_params,
-               const nn_per_channel_quant_params *restrict quant_params,
-               const nn_dims *restrict input_dims,
-               const q7_t *restrict input_data,
-               const nn_dims *restrict filter_dims,
-               const q7_t *restrict filter_data,
-               const nn_dims *restrict bias_dims,
-               const int32_t *restrict bias_data,
-               const nn_dims *restrict output_dims,
-               q7_t *restrict output_data)
+nn_convolve_s8(const nn_context *__EE_RESTRICT                  ctx,
+               const nn_conv_params *__EE_RESTRICT              conv_params,
+               const nn_per_channel_quant_params *__EE_RESTRICT quant_params,
+               const nn_dims *__EE_RESTRICT                     input_dims,
+               const q7_t *__EE_RESTRICT                        input_data,
+               const nn_dims *__EE_RESTRICT                     filter_dims,
+               const q7_t *__EE_RESTRICT                        filter_data,
+               const nn_dims *__EE_RESTRICT                     bias_dims,
+               const int32_t *__EE_RESTRICT                     bias_data,
+               const nn_dims *__EE_RESTRICT                     output_dims,
+               q7_t *__EE_RESTRICT                              output_data)
 {
-    q15_t *restrict const im2col_buf = (q15_t *)ctx->buf;
+    q15_t *__EE_RESTRICT const im2col_buf = (q15_t *)ctx->buf;
 
     const uint16_t input_x   = input_dims->w;
     const uint16_t input_y   = input_dims->h;
@@ -62,20 +62,20 @@ nn_convolve_s8(const nn_context *restrict ctx,
     const uint16_t dilation_x = conv_params->dilation.w;
     const uint16_t dilation_y = conv_params->dilation.h;
 
-    const int32_t input_offset           = conv_params->input_offset;
-    const int32_t out_offset             = conv_params->output_offset;
-    const int32_t out_activation_min     = conv_params->activation.min;
-    const int32_t out_activation_max     = conv_params->activation.max;
-    const int32_t *restrict output_mult  = quant_params->multiplier;
-    const int32_t *restrict output_shift = quant_params->shift;
+    const int32_t input_offset                = conv_params->input_offset;
+    const int32_t out_offset                  = conv_params->output_offset;
+    const int32_t out_activation_min          = conv_params->activation.min;
+    const int32_t out_activation_max          = conv_params->activation.max;
+    const int32_t *__EE_RESTRICT output_mult  = quant_params->multiplier;
+    const int32_t *__EE_RESTRICT output_shift = quant_params->shift;
 
     /* Precomputed value */
-    q15_t *restrict const col_buf_full
+    q15_t *__EE_RESTRICT const col_buf_full
         = im2col_buf
           + (int32_t)NN_KERNEL_COLS * (input_ch * kernel_y * kernel_x);
 
-    q15_t *restrict col_buf = im2col_buf;
-    q7_t *restrict out      = output_data;
+    q15_t *__EE_RESTRICT col_buf = im2col_buf;
+    q7_t *__EE_RESTRICT  out     = output_data;
 
     for (int32_t i_out_y = 0; i_out_y < output_y; i_out_y++)
     {
@@ -132,17 +132,17 @@ nn_convolve_s8(const nn_context *restrict ctx,
         /* num_col_a declared locally — dead during the hot loop above */
         const uint16_t num_col_a       = input_ch * kernel_y * kernel_x;
         const int32_t  leftover_pixels = (output_x * output_y) % NN_KERNEL_COLS;
-        const q15_t *restrict patch    = im2col_buf;
+        const q15_t *__EE_RESTRICT patch = im2col_buf;
 
         for (int32_t p = 0; p < leftover_pixels; p++, patch += num_col_a)
         {
-            const q7_t *restrict ker_a = filter_data;
+            const q7_t *__EE_RESTRICT ker_a = filter_data;
 
             for (int32_t i = 0; i < output_ch; i++)
             {
-                q31_t sum                 = bias_data ? bias_data[i] : 0;
-                const q15_t *restrict col = patch;
-                uint16_t col_count        = num_col_a;
+                q31_t                      sum = bias_data ? bias_data[i] : 0;
+                const q15_t *__EE_RESTRICT col = patch;
+                uint16_t                   col_count = num_col_a;
 
                 while (col_count--)
                 {

@@ -21,12 +21,13 @@
 #include "dsp.h"
 #include "convert.h"
 #include "rvp_support_guard.h"
+#include "ee_api.h"
 
 void
-riscv_rfft_fast_f32(const riscv_rfft_fast_instance_q31 *p_instance,
-            float                        *p_in,
-            float                        *p_out,
-            uint8_t                       ifftFlag)
+riscv_rfft_fast_f32(const riscv_rfft_fast_instance_q31 *__EE_RESTRICT p_instance,
+                    float                               *__EE_RESTRICT p_in,
+                    float                               *__EE_RESTRICT p_out,
+                    uint8_t                                            ifftFlag)
 {
     uint32_t L2 = p_instance->fftLenRFFT >> 1U; /* half-length for CFFT */
 

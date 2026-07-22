@@ -20,10 +20,10 @@
 #include <math.h>
 
 void
-th_absmax_f32(const ee_f32_t *p_in,
-              uint32_t        len,
-              ee_f32_t       *p_max,
-              uint32_t       *p_index)
+th_absmax_f32(const ee_f32_t *__EE_RESTRICT p_in,
+              uint32_t                     len,
+              ee_f32_t       *__EE_RESTRICT p_max,
+              uint32_t       *__EE_RESTRICT p_index)
 {
     ee_f32_t max_val = fabsf(p_in[0]);
     uint32_t max_idx = 0;

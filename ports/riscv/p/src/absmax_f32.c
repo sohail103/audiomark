@@ -19,8 +19,10 @@
 #include "rvp_support_guard.h"
 #include <stdint.h>
 
-void th_absmax_f32(const ee_f32_t *p_in, uint32_t len,
-                   ee_f32_t *p_max, uint32_t *p_index)
+void th_absmax_f32(const ee_f32_t *__EE_RESTRICT p_in,
+                   uint32_t                     len,
+                   ee_f32_t *__EE_RESTRICT      p_max,
+                   uint32_t *__EE_RESTRICT      p_index)
 {
     const uint32x2_t V_smask = __riscv_pmv_s_u32x2(0x7FFFFFFF);
     const uint32_t  *p32     = (const uint32_t *)p_in;

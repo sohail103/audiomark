@@ -23,9 +23,10 @@
 #include "dsp_f32.h"
 #include "dsp_q31.h"
 #include "rvv_support_guard.h"
+#include "ee_api.h"
 
 riscv_status
-riscv_cfft_init_f32(riscv_cfft_instance_f32 *p_instance, uint16_t fftLength)
+riscv_cfft_init_f32(riscv_cfft_instance_f32 *__EE_RESTRICT p_instance, uint16_t fftLength)
 {
     riscv_status status = RISCV_MATH_SUCCESS;
     p_instance->fftLen  = fftLength;
@@ -94,9 +95,9 @@ riscv_cfft_init_f32(riscv_cfft_instance_f32 *p_instance, uint16_t fftLength)
 }
 
 void
-riscv_bitreversal_32_inpl(uint32_t       *pSrc,
-                          const uint16_t  bitRevLen,
-                          const uint16_t *pBitRevTab)
+riscv_bitreversal_32_inpl(uint32_t       *__EE_RESTRICT pSrc,
+                          const uint16_t                bitRevLen,
+                          const uint16_t *__EE_RESTRICT pBitRevTab)
 {
     int32_t   remaining = bitRevLen >> 1;
 
@@ -157,9 +158,9 @@ riscv_inverse_fft_length_f32(uint16_t fftLen)
 }
 
 void
-riscv_radix4_butterfly_inverse_f32(const riscv_cfft_instance_f32 *S,
-                                   float32_t                     *pSrc,
-                                   uint32_t                       fftLen)
+riscv_radix4_butterfly_inverse_f32(const riscv_cfft_instance_f32 *__EE_RESTRICT S,
+                                   float32_t                     *__EE_RESTRICT pSrc,
+                                   uint32_t                                      fftLen)
 {
     float32_t onebyfftLen = riscv_inverse_fft_length_f32(S->fftLen);
     uint32_t  n2          = fftLen;
@@ -365,9 +366,9 @@ riscv_radix4_butterfly_inverse_f32(const riscv_cfft_instance_f32 *S,
 }
 
 void
-riscv_radix4_butterfly_f32(const riscv_cfft_instance_f32 *S,
-                           float32_t                     *pSrc,
-                           uint32_t                       fftLen)
+riscv_radix4_butterfly_f32(const riscv_cfft_instance_f32 *__EE_RESTRICT S,
+                           float32_t                     *__EE_RESTRICT pSrc,
+                           uint32_t                                    fftLen)
 {
     uint32_t n2 = fftLen;
     uint32_t n1 = n2;
@@ -562,9 +563,9 @@ riscv_radix4_butterfly_f32(const riscv_cfft_instance_f32 *S,
 }
 
 void
-riscv_cfft_radix4by2_f32(const riscv_cfft_instance_f32 *S,
-                         float32_t                     *pSrc,
-                         uint32_t                       fftLen)
+riscv_cfft_radix4by2_f32(const riscv_cfft_instance_f32 *__EE_RESTRICT S,
+                         float32_t                     *__EE_RESTRICT pSrc,
+                         uint32_t                                    fftLen)
 {
     float32_t const *pCoef = S->pTwiddle;
     uint32_t         n2    = fftLen >> 1;
@@ -622,9 +623,9 @@ riscv_cfft_radix4by2_f32(const riscv_cfft_instance_f32 *S,
 }
 
 void
-riscv_cfft_radix4by2_inverse_f32(const riscv_cfft_instance_f32 *S,
-                                 float32_t                     *pSrc,
-                                 uint32_t                       fftLen)
+riscv_cfft_radix4by2_inverse_f32(const riscv_cfft_instance_f32 *__EE_RESTRICT S,
+                                 float32_t                     *__EE_RESTRICT pSrc,
+                                 uint32_t                                      fftLen)
 {
     float32_t const *pCoef = S->pTwiddle;
     uint32_t         n2    = fftLen >> 1;
@@ -682,10 +683,10 @@ riscv_cfft_radix4by2_inverse_f32(const riscv_cfft_instance_f32 *S,
 }
 
 void
-riscv_cfft_f32(const riscv_cfft_instance_f32 *p_instance,
-               float32_t                     *pSrc,
-               uint8_t                        ifftFlag,
-               uint8_t                        bitReverseFlagR)
+riscv_cfft_f32(const riscv_cfft_instance_f32 *__EE_RESTRICT p_instance,
+               float32_t                     *__EE_RESTRICT pSrc,
+               uint8_t                                      ifftFlag,
+               uint8_t                                      bitReverseFlagR)
 {
     uint32_t fftLen = p_instance->fftLen;
 

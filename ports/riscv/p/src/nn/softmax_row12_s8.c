@@ -16,13 +16,14 @@
  */
 
 #include "functions.h"
+#include "ee_api.h"
 #include "rvp_support_guard.h"
 
 extern const int32_t EXP_LUT[256];
 extern const int32_t RECIP_LUT[256];
 
 void
-nn_softmax_row12_s8(const int8_t *restrict input, int8_t *restrict output)
+nn_softmax_row12_s8(const int8_t *__EE_RESTRICT input, int8_t *__EE_RESTRICT output)
 {
     const int8_t *in_ptr =
     __builtin_assume_aligned(input, 4);

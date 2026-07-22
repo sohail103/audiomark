@@ -21,12 +21,13 @@
  */
 
 #include "support_functions.h"
+#include "ee_api.h"
 
 void
-nn_q7_to_q15_with_offset(const int8_t *src,
-                         int16_t      *dst,
-                         int32_t       block_size,
-                         int16_t       offset)
+nn_q7_to_q15_with_offset(const int8_t *__EE_RESTRICT src,
+                         int16_t      *__EE_RESTRICT dst,
+                         int32_t                      block_size,
+                         int16_t                      offset)
 {
     int32_t block_cnt;
 
