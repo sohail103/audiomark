@@ -37,24 +37,7 @@
 #endif
 #include <assert.h>
 
-uint64_t
-th_microseconds(void)
-{
-    uint64_t usec = 0;
-#if defined __linux__ || __APPLE__
-    const long      NSEC_PER_SEC      = 1000 * 1000 * 1000;
-    const long      TIMER_RES_DIVIDER = 1000;
-    struct timespec t;
-    clock_gettime(CLOCK_REALTIME, &t);
-    usec = t.tv_sec * (NSEC_PER_SEC / TIMER_RES_DIVIDER)
-           + t.tv_nsec / TIMER_RES_DIVIDER;
-#elif defined _WIN32
-    struct timeb t;
-    ftime(&t);
-    usec = ((uint64_t)t.time) * 1000 * 1000 + ((uint64_t)t.millitm) * 1000;
-#elif defined __arm__ && defined __PERF_COUNTER__
-    usec = (uint64_t)get_system_us();
-#elif defined __riscv
+#if defined __riscv
 #if defined RISCV_READ_MCYCLE
 #define RISCV_CYCLE_CSR  "mcycle"
 #define RISCV_CYCLEH_CSR "mcycleh"
@@ -62,6 +45,14 @@ th_microseconds(void)
 #define RISCV_CYCLE_CSR  "cycle"
 #define RISCV_CYCLEH_CSR "cycleh"
 #endif
+static __attribute__((noinline)) uint64_t
+riscv_get_cycle(void)
+{
+    /* INFO: Clobbing memory before and after reading the cycle count to prevent
+     * compiler to reorder the memory accesses. But this might be redundent as
+     * we've already defined noinline attribute */
+    __asm__ volatile("" ::: "memory");
+
     uint64_t cycles;
 #if __riscv_xlen == 64
     __asm__ volatile("csrr %0, " RISCV_CYCLE_CSR : "=r"(cycles));
@@ -75,6 +66,31 @@ th_microseconds(void)
     } while (hi != hi2);
     cycles = ((uint64_t)hi << 32) | lo;
 #endif
+    __asm__ volatile("" ::: "memory");
+    return cycles;
+}
+#endif
+
+uint64_t
+th_microseconds(void)
+{
+    uint64_t usec = 0;
+#if __linux__ || __APPLE__
+    const long      NSEC_PER_SEC      = 1000 * 1000 * 1000;
+    const long      TIMER_RES_DIVIDER = 1000;
+    struct timespec t;
+    clock_gettime(CLOCK_REALTIME, &t);
+    usec = t.tv_sec * (NSEC_PER_SEC / TIMER_RES_DIVIDER)
+           + t.tv_nsec / TIMER_RES_DIVIDER;
+#elif defined _WIN32
+    struct timeb t;
+    ftime(&t);
+    usec = ((uint64_t)t.time) * 1000 * 1000 + ((uint64_t)t.millitm) * 1000;
+#elif defined __arm__ && defined __PERF_COUNTER__
+    usec = (uint64_t)get_system_us();
+#elif defined __riscv
+    uint64_t cycles = riscv_get_cycle();
+
     usec = cycles * 1000000ULL / CLOCK_FREQ_HZ;
 #else
 #error "Operating system not recognized"
