@@ -22,18 +22,23 @@
 
 #include <dsp_types.h>
 #include <stdint.h>
+#include "ee_api.h"
 
-void riscv_float_to_q31(const float *pSrc, q31_t *pDst, uint32_t blockSize);
+void riscv_float_to_q31(const float *__EE_RESTRICT pSrc,
+                        q31_t       *__EE_RESTRICT pDst,
+                        uint32_t                    blockSize);
 
-float riscv_float_to_q31_normalize(const float *pSrc,
-                                   q31_t       *pDst,
-                                   uint32_t     blockSize);
+float riscv_float_to_q31_normalize(const float *__EE_RESTRICT pSrc,
+                                   q31_t       *__EE_RESTRICT pDst,
+                                   uint32_t                    blockSize);
 
-void riscv_q31_to_float(const q31_t *pSrc, float *pDst, uint32_t blockSize);
+void riscv_q31_to_float(const q31_t *__EE_RESTRICT pSrc,
+                        float       *__EE_RESTRICT pDst,
+                        uint32_t                    blockSize);
 
-void riscv_q31_to_float_unnormalize(const q31_t *pSrc,
-                                    float       *pDst,
-                                    uint32_t     blockSize,
-                                    float        scale_factor);
+void riscv_q31_to_float_unnormalize(const q31_t *__EE_RESTRICT pSrc,
+                                    float       *__EE_RESTRICT pDst,
+                                    uint32_t                    blockSize,
+                                    float                       scale_factor);
 
 #endif /* P_RISCV_CONV_H */

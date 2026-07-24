@@ -20,12 +20,13 @@
 #include <dsp_types.h>
 #include "dsp.h"
 #include "convert.h"
+#include "ee_api.h"
 
 void
-riscv_cfft_f32(const riscv_cfft_instance_q31 *p_instance,
-            float                   *p_buf,
-            uint8_t                  ifftFlag,
-            uint8_t                  bitReverseFlagR)
+riscv_cfft_f32(const riscv_cfft_instance_q31 *__EE_RESTRICT p_instance,
+               float                         *__EE_RESTRICT p_buf,
+               uint8_t                                      ifftFlag,
+               uint8_t                                      bitReverseFlagR)
 {
     uint32_t fftLen = p_instance->fftLen;
 

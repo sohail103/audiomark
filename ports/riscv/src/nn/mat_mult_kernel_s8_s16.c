@@ -22,23 +22,24 @@
  */
 
 #include "support_functions.h"
+#include "ee_api.h"
 
 /*
  * Matrix-multiplication function for convolution with per-channel
  * requantization.
  */
 q7_t *
-nn_mat_mult_kernel_s8_s16(const q7_t          *input_a,
-                          const q15_t         *input_b,
-                          const uint16_t       output_ch,
-                          const int32_t       *out_shift,
-                          const int32_t       *out_mult,
-                          const int32_t        out_offset,
-                          const int16_t        activation_min,
-                          const int16_t        activation_max,
-                          const uint16_t       num_col_a,
-                          const int32_t *const output_bias,
-                          q7_t                *out_0)
+nn_mat_mult_kernel_s8_s16(const q7_t          *__EE_RESTRICT input_a,
+                          const q15_t         *__EE_RESTRICT input_b,
+                          const uint16_t                     output_ch,
+                          const int32_t       *__EE_RESTRICT out_shift,
+                          const int32_t       *__EE_RESTRICT out_mult,
+                          const int32_t                      out_offset,
+                          const int16_t                      activation_min,
+                          const int16_t                      activation_max,
+                          const uint16_t                     num_col_a,
+                          const int32_t *const __EE_RESTRICT output_bias,
+                          q7_t                *__EE_RESTRICT out_0)
 {
     /* set up the second output pointers */
     q7_t          *out_1 = out_0 + output_ch;

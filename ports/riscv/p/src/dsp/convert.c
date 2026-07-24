@@ -23,7 +23,9 @@
 #include "rvp_support_guard.h"
 
 void
-riscv_q31_to_float(const q31_t *pSrc, float *pDst, uint32_t blockSize)
+riscv_q31_to_float(const q31_t *__EE_RESTRICT pSrc,
+                   float        *__EE_RESTRICT pDst,
+                   uint32_t                    blockSize)
 {
     uint32_t blkCnt         = blockSize >> 2U;
     uint32_t i              = 0;
@@ -52,10 +54,10 @@ riscv_q31_to_float(const q31_t *pSrc, float *pDst, uint32_t blockSize)
 }
 
 void
-riscv_q31_to_float_unnormalize(const q31_t *pSrc,
-                               float       *pDst,
-                               uint32_t     blockSize,
-                               float        inv_multiplier)
+riscv_q31_to_float_unnormalize(const q31_t *__EE_RESTRICT pSrc,
+                               float        *__EE_RESTRICT pDst,
+                               uint32_t                    blockSize,
+                               float                       inv_multiplier)
 {
     uint32_t blkCnt = blockSize >> 2U;
     uint32_t i      = 0;
@@ -83,7 +85,9 @@ riscv_q31_to_float_unnormalize(const q31_t *pSrc,
 }
 
 void
-riscv_float_to_q31(const float *pSrc, q31_t *pDst, uint32_t blockSize)
+riscv_float_to_q31(const float *__EE_RESTRICT pSrc,
+                   q31_t       *__EE_RESTRICT pDst,
+                   uint32_t                   blockSize)
 {
     uint32_t blkCnt = blockSize >> 2U; /* Divide by 4 */
     uint32_t i      = 0;
@@ -118,7 +122,9 @@ riscv_float_to_q31(const float *pSrc, q31_t *pDst, uint32_t blockSize)
 }
 
 float
-riscv_float_to_q31_normalize(const float *pSrc, q31_t *pDst, uint32_t blockSize)
+riscv_float_to_q31_normalize(const float *__EE_RESTRICT pSrc,
+                             q31_t       *__EE_RESTRICT pDst,
+                             uint32_t                   blockSize)
 {
     float    max_val = 0.0f;
     uint32_t max_idx = 0;

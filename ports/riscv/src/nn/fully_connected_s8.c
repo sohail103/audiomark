@@ -22,6 +22,7 @@
 
 #include "functions.h"
 #include "support_functions.h"
+#include "ee_api.h"
 
 #include <stdint.h>
 
@@ -30,16 +31,16 @@
  */
 
 int32_t
-nn_fully_connected_s8(const nn_fc_params               *fc_params,
-                      const nn_per_tensor_quant_params *quant_params,
-                      const nn_dims                    *input_dims,
-                      const q7_t                       *input,
-                      const nn_dims                    *filter_dims,
-                      const q7_t                       *kernel,
-                      const nn_dims                    *bias_dims,
-                      const int32_t                    *bias,
-                      const nn_dims                    *output_dims,
-                      q7_t                             *output)
+nn_fully_connected_s8(const nn_fc_params               *__EE_RESTRICT fc_params,
+                      const nn_per_tensor_quant_params *__EE_RESTRICT quant_params,
+                      const nn_dims                    *__EE_RESTRICT input_dims,
+                      const q7_t                       *__EE_RESTRICT input,
+                      const nn_dims                    *__EE_RESTRICT filter_dims,
+                      const q7_t                       *__EE_RESTRICT kernel,
+                      const nn_dims                    *__EE_RESTRICT bias_dims,
+                      const int32_t                    *__EE_RESTRICT bias,
+                      const nn_dims                    *__EE_RESTRICT output_dims,
+                      q7_t                             *__EE_RESTRICT output)
 {
     int32_t batch_cnt = input_dims->n;
 

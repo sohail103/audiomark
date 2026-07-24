@@ -18,11 +18,11 @@
 #include "ee_api.h"
 
 void
-th_cmplx_dot_prod_f32(const ee_f32_t *p_a,
-                      const ee_f32_t *p_b,
-                      uint32_t        len,
-                      ee_f32_t       *p_r,
-                      ee_f32_t       *p_i)
+th_cmplx_dot_prod_f32(const ee_f32_t *__EE_RESTRICT p_a,
+                      const ee_f32_t *__EE_RESTRICT p_b,
+                      uint32_t                      len,
+                      ee_f32_t       *__EE_RESTRICT p_r,
+                      ee_f32_t       *__EE_RESTRICT p_i)
 {
     ee_f32_t real_sum = 0.0f;
     ee_f32_t imag_sum = 0.0f;

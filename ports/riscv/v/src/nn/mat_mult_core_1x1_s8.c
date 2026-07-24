@@ -30,12 +30,12 @@
 #define NUM_COL_A  64
 
 q7_t *
-nn_mat_mult_core_1x1_s8(const q7_t *restrict input_a,
-                        const q7_t *restrict act_row,
-                        const int32_t *restrict out_shift,
-                        const int32_t *restrict out_mult,
-                        const int32_t *const restrict bias,
-                        q7_t *restrict out)
+nn_mat_mult_core_1x1_s8(const q7_t *__EE_RESTRICT          input_a,
+                        const q7_t *__EE_RESTRICT          act_row,
+                        const int32_t *__EE_RESTRICT       out_shift,
+                        const int32_t *__EE_RESTRICT       out_mult,
+                        const int32_t *const __EE_RESTRICT bias,
+                        q7_t *__EE_RESTRICT                out)
 {
     const q7_t    *ip_a      = input_a;
     const int32_t *bias_ptr  = bias;

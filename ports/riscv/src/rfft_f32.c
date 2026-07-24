@@ -19,10 +19,10 @@
 #include "dsp.h"
 
 void
-th_rfft_f32(ee_rfft_f32_t *p_instance,
-            ee_f32_t      *p_in,
-            ee_f32_t      *p_out,
-            uint8_t        ifftFlag)
+th_rfft_f32(ee_rfft_f32_t *__EE_RESTRICT p_instance,
+            ee_f32_t      *__EE_RESTRICT p_in,
+            ee_f32_t      *__EE_RESTRICT p_out,
+            uint8_t                      ifftFlag)
 {
     riscv_rfft_fast_f32(p_instance, p_in, p_out, ifftFlag);
 }

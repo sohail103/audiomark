@@ -18,7 +18,10 @@
 #include "ee_api.h"
 
 void
-th_dot_prod_f32(ee_f32_t *p_a, ee_f32_t *p_b, uint32_t len, ee_f32_t *p_result)
+th_dot_prod_f32(ee_f32_t *__EE_RESTRICT p_a,
+                ee_f32_t *__EE_RESTRICT p_b,
+                uint32_t                len,
+                ee_f32_t *__EE_RESTRICT p_result)
 {
     ee_f32_t sum = 0.0f;
 

@@ -24,7 +24,8 @@ extern const int32_t EXP_LUT[256];
 extern const int32_t RECIP_LUT[256];
 
 void
-nn_softmax_row12_s8(const int8_t *__restrict input, int8_t *__restrict output)
+nn_softmax_row12_s8(const int8_t *__EE_RESTRICT input,
+                    int8_t *__EE_RESTRICT       output)
 {
     /* find max */
     int8_t max = input[0];

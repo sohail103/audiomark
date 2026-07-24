@@ -17,6 +17,7 @@
 
 #include "math_types.h"
 #include "functions.h"
+#include "ee_api.h"
 #include "rvp_support_guard.h"
 #include <stdint.h>
 
@@ -34,7 +35,8 @@
 #define MAGIC_COUNT ((1 * 2097152) / COUNT)
 
 int32_t
-nn_avgpool_25x5x64_s8(const q7_t *input_data, q7_t *output_data)
+nn_avgpool_25x5x64_s8(const q7_t *__EE_RESTRICT input_data,
+                      q7_t *__EE_RESTRICT       output_data)
 {
     int16x4_t V_rec = __riscv_pmv_s_i16x4(MAGIC_COUNT);
 

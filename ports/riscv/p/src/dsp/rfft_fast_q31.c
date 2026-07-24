@@ -21,9 +21,10 @@
 #include "dsp.h"
 #include "dsp_q31.h"
 #include "rvp_support_guard.h"
+#include "ee_api.h"
 
 riscv_status
-riscv_rfft_fast_init_q31(riscv_rfft_fast_instance_q31 *S, uint16_t fftLenReal)
+riscv_rfft_fast_init_q31(riscv_rfft_fast_instance_q31 *__EE_RESTRICT S, uint16_t fftLenReal)
 {
     riscv_status status = RISCV_MATH_SUCCESS;
 
@@ -50,10 +51,10 @@ riscv_rfft_fast_init_q31(riscv_rfft_fast_instance_q31 *S, uint16_t fftLenReal)
 }
 
 void
-riscv_merge_rfft_q31(const q31_t *pTwiddleRFFT,
-                     q31_t       *p, /* RIFFT packed input */
-                     q31_t       *pOut,
-                     uint32_t     fftLen) /* half-length = N/2 */
+riscv_merge_rfft_q31(const q31_t *__EE_RESTRICT pTwiddleRFFT,
+                     q31_t       *__EE_RESTRICT p, /* RIFFT packed input */
+                     q31_t       *__EE_RESTRICT pOut,
+                     uint32_t                   fftLen) /* half-length = N/2 */
 {
     /* k=0 */
     q31x2_t cmplxA = __riscv_pload_i32x2(p);
@@ -105,10 +106,10 @@ riscv_merge_rfft_q31(const q31_t *pTwiddleRFFT,
 }
 
 void
-riscv_stage_rfft_q31(const q31_t *pTwiddleRFFT,
-                     q31_t       *p, /* CFFT output in-place */
-                     q31_t       *pOut,
-                     uint32_t     fftLen) /* half-length = N/2 */
+riscv_stage_rfft_q31(const q31_t *__EE_RESTRICT pTwiddleRFFT,
+                     q31_t       *__EE_RESTRICT p, /* CFFT output in-place */
+                     q31_t       *__EE_RESTRICT pOut,
+                     uint32_t                   fftLen) /* half-length = N/2 */
 {
     /* k=0 */
     q31x2_t cmplxA = __riscv_pload_i32x2(p);
@@ -161,10 +162,10 @@ riscv_stage_rfft_q31(const q31_t *pTwiddleRFFT,
 }
 
 void
-riscv_rfft_fast_q31(const riscv_rfft_fast_instance_q31 *p_instance,
-                    q31_t                              *q_in,
-                    q31_t                              *q_out,
-                    uint8_t                             ifftFlag)
+riscv_rfft_fast_q31(const riscv_rfft_fast_instance_q31 *__EE_RESTRICT p_instance,
+                    q31_t                              *__EE_RESTRICT q_in,
+                    q31_t                              *__EE_RESTRICT q_out,
+                    uint8_t                                           ifftFlag)
 {
     const riscv_cfft_instance_q31 *S_CFFT = &(p_instance->Sint);
     uint32_t L2 = p_instance->fftLenRFFT >> 1U; /* half-length for CFFT */
