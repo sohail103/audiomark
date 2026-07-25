@@ -31,22 +31,22 @@ jobs:
             qemu_cpu: rv64,v=true,vext_spec=v1.0,vlen=128
           - key: zve32x
             march: rv64gc_zve32x
-            march_display: RV64GC_ZVE32X
+            march_display: RV64GC_Zve32x
             port_dir: ports/riscv/v
             qemu_cpu: rv64,g=true,c=true,zve32x=true,vlen=128
           - key: zve32f
             march: rv64gc_zve32f
-            march_display: RV64GC_ZVE32F
+            march_display: RV64GC_Zve32f
             port_dir: ports/riscv/v
             qemu_cpu: rv64,g=true,c=true,zve32f=true,vlen=128
           - key: zve64x
             march: rv64gc_zve64x
-            march_display: RV64GC_ZVE64X
+            march_display: RV64GC_Zve64x
             port_dir: ports/riscv/v
             qemu_cpu: rv64,g=true,c=true,zve64x=true,vlen=128
           - key: zve64f
             march: rv64gc_zve64f
-            march_display: RV64GC_ZVE64F
+            march_display: RV64GC_Zve64f
             port_dir: ports/riscv/v
             qemu_cpu: rv64,g=true,c=true,zve64f=true,vlen=128
 
