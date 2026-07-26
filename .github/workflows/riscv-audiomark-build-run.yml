@@ -3,11 +3,28 @@ name: RISC-V AudioMark CI
 on:
   pull_request:
     branches: [main]
+    paths:
+      - ".github/workflows/riscv-audiomark-build-run.yml"
+      - "ports/riscv/**"
+      - "lib/speexdsp/**"
+      - "src/**"
+      - "tests/**"
+      - "main.c"
+      - "CMakeLists.txt"
   push:
-    branches:
-      - main
-      - ci/**
+    paths:
+      - ".github/workflows/riscv-audiomark-build-run.yml"
+      - "ports/riscv/**"
+      - "lib/speexdsp/**"
+      - "src/**"
+      - "tests/**"
+      - "main.c"
+      - "CMakeLists.txt"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build-test-benchmark:
