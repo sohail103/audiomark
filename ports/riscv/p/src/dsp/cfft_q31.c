@@ -32,9 +32,9 @@ riscv_cfft_init_q31(riscv_cfft_instance_q31 *__EE_RESTRICT p_instance, uint16_t 
     {
         case 128U:
             p_instance->pTwiddle     = twiddleCoef_q31_128;
-            p_instance->pBitRevTable = riscvBitRevIndexTable_q31_128;
+            p_instance->pBitRevTable = riscvBitRevIndexTable_r4_128;
             p_instance->bitRevLength
-                = RISCVBITREVINDEXTABLE_FIXED_128_TABLE_LENGTH;
+                = RISCVBITREVINDEXTABLE_RADIX4_128_TABLE_LENGTH;
             p_instance->rearranged_twiddle_stride1
                 = rearranged_twiddle_stride1_64_q31;
             p_instance->rearranged_twiddle_stride2
@@ -50,9 +50,9 @@ riscv_cfft_init_q31(riscv_cfft_instance_q31 *__EE_RESTRICT p_instance, uint16_t 
             break;
         case 256U:
             p_instance->pTwiddle     = twiddleCoef_q31_256;
-            p_instance->pBitRevTable = riscvBitRevIndexTable_q31_256;
+            p_instance->pBitRevTable = riscvBitRevIndexTable_r4_256;
             p_instance->bitRevLength
-                = RISCVBITREVINDEXTABLE_FIXED_256_TABLE_LENGTH;
+                = RISCVBITREVINDEXTABLE_RADIX4_256_TABLE_LENGTH;
             p_instance->rearranged_twiddle_stride1
                 = rearranged_twiddle_stride1_256_q31;
             p_instance->rearranged_twiddle_stride2
@@ -68,9 +68,9 @@ riscv_cfft_init_q31(riscv_cfft_instance_q31 *__EE_RESTRICT p_instance, uint16_t 
             break;
         case 512U:
             p_instance->pTwiddle     = twiddleCoef_q31_512;
-            p_instance->pBitRevTable = riscvBitRevIndexTable_q31_512;
+            p_instance->pBitRevTable = riscvBitRevIndexTable_r4_512;
             p_instance->bitRevLength
-                = RISCVBITREVINDEXTABLE_FIXED_512_TABLE_LENGTH;
+                = RISCVBITREVINDEXTABLE_RADIX4_512_TABLE_LENGTH;
             p_instance->rearranged_twiddle_stride1
                 = rearranged_twiddle_stride1_256_q31;
             p_instance->rearranged_twiddle_stride2

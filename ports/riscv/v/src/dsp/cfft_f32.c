@@ -21,7 +21,6 @@
 #include <dsp_types.h>
 #include "dsp.h"
 #include "dsp_f32.h"
-#include "dsp_q31.h"
 #include "rvv_support_guard.h"
 #include "ee_api.h"
 
@@ -34,9 +33,9 @@ riscv_cfft_init_f32(riscv_cfft_instance_f32 *__EE_RESTRICT p_instance, uint16_t 
     {
         case 128U:
             p_instance->pTwiddle     = twiddleCoef_f32_128;
-            p_instance->pBitRevTable = riscvBitRevIndexTable_q31_128;
+            p_instance->pBitRevTable = riscvBitRevIndexTable_r4_128;
             p_instance->bitRevLength
-                = RISCVBITREVINDEXTABLE_FIXED_128_TABLE_LENGTH;
+                = RISCVBITREVINDEXTABLE_RADIX4_128_TABLE_LENGTH;
             p_instance->rearranged_twiddle_stride1
                 = rearranged_twiddle_stride1_64_f32;
             p_instance->rearranged_twiddle_stride2
@@ -52,9 +51,9 @@ riscv_cfft_init_f32(riscv_cfft_instance_f32 *__EE_RESTRICT p_instance, uint16_t 
             break;
         case 256U:
             p_instance->pTwiddle     = twiddleCoef_f32_256;
-            p_instance->pBitRevTable = riscvBitRevIndexTable_q31_256;
+            p_instance->pBitRevTable = riscvBitRevIndexTable_r4_256;
             p_instance->bitRevLength
-                = RISCVBITREVINDEXTABLE_FIXED_256_TABLE_LENGTH;
+                = RISCVBITREVINDEXTABLE_RADIX4_256_TABLE_LENGTH;
             p_instance->rearranged_twiddle_stride1
                 = rearranged_twiddle_stride1_256_f32;
             p_instance->rearranged_twiddle_stride2
@@ -70,9 +69,9 @@ riscv_cfft_init_f32(riscv_cfft_instance_f32 *__EE_RESTRICT p_instance, uint16_t 
             break;
         case 512U:
             p_instance->pTwiddle     = twiddleCoef_f32_512;
-            p_instance->pBitRevTable = riscvBitRevIndexTable_q31_512;
+            p_instance->pBitRevTable = riscvBitRevIndexTable_r4_512;
             p_instance->bitRevLength
-                = RISCVBITREVINDEXTABLE_FIXED_512_TABLE_LENGTH;
+                = RISCVBITREVINDEXTABLE_RADIX4_512_TABLE_LENGTH;
             p_instance->rearranged_twiddle_stride1
                 = rearranged_twiddle_stride1_256_f32;
             p_instance->rearranged_twiddle_stride2

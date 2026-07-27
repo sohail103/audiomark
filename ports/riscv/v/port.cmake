@@ -31,11 +31,9 @@ message(STATUS "RISCV_HAS_VECTOR_FP = ${RISCV_HAS_VECTOR_FP}")
 
 add_definitions(-DUSE_RISCV_DSP)
 
-# for mdf_opt_rvv.c
-add_compile_options(-include v/src/mdf_opt_config.h)
-
 if(RISCV_HAS_VECTOR_FP)
     add_compile_options(
+        -includemdf_opt_config.h
         -includeanr_opt_config.h
         -includefb_opt_config.h
     )
@@ -68,7 +66,8 @@ set(PORT_SOURCE
 
     # dsp tables
     ${PORT_DIR}/../src/dsp/tables_f32.c
-    ${PORT_DIR}/../src/dsp/tables_q31.c
+    ${PORT_DIR}/../src/dsp/tables_radix4.c
+    ${PORT_DIR}/../src/dsp/tables_radix8.c
 
     # f32 sources
     ${F32_SOURCES}

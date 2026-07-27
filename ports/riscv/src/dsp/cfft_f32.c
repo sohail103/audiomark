@@ -38,20 +38,20 @@ riscv_cfft_init_f32(riscv_cfft_instance_f32 *S, uint16_t fftLen)
     switch (S->fftLen)
     {
         case 512U:
-            S->bitRevLength = RISCVBITREVINDEXTABLE_FLOAT_512_TABLE_LENGTH;
-            S->pBitRevTable = riscvBitRevIndexTable_f32_512;
+            S->bitRevLength = RISCVBITREVINDEXTABLE_RADIX8_512_TABLE_LENGTH;
+            S->pBitRevTable = riscvBitRevIndexTable_r8_512;
             S->pTwiddle     = twiddleCoef_f32_512;
             break;
 
         case 256U:
-            S->bitRevLength = RISCVBITREVINDEXTABLE_FLOAT_256_TABLE_LENGTH;
-            S->pBitRevTable = riscvBitRevIndexTable_f32_256;
+            S->bitRevLength = RISCVBITREVINDEXTABLE_RADIX8_256_TABLE_LENGTH;
+            S->pBitRevTable = riscvBitRevIndexTable_r8_256;
             S->pTwiddle     = twiddleCoef_f32_256;
             break;
 
         case 128U:
-            S->bitRevLength = RISCVBITREVINDEXTABLE_FLOAT_128_TABLE_LENGTH;
-            S->pBitRevTable = riscvBitRevIndexTable_f32_128;
+            S->bitRevLength = RISCVBITREVINDEXTABLE_RADIX8_128_TABLE_LENGTH;
+            S->pBitRevTable = riscvBitRevIndexTable_r8_128;
             S->pTwiddle     = twiddleCoef_f32_128;
             break;
 

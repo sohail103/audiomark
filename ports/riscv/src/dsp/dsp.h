@@ -29,39 +29,60 @@ extern "C"
 #include <stdint.h>
 #include "dsp_types.h" /* each port brings their own types.h */
 
-    void riscv_cfft_f32(const riscv_cfft_instance *S,
-                        float32_t                     *p1,
-                        uint8_t                        ifftFlag,
-                        uint8_t                        bitReverseFlag);
+#define RISCVBITREVINDEXTABLE_RADIX4_128_TABLE_LENGTH ((uint16_t)112)
+    extern const uint16_t riscvBitRevIndexTable_r4_128
+        [RISCVBITREVINDEXTABLE_RADIX4_128_TABLE_LENGTH];
 
-    riscv_status riscv_cfft_init_f32(riscv_cfft_instance *S,
-                                     uint16_t                 fftLen);
+#define RISCVBITREVINDEXTABLE_RADIX4_256_TABLE_LENGTH ((uint16_t)240)
+    extern const uint16_t riscvBitRevIndexTable_r4_256
+        [RISCVBITREVINDEXTABLE_RADIX4_256_TABLE_LENGTH];
+
+#define RISCVBITREVINDEXTABLE_RADIX4_512_TABLE_LENGTH ((uint16_t)480)
+    extern const uint16_t riscvBitRevIndexTable_r4_512
+        [RISCVBITREVINDEXTABLE_RADIX4_512_TABLE_LENGTH];
+
+#define RISCVBITREVINDEXTABLE_RADIX8_128_TABLE_LENGTH ((uint16_t)208)
+    extern const uint16_t riscvBitRevIndexTable_r8_128
+        [RISCVBITREVINDEXTABLE_RADIX8_128_TABLE_LENGTH];
+
+#define RISCVBITREVINDEXTABLE_RADIX8_256_TABLE_LENGTH ((uint16_t)440)
+    extern const uint16_t riscvBitRevIndexTable_r8_256
+        [RISCVBITREVINDEXTABLE_RADIX8_256_TABLE_LENGTH];
+
+#define RISCVBITREVINDEXTABLE_RADIX8_512_TABLE_LENGTH ((uint16_t)448)
+    extern const uint16_t riscvBitRevIndexTable_r8_512
+        [RISCVBITREVINDEXTABLE_RADIX8_512_TABLE_LENGTH];
+
+    void riscv_cfft_f32(const riscv_cfft_instance *S,
+                        float32_t                 *p1,
+                        uint8_t                    ifftFlag,
+                        uint8_t                    bitReverseFlag);
+
+    riscv_status riscv_cfft_init_f32(riscv_cfft_instance *S, uint16_t fftLen);
 
     riscv_status riscv_rfft_fast_init_f32(riscv_rfft_fast_instance *S,
-                                          uint16_t                      fftLen);
+                                          uint16_t                  fftLen);
 
     void riscv_rfft_fast_f32(const riscv_rfft_fast_instance *S,
-                             float32_t                          *p,
-                             float32_t                          *pOut,
+                             float32_t                      *p,
+                             float32_t                      *pOut,
 
                              uint8_t ifftFlag);
 
     void riscv_cfft_q31(const riscv_cfft_instance *S,
-                        q31_t                         *p1,
-                        uint8_t                        ifftFlag,
-                        uint8_t                        bitReverseFlag);
+                        q31_t                     *p1,
+                        uint8_t                    ifftFlag,
+                        uint8_t                    bitReverseFlag);
 
-    riscv_status riscv_cfft_init_q31(riscv_cfft_instance *S,
-                                     uint16_t                 fftLen);
+    riscv_status riscv_cfft_init_q31(riscv_cfft_instance *S, uint16_t fftLen);
 
     riscv_status riscv_rfft_fast_init_q31(riscv_rfft_fast_instance *S,
-                                          uint16_t                      fftLen);
+                                          uint16_t                  fftLen);
 
     void riscv_rfft_fast_q31(const riscv_rfft_fast_instance *S,
-                             q31_t                              *p,
-                             q31_t                              *pOut,
-                             uint8_t                             ifftFlag);
-
+                             q31_t                          *p,
+                             q31_t                          *pOut,
+                             uint8_t                         ifftFlag);
 
 #ifdef __cplusplus
 }

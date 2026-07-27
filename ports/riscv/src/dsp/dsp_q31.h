@@ -36,18 +36,6 @@ extern "C"
     extern const q31_t twiddleCoef_q31_256[384];
     extern const q31_t twiddleCoef_q31_512[768];
 
-#define RISCVBITREVINDEXTABLE_FIXED_128_TABLE_LENGTH ((uint16_t)112)
-    extern const uint16_t riscvBitRevIndexTable_q31_128
-        [RISCVBITREVINDEXTABLE_FIXED_128_TABLE_LENGTH];
-
-#define RISCVBITREVINDEXTABLE_FIXED_256_TABLE_LENGTH ((uint16_t)240)
-    extern const uint16_t riscvBitRevIndexTable_q31_256
-        [RISCVBITREVINDEXTABLE_FIXED_256_TABLE_LENGTH];
-
-#define RISCVBITREVINDEXTABLE_FIXED_512_TABLE_LENGTH ((uint16_t)480)
-    extern const uint16_t riscvBitRevIndexTable_q31_512
-        [RISCVBITREVINDEXTABLE_FIXED_512_TABLE_LENGTH];
-
     extern const uint32_t rearranged_twiddle_tab_stride1_arr_64_q31[3];
     extern const uint32_t rearranged_twiddle_tab_stride2_arr_64_q31[3];
     extern const uint32_t rearranged_twiddle_tab_stride3_arr_64_q31[3];

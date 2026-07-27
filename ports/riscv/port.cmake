@@ -11,6 +11,7 @@ set(PORT_SOURCE
     ${PORT_DIR}/th_api.c
 
     ${PORT_DIR}/src/dsp/tables_f32.c
+    ${PORT_DIR}/src/dsp/tables_radix8.c
     ${PORT_DIR}/src/dsp/cfft_f32.c
     ${PORT_DIR}/src/dsp/rfft_fast_f32.c
 
