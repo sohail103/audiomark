@@ -1,4 +1,4 @@
-# RISC-V P-Extension (Packed SIMD) Support
+# AudioMark - RISC-V Packed SIMD Port
 
 ## Overview
 
