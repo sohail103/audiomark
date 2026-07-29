@@ -41,7 +41,7 @@ Scalar (portable C):
 -DPORT_DIR=ports/riscv
 ```
 
-Optimized implementation for the RISC-V "V" Vector Extension
+Optimized implementation for the RISC-V Vector (V) Extension
 ```bash
 -DPORT_DIR=ports/riscv/v
 ```
@@ -51,4 +51,10 @@ Optimized implementation for the RISC-V "P" Packed SIMD Extension
 -DPORT_DIR=ports/riscv/p
 ```
 
-Note: Optimizations for the V and P extensions are currently work in progress. Some parts of these implementations may still fall back to scalar routines. For more details on each implementation, refer to the README in the respective port directory. 
+## AudioMark - RISC-V Vector Port
+
+The RISC-V port of AudioMark also contains a sub-port optimized for the RISC-V vector extension. See this [README](v/README.md) for details.
+
+## AudioMark - RISC-V Packed SIMD Port
+
+The RISC-V port of AudioMark also contains a sub-port optimized for the RISC-V Packed SIMD extension. See this [README](p/README.md) for details.

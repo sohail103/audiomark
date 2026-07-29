@@ -34,18 +34,6 @@
 #include "arch.h"
 #include <riscv_vector.h>
 
-/*
- * power_spectrum, power_spectrum_accum, spectral_mul_accum, and
- * weighted_spectral_mul_conj can be further optimized with segmented (tuple)
- * vector loads/stores instead of strided ones.
- *
- * However, boards like the Sophgo SG2044 and SpacemiT K1 don't support
- * misaligned vector accesses. At the time of writing, the Linux kernel has
- * disabled software emulation for misaligned vector accesses, resulting in a
- * SIGBUS exception (or a SIGSEGV if the alignment fault is not caught
- * properly).
- */
-
 #ifdef OVERRIDE_MDF_INNER_PROD
 static spx_word32_t
 mdf_inner_prod(const spx_word16_t *x, const spx_word16_t *y, int len)

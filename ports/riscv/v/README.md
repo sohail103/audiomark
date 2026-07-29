@@ -1,4 +1,4 @@
-# RISC-V Vector (RVV 1.0) Support
+# AudioMark - RISC-V Vector Port
 
 ## Overview
 
@@ -57,3 +57,8 @@ selected.
 
 No additional CMake options or compiler flags are required to enable this
 selection.
+
+## Known Issues
+
+A limitation in GCC 15.2 and earlier causes the MDF tests to fail for some configurations of optimization flags.
+The issue has been fixed in GCC 16 and has since been backported to GCC 15.3 (see [GCC PR 122448](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=122448)).
