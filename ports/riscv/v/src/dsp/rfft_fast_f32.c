@@ -24,6 +24,46 @@
 #include "rvv_support_guard.h"
 #include "ee_api.h"
 
+/* Same contiguous-load plus in-register deinterleave as cfft_f32.c. */
+static inline vfloat32m2x2_t
+rvv_load_cpx_f32(const float32_t *ptr, size_t vl)
+{
+#if __riscv_v_elen >= 64
+    vfloat32m4_t raw = __riscv_vle32_v_f32m4(ptr, 2 * vl);
+    vuint64m4_t  p64 = __riscv_vreinterpret_v_u32m4_u64m4(
+        __riscv_vreinterpret_v_f32m4_u32m4(raw));
+    vfloat32m2_t re = __riscv_vreinterpret_v_u32m2_f32m2(
+        __riscv_vnsrl_wx_u32m2(p64, 0, vl));
+    vfloat32m2_t im = __riscv_vreinterpret_v_u32m2_f32m2(
+        __riscv_vnsrl_wx_u32m2(p64, 32, vl));
+    return __riscv_vcreate_v_f32m2x2(re, im);
+#else
+    return __riscv_vlseg2e32_v_f32m2x2(ptr, vl);
+#endif
+}
+
+static inline void
+rvv_store_cpx_f32(float32_t *ptr, vfloat32m2x2_t v, size_t vl)
+{
+#if __riscv_v_elen >= 64
+    vuint32m2_t re_u = __riscv_vreinterpret_v_f32m2_u32m2(
+        __riscv_vget_v_f32m2x2_f32m2(v, 0));
+    vuint32m2_t im_u = __riscv_vreinterpret_v_f32m2_u32m2(
+        __riscv_vget_v_f32m2x2_f32m2(v, 1));
+    vuint64m4_t lo  = __riscv_vwaddu_vx_u64m4(re_u, 0, vl);
+    vuint64m4_t hi  = __riscv_vsll_vx_u64m4(
+        __riscv_vwaddu_vx_u64m4(im_u, 0, vl), 32, vl);
+    vuint64m4_t p64 = __riscv_vor_vv_u64m4(lo, hi, vl);
+    __riscv_vse32_v_f32m4(
+        ptr,
+        __riscv_vreinterpret_v_u32m4_f32m4(
+            __riscv_vreinterpret_v_u64m4_u32m4(p64)),
+        2 * vl);
+#else
+    __riscv_vsseg2e32_v_f32m2x2(ptr, v, vl);
+#endif
+}
+
 riscv_status
 riscv_rfft_fast_init_f32(riscv_rfft_fast_instance_f32 *__EE_RESTRICT S, uint16_t fftLenReal)
 {
@@ -84,7 +124,7 @@ stage_rfft_f32(const riscv_rfft_fast_instance_f32 *__EE_RESTRICT S,
     {
         size_t vl = __riscv_vsetvl_e32m2(blkCnt);
 
-        vfloat32m2x2_t vA  = __riscv_vlseg2e32_v_f32m2x2(pA, vl);
+        vfloat32m2x2_t vA  = rvv_load_cpx_f32(pA, vl);
         vfloat32m2_t   xAr = __riscv_vget_v_f32m2x2_f32m2(vA, 0);
         vfloat32m2_t   xAi = __riscv_vget_v_f32m2x2_f32m2(vA, 1);
 
@@ -92,7 +132,7 @@ stage_rfft_f32(const riscv_rfft_fast_instance_f32 *__EE_RESTRICT S,
         vfloat32m2_t   xBr = __riscv_vget_v_f32m2x2_f32m2(vB, 0);
         vfloat32m2_t   xBi = __riscv_vget_v_f32m2x2_f32m2(vB, 1);
 
-        vfloat32m2x2_t vTw = __riscv_vlseg2e32_v_f32m2x2(pCoeff, vl);
+        vfloat32m2x2_t vTw = rvv_load_cpx_f32(pCoeff, vl);
         vfloat32m2_t   twR = __riscv_vget_v_f32m2x2_f32m2(vTw, 0);
         vfloat32m2_t   twI = __riscv_vget_v_f32m2x2_f32m2(vTw, 1);
 
@@ -118,7 +158,7 @@ stage_rfft_f32(const riscv_rfft_fast_instance_f32 *__EE_RESTRICT S,
         resR = __riscv_vfmacc_vf_f32m2(half1R, 0.5f, resR, vl);
         resI = __riscv_vfmacc_vf_f32m2(half1I, 0.5f, resI, vl);
 
-        __riscv_vsseg2e32_v_f32m2x2(
+        rvv_store_cpx_f32(
             pOut, __riscv_vcreate_v_f32m2x2(resR, resI), vl);
 
         pA += 2 * vl;
@@ -157,7 +197,7 @@ merge_rfft_f32(const riscv_rfft_fast_instance_f32 *S,
     {
         size_t vl = __riscv_vsetvl_e32m2(blkCnt);
 
-        vfloat32m2x2_t vA  = __riscv_vlseg2e32_v_f32m2x2(pA, vl);
+        vfloat32m2x2_t vA  = rvv_load_cpx_f32(pA, vl);
         vfloat32m2_t   xAr = __riscv_vget_v_f32m2x2_f32m2(vA, 0);
         vfloat32m2_t   xAi = __riscv_vget_v_f32m2x2_f32m2(vA, 1);
 
@@ -165,7 +205,7 @@ merge_rfft_f32(const riscv_rfft_fast_instance_f32 *S,
         vfloat32m2_t   xBr = __riscv_vget_v_f32m2x2_f32m2(vB, 0);
         vfloat32m2_t   xBi = __riscv_vget_v_f32m2x2_f32m2(vB, 1);
 
-        vfloat32m2x2_t vTw = __riscv_vlseg2e32_v_f32m2x2(pCoeff, vl);
+        vfloat32m2x2_t vTw = rvv_load_cpx_f32(pCoeff, vl);
         vfloat32m2_t   twR = __riscv_vget_v_f32m2x2_f32m2(vTw, 0);
         vfloat32m2_t   twI = __riscv_vget_v_f32m2x2_f32m2(vTw, 1);
 
@@ -189,7 +229,7 @@ merge_rfft_f32(const riscv_rfft_fast_instance_f32 *S,
         resR = __riscv_vfnmsac_vf_f32m2(half1R, 0.5f, resR, vl);
         resI = __riscv_vfnmsac_vf_f32m2(half1I, 0.5f, resI, vl);
 
-        __riscv_vsseg2e32_v_f32m2x2(
+        rvv_store_cpx_f32(
             pOut, __riscv_vcreate_v_f32m2x2(resR, resI), vl);
 
         pA += 2 * vl;
