@@ -49,3 +49,9 @@ Optimized implementation for the RISC-V Vector (V) Extension
 ## AudioMark - RISC-V Vector Port
 
 The RISC-V port of AudioMark also contains a sub-port optimized for the RISC-V vector extension. See this [README](v/README.md) for details.
+
+## Code provenance and licensing
+
+The RISC-V port includes selected kernels adapted from existing implementations in [muriscv-nn](https://github.com/tum-ei-eda/muriscv-nn/), [CMSIS-NN](https://github.com/ARM-software/CMSIS-NN) and [CMSIS-DSP](https://github.com/ARM-software/CMSIS-DSP). These implementations have been integrated into AudioMark and modified for its interfaces and RISC-V specific optimizations. The port does not incorporate these libraries as a whole.
+
+Upstream copyright notices, applicable license identifiers, and attribution notices are retained in the corresponding source files. Refer to the individual source headers for licensing information.
