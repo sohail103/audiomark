@@ -63,6 +63,7 @@ File origins:
 | `ports/riscv/src/` | `nn_classify.c` | Adapted from `ports/arm/th_api.c` |
 | | `nn_init.c` | Adapted from `ports/arm/th_api.c` |
 | | All other files directly in this directory | Original implementation |
+| `ports/riscv/src/dsp` | All direct files (excluding subdirectories) | [CMSIS-DSP v1.10.1](https://github.com/ARM-software/CMSIS-DSP/) |
 | `ports/riscv/src/nn/` | `avgpool_25x5x64_s8.c` | Original implementation |
 | | `buffer_utils.h` | Original implementation |
 | | `convolve_s8.c` | [muriscv-nn](https://github.com/tum-ei-eda/muriscv-nn/) |
@@ -78,6 +79,7 @@ File origins:
 | | `types.h` | [muriscv-nn](https://github.com/tum-ei-eda/muriscv-nn/) |
 | | `vec_mat_mult_t_s8.c` | [muriscv-nn](https://github.com/tum-ei-eda/muriscv-nn/) |
 | `ports/riscv/v/src/` | All direct files (excluding subdirectories) | Original implementation |
+| `ports/riscv/v/src/dsp` | All direct files (excluding subdirectories) | [CMSIS-DSP v1.10.1](https://github.com/ARM-software/CMSIS-DSP/) |
 | `ports/riscv/v/src/nn/` | `avgpool_25x5x64_s8.c` | Original implementation |
 | | `conv0_s8.c` | [muriscv-nn](https://github.com/tum-ei-eda/muriscv-nn/) |
 | | `conv1x1_s8.c` | [muriscv-nn](https://github.com/tum-ei-eda/muriscv-nn/) |
