@@ -28,10 +28,8 @@ concurrency:
 
 jobs:
   build-test-benchmark:
-    name: RISC-V (${{ matrix.march_display }}) AudioMark build and QEMU / CLANG@19.1.1
-    runs-on: ubuntu-latest
-    env:
-      VERSION_QEMU: "9.2.4"
+    name: RISC-V (${{ matrix.march_display }}) AudioMark build and QEMU / Clang
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -71,60 +69,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Cache QEMU build
-        id: cache-qemu
-        uses: actions/cache@v5
-        with:
-          path: ~/qemu-install
-          key: qemu-${{ env.VERSION_QEMU }}-riscv64-linux
-
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          if [ "${{ steps.cache-qemu.outputs.cache-hit }}" != "true" ]; then
-            sudo apt-get install -y \
-              clang-19 lld-19 \
-              gcc-riscv64-linux-gnu \
-              libc6-dev-riscv64-cross \
-              libglib2.0-dev libpixman-1-dev \
-              ninja-build python3-venv
-          else
-            sudo apt-get install -y \
-              clang-19 lld-19 \
-              gcc-riscv64-linux-gnu \
-              libc6-dev-riscv64-cross
-          fi
-
-      - name: Build QEMU user-mode (riscv64) from source
-        if: steps.cache-qemu.outputs.cache-hit != 'true'
-        run: |
-          wget -q https://download.qemu.org/qemu-${{ env.VERSION_QEMU }}.tar.xz
-          tar xf qemu-${{ env.VERSION_QEMU }}.tar.xz
-          cd qemu-${{ env.VERSION_QEMU }}
-          ./configure \
-            --prefix=$HOME/qemu-install \
-            --target-list=riscv64-linux-user \
-            --disable-system \
-            --enable-linux-user \
-            --disable-docs \
-            --disable-werror
-          make -j$(nproc)
-          make install
+          sudo apt-get install -y \
+            clang \
+            qemu-user \
+            gcc-riscv64-linux-gnu \
+            libc6-dev-riscv64-cross
 
       - name: Set up environment
-        run: |
-          echo "$HOME/qemu-install/bin" >> $GITHUB_PATH
-          echo "RUN=qemu-riscv64 -L /usr/riscv64-linux-gnu -cpu ${{ matrix.qemu_cpu }}" >> $GITHUB_ENV
+        run: echo "RUN=qemu-riscv64 -L /usr/riscv64-linux-gnu -cpu ${{ matrix.qemu_cpu }}" >> $GITHUB_ENV
 
-      - name: Print compiler info
-        run: clang-19 -v 2>&1
+      - name: Print compiler and QEMU info
+        run: |
+          clang -v 2>&1
+          qemu-riscv64 --version
 
       - name: Configure CMake
         run: |
           SYSROOT=$(riscv64-linux-gnu-gcc -print-sysroot)
           cmake -S . -B build-${{ matrix.key }} \
             -DPORT_DIR=${{ matrix.port_dir }} \
-            -DCMAKE_C_COMPILER=clang-19 \
+            -DCMAKE_C_COMPILER=clang \
             -DCMAKE_C_FLAGS="--target=riscv64-linux-gnu -march=${{ matrix.march }} -O2 --sysroot=${SYSROOT}" \
             -DCMAKE_EXE_LINKER_FLAGS="--target=riscv64-linux-gnu --sysroot=${SYSROOT} -fuse-ld=/usr/bin/riscv64-linux-gnu-ld"
 
